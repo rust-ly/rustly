@@ -1,0 +1,57 @@
+id = "book.common-concepts.control-flow.checkpoint"
+kind = "checkpoint"
+title = "Sum the even numbers"
+prompt = '''
+Write `sum_of_evens`, which returns the sum of every even number from 1 up to and
+including `limit`. For example, `sum_of_evens(10)` is 2 + 4 + 6 + 8 + 10 = 30.
+'''
+starter = '''
+fn sum_of_evens(limit: u32) -> u32 {
+    todo!("loop over 1..=limit and add up the even numbers")
+}
+
+fn main() {
+    println!("{}", sum_of_evens(10));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn up_to_ten() {
+        assert_eq!(sum_of_evens(10), 30);
+    }
+
+    #[test]
+    fn odd_limit_is_excluded() {
+        assert_eq!(sum_of_evens(7), 12);
+    }
+
+    #[test]
+    fn nothing_to_add() {
+        assert_eq!(sum_of_evens(0), 0);
+        assert_eq!(sum_of_evens(1), 0);
+    }
+}
+'''
+hints = [
+  "Start with `let mut total = 0;` and return `total` at the end.",
+  "A number is even when `n % 2 == 0`.",
+]
+solution = '''
+fn sum_of_evens(limit: u32) -> u32 {
+    let mut total = 0;
+    for n in 1..=limit {
+        if n % 2 == 0 {
+            total += n;
+        }
+    }
+    total
+}
+
+fn main() {
+    println!("{}", sum_of_evens(10));
+}
+'''

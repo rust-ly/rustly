@@ -1,0 +1,56 @@
+id = "book.common-concepts.types-and-functions.checkpoint"
+kind = "checkpoint"
+title = "Fahrenheit to Celsius"
+prompt = '''
+Write `fahrenheit_to_celsius`, which converts a temperature in degrees Fahrenheit
+to degrees Celsius. The formula is: subtract 32, then multiply by 5/9.
+'''
+starter = '''
+fn fahrenheit_to_celsius(fahrenheit: f64) -> f64 {
+    todo!("convert to Celsius")
+}
+
+fn main() {
+    println!("212°F is {}°C", fahrenheit_to_celsius(212.0));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn close(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-9
+    }
+
+    #[test]
+    fn boiling_and_freezing() {
+        assert!(close(fahrenheit_to_celsius(212.0), 100.0));
+        assert!(close(fahrenheit_to_celsius(32.0), 0.0));
+    }
+
+    #[test]
+    fn minus_forty_is_the_same_in_both() {
+        assert!(close(fahrenheit_to_celsius(-40.0), -40.0));
+    }
+
+    #[test]
+    fn body_temperature() {
+        assert!((fahrenheit_to_celsius(98.6) - 37.0).abs() < 1e-6);
+    }
+}
+'''
+hints = [
+  "The last expression in the function body is its return value. Don't end it with a semicolon.",
+  "Write the numbers as floats: `5.0 / 9.0`, not `5 / 9`. Integer division would give 0.",
+  "`(fahrenheit - 32.0) * 5.0 / 9.0`",
+]
+solution = '''
+fn fahrenheit_to_celsius(fahrenheit: f64) -> f64 {
+    (fahrenheit - 32.0) * 5.0 / 9.0
+}
+
+fn main() {
+    println!("212°F is {}°C", fahrenheit_to_celsius(212.0));
+}
+'''

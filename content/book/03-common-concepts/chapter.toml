@@ -1,0 +1,7 @@
+id = "book.common-concepts"
+track = "book"
+title = "Common Programming Concepts"
+order = 3
+source = "https://doc.rust-lang.org/book/ch03-00-common-programming-concepts.html"
+summary = "Variables, types, functions and control flow: the building blocks every Rust program uses."
+requires = []

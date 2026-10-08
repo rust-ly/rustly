@@ -1,0 +1,61 @@
+id = "book.common-concepts.variables.checkpoint"
+kind = "checkpoint"
+title = "Fix the running total"
+prompt = '''
+`sum_to` should add up every whole number from 1 to `n`, but it doesn't compile.
+Read the compiler error and make the smallest change that fixes it.
+'''
+starter = '''
+/// Adds up every whole number from 1 to `n`.
+fn sum_to(n: u32) -> u32 {
+    let total = 0;
+    for i in 1..=n {
+        total += i;
+    }
+    total
+}
+
+fn main() {
+    println!("1 + 2 + 3 + 4 = {}", sum_to(4));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sums_small_ranges() {
+        assert_eq!(sum_to(4), 10);
+        assert_eq!(sum_to(1), 1);
+    }
+
+    #[test]
+    fn sum_to_zero_is_zero() {
+        assert_eq!(sum_to(0), 0);
+    }
+
+    #[test]
+    fn sums_to_one_hundred() {
+        assert_eq!(sum_to(100), 5050);
+    }
+}
+'''
+hints = [
+  "The compiler says `total` is assigned twice. Which line assigns to it?",
+  "A variable whose value changes needs `let mut`.",
+]
+solution = '''
+/// Adds up every whole number from 1 to `n`.
+fn sum_to(n: u32) -> u32 {
+    let mut total = 0;
+    for i in 1..=n {
+        total += i;
+    }
+    total
+}
+
+fn main() {
+    println!("1 + 2 + 3 + 4 = {}", sum_to(4));
+}
+'''
