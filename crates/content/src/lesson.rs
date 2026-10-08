@@ -40,6 +40,13 @@ pub fn lesson_blocks(body_md: &str) -> Vec<LessonBlock> {
     blocks
 }
 
+/// Renders markdown with no snippet handling, e.g. an exercise prompt.
+pub fn markdown_html(md: &str) -> String {
+    let mut out = String::new();
+    html::push_html(&mut out, Parser::new_ext(md, Options::ENABLE_TABLES));
+    out
+}
+
 fn flush(pending: &mut Vec<Event>, blocks: &mut Vec<LessonBlock>) {
     if pending.is_empty() {
         return;
@@ -76,6 +83,26 @@ mod tests {
                 "<pre><code class=\"language-sh\">cargo run\n</code></pre>\n".into()
             )]
         );
+    }
+
+    #[test]
+    fn renders_a_prompt() {
+        assert_eq!(
+            markdown_html("Fix `sum_to`."),
+            "<p>Fix <code>sum_to</code>.</p>\n"
+        );
+    }
+
+    /// The frontend rebuilds an edited snippet as hidden top lines, the
+    /// learner's text, then hidden bottom lines, so hidden lines can't sit in
+    /// the middle of an editable snippet.
+    #[test]
+    fn editable_snippets_only_hide_lines_at_the_ends() {
+        for snippet in crate::snippets().filter(|s| s.kind == crate::SnippetKind::Editable) {
+            let lines = &snippet.visible_lines;
+            let contiguous = lines.windows(2).all(|w| w[1] == w[0] + 1);
+            assert!(contiguous, "{} hides lines in the middle", snippet.id);
+        }
     }
 
     #[test]
