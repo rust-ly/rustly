@@ -4,13 +4,23 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rustly</title>
+    <!-- Apply the saved theme before the app loads, so there's no flash. -->
+    <script>
+      try {
+        var t = localStorage.getItem("rustly:theme");
+        if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        document.documentElement.dataset.theme = t;
+      } catch (e) { document.documentElement.dataset.theme = "dark"; }
+    </script>
     <link data-trunk rel="rust" data-wasm-opt="z" />
     <link data-trunk rel="copy-dir" href="assets/fonts" />
     <link rel="preload" href="/fonts/satoshi/Satoshi-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <!-- Trunk doesn't follow CSS @import, so each stylesheet is linked in order. -->
     <link data-trunk rel="css" href="style/fonts.css" />
-    <link data-trunk rel="css" href="style/main.css" />
+    <link data-trunk rel="css" href="style/tokens.css" />
+    <link data-trunk rel="css" href="style/base.css" />
+    <link data-trunk rel="css" href="style/components.css" />
   </head>
   <body></body>
 </html>

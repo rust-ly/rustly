@@ -3,11 +3,16 @@ use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::hooks::use_location;
 use leptos_router::path;
 
+use crate::learner::Learner;
+use crate::topbar::TopBar;
+
 #[component]
 pub fn App() -> impl IntoView {
+    Learner::provide();
     view! {
         <Router>
-            <main>
+            <TopBar />
+            <main class="container">
                 <Routes fallback=NotFound>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/learn/*rest") view=Learn />

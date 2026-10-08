@@ -1,0 +1,87 @@
+/* Design tokens from the Rustly design system doc. This is the only file
+   where colour values appear; everything else uses these variables. */
+
+:root {
+  /* source palette (from the crab image) */
+  --sand: #F2BC57;
+  --amber: #BF6C06;
+  --crab: #D93D04;
+  --shell: #8C0303;
+  --lava: #0D0D0D;
+  --cream: #F7EBD6;
+
+  /* dark theme = default */
+  --bg: var(--lava);
+  --surface: #161412;
+  --surface-2: #1F1B18;
+  --ink: var(--cream);
+  --muted: #B5A68E;
+  --border: rgb(242 188 87 / 0.14);
+  --border-strong: rgb(242 188 87 / 0.4);
+  --error-text: #FF6B4A;
+  --btn-bg: var(--sand);
+  --btn-fg: var(--lava);
+  --wordmark-accent: var(--crab);
+  --grain-opacity: 0.04;
+  --hatch: rgb(140 3 3 / 0.08);
+  --macro: #FF8A5B;
+
+  /* shape + depth */
+  --radius: 0;
+  --radius-control: 2px;
+  --shadow-sm: 3px 3px 0 var(--crab);
+  --shadow: 5px 5px 0 var(--crab);
+
+  /* type */
+  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --text-hero: clamp(56px, 11vw, 136px);
+  --text-h1: clamp(36px, 5vw, 56px);
+  --text-h2: 32px;
+  --text-h3: 20px;
+  --text-body: 17px;
+  --text-ui: 15px;
+  --text-small: 13px;
+  --text-eyebrow: 11px;
+  --text-button: 12px;
+  --text-code: 14px;
+  --text-snippet: 13.5px;
+
+  /* spacing */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --content-max: 1200px;
+  --gutter: 24px;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #FAF3E6;
+  --surface: #FFFBF3;
+  --surface-2: #F3E8D3;
+  --ink: var(--lava);
+  --muted: #5E5246;
+  --border: rgb(13 13 13 / 0.12);
+  --border-strong: rgb(13 13 13 / 0.35);
+  --error-text: var(--shell);
+  --btn-bg: var(--lava);
+  --btn-fg: var(--sand);
+  --wordmark-accent: var(--shell);
+  --grain-opacity: 0.03;
+  --macro: var(--shell);
+  color-scheme: light;
+}
+
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+}
