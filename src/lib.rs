@@ -2,8 +2,10 @@
 //! read the request, call into this crate, write the response. Keeping the
 //! logic here means it can be tested without Vercel or a network.
 
+mod endpoints;
 mod http;
 
+pub use endpoints::Api;
 pub use http::{read_json, respond};
 
 /// Largest `code` the API accepts, in bytes.
@@ -32,6 +34,19 @@ impl Failure {
                 MAX_CODE_BYTES / 1024
             ),
         )
+    }
+}
+
+impl From<runner::playground::Error> for Failure {
+    fn from(e: runner::playground::Error) -> Self {
+        use runner::playground::Error;
+        let message = match e {
+            Error::Timeout => "The compile service took too long to answer. Please try again.",
+            Error::Status(_) | Error::Request(_) => {
+                "The compile service isn't answering right now. Please try again in a minute."
+            }
+        };
+        Self::new(502, message)
     }
 }
 
