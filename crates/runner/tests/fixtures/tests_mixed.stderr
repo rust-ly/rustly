@@ -1,0 +1,4 @@
+   Compiling playground v0.0.1 (/playground)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.48s
+     Running unittests src/main.rs (target/debug/deps/playground-19cccc00de0fa345)
+error: test failed, to rerun pass `--bin playground`

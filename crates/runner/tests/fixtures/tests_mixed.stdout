@@ -1,0 +1,28 @@
+
+running 3 tests
+test tests::adds_small_numbers ... ok
+test tests::adds_big_numbers ... FAILED
+test tests::panics_inside ... FAILED
+
+failures:
+
+---- tests::adds_big_numbers stdout ----
+
+thread 'tests::adds_big_numbers' (44) panicked at src/main.rs:20:9:
+assertion `left == right` failed
+  left: 43
+ right: 42
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::panics_inside stdout ----
+
+thread 'tests::panics_inside' (46) panicked at src/main.rs:26:21:
+index out of bounds: the len is 0 but the index is 0
+
+
+failures:
+    tests::adds_big_numbers
+    tests::panics_inside
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
