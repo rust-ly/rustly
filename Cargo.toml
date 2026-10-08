@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "frontend"]
 # Keep the WASM app out of the root build that Vercel runs for the API.
 default-members = [".", "crates/*"]
 resolver = "2"
