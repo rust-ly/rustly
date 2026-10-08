@@ -1,0 +1,67 @@
+id = "book.ownership.slices.checkpoint"
+kind = "checkpoint"
+title = "first_word"
+prompt = '''
+Write `first_word`, which returns a slice of `s` up to the first space. If there's
+no space, return the whole string. Return a slice of `s` itself, not a new `String`.
+'''
+starter = '''
+fn first_word(s: &str) -> &str {
+    todo!("find the first space and slice up to it")
+}
+
+fn main() {
+    let sentence = String::from("hello world");
+    println!("first word: {}", first_word(&sentence));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stops_at_the_first_space() {
+        assert_eq!(first_word("hello world"), "hello");
+        assert_eq!(first_word("one two three"), "one");
+    }
+
+    #[test]
+    fn whole_string_without_a_space() {
+        assert_eq!(first_word("rustacean"), "rustacean");
+        assert_eq!(first_word(""), "");
+    }
+
+    #[test]
+    fn leading_space_gives_empty_word() {
+        assert_eq!(first_word(" padded"), "");
+    }
+
+    #[test]
+    fn returns_a_slice_of_the_input() {
+        let s = String::from("borrowed text");
+        let word = first_word(&s);
+        assert_eq!(word.as_ptr(), s.as_ptr());
+    }
+}
+'''
+hints = [
+  "Loop over `s.as_bytes().iter().enumerate()` and look for the byte `b' '`.",
+  "When you find a space at index `i`, return `&s[..i]`.",
+  "If the loop finishes without finding a space, return `s` (or `&s[..]`).",
+]
+solution = '''
+fn first_word(s: &str) -> &str {
+    for (i, &byte) in s.as_bytes().iter().enumerate() {
+        if byte == b' ' {
+            return &s[..i];
+        }
+    }
+    s
+}
+
+fn main() {
+    let sentence = String::from("hello world");
+    println!("first word: {}", first_word(&sentence));
+}
+'''

@@ -1,0 +1,62 @@
+id = "book.ownership.moves.checkpoint"
+kind = "checkpoint"
+title = "Fix the move"
+prompt = '''
+`loud_pair` should return the original text and a shouted copy of it, for example
+`("hi", "HI")`. It doesn't compile, because `text` is used after it was moved.
+Fix it without changing either function's signature.
+'''
+starter = '''
+fn shout(text: String) -> String {
+    text.to_uppercase()
+}
+
+fn loud_pair(text: String) -> (String, String) {
+    let loud = shout(text);
+    (text, loud)
+}
+
+fn main() {
+    let (quiet, loud) = loud_pair(String::from("hi"));
+    println!("{quiet} -> {loud}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_original_and_shouts() {
+        let (quiet, loud) = loud_pair(String::from("hi"));
+        assert_eq!(quiet, "hi");
+        assert_eq!(loud, "HI");
+    }
+
+    #[test]
+    fn works_with_longer_text() {
+        let (quiet, loud) = loud_pair(String::from("Ferris the crab"));
+        assert_eq!(quiet, "Ferris the crab");
+        assert_eq!(loud, "FERRIS THE CRAB");
+    }
+}
+'''
+hints = [
+  "`shout(text)` moves `text` into `shout`, so it's gone by the next line.",
+  "Give `shout` its own copy: `shout(text.clone())`.",
+]
+solution = '''
+fn shout(text: String) -> String {
+    text.to_uppercase()
+}
+
+fn loud_pair(text: String) -> (String, String) {
+    let loud = shout(text.clone());
+    (text, loud)
+}
+
+fn main() {
+    let (quiet, loud) = loud_pair(String::from("hi"));
+    println!("{quiet} -> {loud}");
+}
+'''

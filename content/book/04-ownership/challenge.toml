@@ -1,0 +1,87 @@
+id = "book.ownership.challenge"
+kind = "challenge"
+title = "Notes: borrow, slice, change"
+prompt = '''
+Write two small functions that use everything from this chapter:
+
+1. `first_sentence(text)` returns a slice of `text` up to and including the first
+   `.`. If there's no `.`, return the whole text.
+2. `sign(note, name)` changes `note` in place by adding `" -- "` and then `name`.
+   `sign` mustn't take ownership of `note` or `name`.
+
+The tests call them as `first_sentence(&text)` and `sign(&mut note, "Ada")`.
+'''
+starter = '''
+fn first_sentence(text: &str) -> &str {
+    todo!()
+}
+
+fn sign(note: String, name: String) {
+    todo!()
+}
+
+fn main() {
+    let text = String::from("Borrowing is great. Moving is fine too.");
+    let mut note = String::from(first_sentence(&text));
+    sign(&mut note, "Ada");
+    println!("{note}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_sentence_includes_the_period() {
+        let text = String::from("One. Two. Three.");
+        assert_eq!(first_sentence(&text), "One.");
+    }
+
+    #[test]
+    fn first_sentence_without_a_period() {
+        assert_eq!(first_sentence("no period here"), "no period here");
+    }
+
+    #[test]
+    fn first_sentence_borrows_the_input() {
+        let text = String::from("Slices borrow. They do not copy.");
+        assert_eq!(first_sentence(&text).as_ptr(), text.as_ptr());
+    }
+
+    #[test]
+    fn sign_appends_in_place() {
+        let mut note = String::from("Ship it.");
+        let name = String::from("Ada");
+        sign(&mut note, &name);
+        sign(&mut note, "Grace");
+        assert_eq!(note, "Ship it. -- Ada -- Grace");
+        assert_eq!(name, "Ada");
+    }
+}
+'''
+hints = [
+  "`sign` needs to change `note` without owning it, so it takes `&mut String`. It only reads `name`, so that's a `&str`.",
+  "`push_str` appends a `&str` to a `String`.",
+  "For `first_sentence`, find the index of the `.` (byte loop or `text.find('.')`) and return `&text[..=i]`.",
+]
+solution = '''
+fn first_sentence(text: &str) -> &str {
+    match text.find('.') {
+        Some(i) => &text[..=i],
+        None => text,
+    }
+}
+
+fn sign(note: &mut String, name: &str) {
+    note.push_str(" -- ");
+    note.push_str(name);
+}
+
+fn main() {
+    let text = String::from("Borrowing is great. Moving is fine too.");
+    let mut note = String::from(first_sentence(&text));
+    sign(&mut note, "Ada");
+    println!("{note}");
+}
+'''
