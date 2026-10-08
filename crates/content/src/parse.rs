@@ -110,7 +110,7 @@ pub(crate) fn snippets(concept_id: &str, body: &str) -> Result<Vec<Snippet>, Str
             }
             Event::End(TagEnd::CodeBlock) => {
                 if let Some((kind, title, code)) = current.take() {
-                    let (code, visible_code) = split_hidden_lines(&code);
+                    let (code, visible_code, visible_lines) = split_hidden_lines(&code);
                     snippets.push(Snippet {
                         id: format!("{concept_id}.snippet-{}", snippets.len() + 1),
                         concept_id: concept_id.to_string(),
@@ -118,6 +118,7 @@ pub(crate) fn snippets(concept_id: &str, body: &str) -> Result<Vec<Snippet>, Str
                         title,
                         code,
                         visible_code,
+                        visible_lines,
                     });
                 }
             }
@@ -163,11 +164,12 @@ pub(crate) fn fence_info(info: &str) -> Result<Option<(SnippetKind, Option<Strin
 }
 
 /// Lines starting with `# ` (or a bare `#`) are compiled but not shown, like
-/// rustdoc. Returns `(code, visible_code)`.
-fn split_hidden_lines(code: &str) -> (String, String) {
+/// rustdoc. Returns `(code, visible_code, visible_lines)`.
+fn split_hidden_lines(code: &str) -> (String, String, Vec<u32>) {
     let mut full = String::new();
     let mut visible = String::new();
-    for line in code.lines() {
+    let mut visible_lines = Vec::new();
+    for (i, line) in code.lines().enumerate() {
         if line == "#" {
             full.push('\n');
         } else if let Some(hidden) = line.strip_prefix("# ") {
@@ -178,9 +180,10 @@ fn split_hidden_lines(code: &str) -> (String, String) {
             full.push('\n');
             visible.push_str(line);
             visible.push('\n');
+            visible_lines.push(i as u32 + 1);
         }
     }
-    (full, visible)
+    (full, visible, visible_lines)
 }
 
 #[cfg(test)]
@@ -265,6 +268,11 @@ fn main() {
         );
         assert!(snippet.visible_code.starts_with("fn main() {\n"));
         assert!(!snippet.visible_code.contains("Unit"));
+        let first_visible = snippet.visible_lines[0] as usize;
+        assert_eq!(
+            snippet.code.lines().nth(first_visible - 1),
+            snippet.visible_code.lines().next()
+        );
     }
 
     #[test]
