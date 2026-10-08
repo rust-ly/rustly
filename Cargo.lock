@@ -297,8 +297,10 @@ name = "content"
 version = "0.1.0"
 dependencies = [
  "pulldown-cmark",
+ "runner",
  "serde",
  "serde_json",
+ "tokio",
  "toml",
 ]
 
