@@ -6,3 +6,15 @@ dist = "dist"
 [[proxy]]
 rewrite = "/api/health"
 backend = "http://127.0.0.1:3001/"
+
+[[proxy]]
+rewrite = "/api/check"
+backend = "http://127.0.0.1:3002/"
+
+[[proxy]]
+rewrite = "/api/run"
+backend = "http://127.0.0.1:3003/"
+
+[[proxy]]
+rewrite = "/api/submit"
+backend = "http://127.0.0.1:3004/"

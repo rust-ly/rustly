@@ -13,7 +13,24 @@ publish = false
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 vercel_runtime = "2.4"
+http-body-util = "0.1"
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+shared = { path = "crates/shared" }
+runner = { path = "crates/runner" }
+content = { path = "crates/content", features = ["server"] }
+
+[[bin]]
+name = "check"
+path = "api/check.rs"
+
+[[bin]]
+name = "run"
+path = "api/run.rs"
+
+[[bin]]
+name = "submit"
+path = "api/submit.rs"
 
 [[bin]]
 name = "health"

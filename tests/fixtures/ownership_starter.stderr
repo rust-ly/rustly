@@ -1,0 +1,94 @@
+   Compiling playground v0.0.1 (/playground)
+error[E0308]: arguments to this function are incorrect
+  --> src/main.rs:12:5
+   |
+12 |     sign(&mut note, "Ada");
+   |     ^^^^ ---------  ----- expected `String`, found `&str`
+   |          |
+   |          expected `String`, found `&mut String`
+   |
+note: function defined here
+  --> src/main.rs:5:4
+   |
+ 5 | fn sign(note: String, name: String) {
+   |    ^^^^ ------------  ------------
+help: consider removing the borrow
+   |
+12 -     sign(&mut note, "Ada");
+12 +     sign(note, "Ada");
+   |
+help: try using a conversion method
+   |
+12 |     sign(&mut note, "Ada".to_string());
+   |                          ++++++++++++
+
+error[E0308]: arguments to this function are incorrect
+  --> src/main.rs:41:9
+   |
+41 |         sign(&mut note, &name);
+   |         ^^^^ ---------  ----- expected `String`, found `&String`
+   |              |
+   |              expected `String`, found `&mut String`
+   |
+note: function defined here
+  --> src/main.rs:5:4
+   |
+ 5 | fn sign(note: String, name: String) {
+   |    ^^^^ ------------  ------------
+help: consider removing the borrow
+   |
+41 -         sign(&mut note, &name);
+41 +         sign(note, &name);
+   |
+help: consider removing the borrow
+   |
+41 -         sign(&mut note, &name);
+41 +         sign(&mut note, name);
+   |
+
+error[E0308]: arguments to this function are incorrect
+  --> src/main.rs:42:9
+   |
+42 |         sign(&mut note, "Grace");
+   |         ^^^^ ---------  ------- expected `String`, found `&str`
+   |              |
+   |              expected `String`, found `&mut String`
+   |
+note: function defined here
+  --> src/main.rs:5:4
+   |
+ 5 | fn sign(note: String, name: String) {
+   |    ^^^^ ------------  ------------
+help: consider removing the borrow
+   |
+42 -         sign(&mut note, "Grace");
+42 +         sign(note, "Grace");
+   |
+help: try using a conversion method
+   |
+42 |         sign(&mut note, "Grace".to_string());
+   |                                ++++++++++++
+
+warning: unused variable: `text`
+ --> src/main.rs:1:19
+  |
+1 | fn first_sentence(text: &str) -> &str {
+  |                   ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `note`
+ --> src/main.rs:5:9
+  |
+5 | fn sign(note: String, name: String) {
+  |         ^^^^ help: if this is intentional, prefix it with an underscore: `_note`
+
+warning: unused variable: `name`
+ --> src/main.rs:5:23
+  |
+5 | fn sign(note: String, name: String) {
+  |                       ^^^^ help: if this is intentional, prefix it with an underscore: `_name`
+
+For more information about this error, try `rustc --explain E0308`.
+warning: `playground` (bin "playground" test) generated 3 warnings
+error: could not compile `playground` (bin "playground" test) due to 3 previous errors; 3 warnings emitted
