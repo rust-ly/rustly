@@ -1,3 +1,25 @@
 [workspace]
 members = ["crates/*"]
+# Keep the WASM app out of the root build that Vercel runs for the API.
+default-members = [".", "crates/*"]
 resolver = "2"
+
+[package]
+name = "rustly-api"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+vercel_runtime = "2.4"
+serde_json = "1"
+
+[[bin]]
+name = "health"
+path = "api/health.rs"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
