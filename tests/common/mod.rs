@@ -1,5 +1,8 @@
 //! A stand-in for the Playground, so endpoint tests run without a network.
 
+// Each test binary uses a different part of this module.
+#![allow(dead_code)]
+
 use std::sync::{Arc, Mutex};
 
 use runner::PlaygroundClient;
