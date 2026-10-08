@@ -17,9 +17,12 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
-      # Without `server` the answers are stripped; check both builds.
+      # Without `server` the answers are stripped; check both builds. The API
+      # turns `server` on, so the root build only covers that one.
       - run: cargo clippy -p content --all-targets --features server -- -D warnings
       - run: cargo test -p content --features server
+      - run: cargo clippy -p content --all-targets -- -D warnings
+      - run: cargo test -p content
 
   frontend:
     runs-on: ubuntu-latest
