@@ -17,13 +17,16 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      # Without `server` the answers are stripped; check both builds.
+      - run: cargo clippy -p content --all-targets --features server -- -D warnings
+      - run: cargo test -p content --features server
 
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy -p frontend -p shared --target wasm32-unknown-unknown -- -D warnings
+      - run: cargo clippy -p frontend -p shared -p content --target wasm32-unknown-unknown -- -D warnings
       - uses: jetli/trunk-action@v0.5.1
         with:
           version: latest
