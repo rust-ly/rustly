@@ -1,0 +1,8 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+# Local dev: each API function runs as its own binary (see README).
+[[proxy]]
+rewrite = "/api/health"
+backend = "http://127.0.0.1:3001/"
