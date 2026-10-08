@@ -129,7 +129,7 @@ pub(crate) fn snippets(concept_id: &str, body: &str) -> Result<Vec<Snippet>, Str
 
 /// Reads an info string such as `rust,does_not_compile title="Moving a String"`.
 /// Returns `None` for fences that aren't Rust.
-fn fence_info(info: &str) -> Result<Option<(SnippetKind, Option<String>)>, String> {
+pub(crate) fn fence_info(info: &str) -> Result<Option<(SnippetKind, Option<String>)>, String> {
     let info = info.trim();
     let (head, attrs) = match info.split_once(char::is_whitespace) {
         Some((head, attrs)) => (head, attrs.trim()),
