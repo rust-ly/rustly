@@ -1,0 +1,21 @@
+    Checking playground v0.0.1 (/playground)
+warning: length comparison to zero
+ --> src/main.rs:3:8
+  |
+3 |     if v.len() == 0 {
+  |        ^^^^^^^^^^^^ help: using `is_empty` is clearer and more explicit: `v.is_empty()`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#len_zero
+  = note: `#[warn(clippy::len_zero)]` on by default
+
+warning: useless use of `vec!`
+ --> src/main.rs:2:13
+  |
+2 |     let v = vec![1, 2, 3];
+  |             ^^^^^^^^^^^^^ help: you can use an array directly: `[1, 2, 3]`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+  = note: `#[warn(clippy::useless_vec)]` on by default
+
+warning: `playground` (bin "playground") generated 2 warnings (run `cargo clippy --fix --bin "playground" -p playground -- ` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s

@@ -1,0 +1,42 @@
+   Compiling playground v0.0.1 (/playground)
+error[E0425]: cannot find value `y` in this scope
+ --> src/main.rs:6:20
+  |
+6 |     println!("{}", y);
+  |                    ^
+  |
+help: a local variable with a similar name exists
+  |
+6 -     println!("{}", y);
+6 +     println!("{}", v);
+  |
+
+error[E0308]: mismatched types
+ --> src/main.rs:3:18
+  |
+3 |     let x: i32 = "five";
+  |            ---   ^^^^^^ expected `i32`, found `&str`
+  |            |
+  |            expected due to this
+
+error[E0308]: mismatched types
+  --> src/main.rs:7:11
+   |
+ 7 |     takes(total)
+   |     ----- ^^^^^ expected `u64`, found `i32`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> src/main.rs:10:4
+   |
+10 | fn takes(n: u64) {
+   |    ^^^^^ ------
+help: you can convert an `i32` to a `u64` and panic if the converted value doesn't fit
+   |
+ 7 |     takes(total.try_into().unwrap())
+   |                ++++++++++++++++++++
+
+Some errors have detailed explanations: E0308, E0425.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `playground` (bin "playground") due to 3 previous errors

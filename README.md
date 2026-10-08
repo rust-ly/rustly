@@ -21,7 +21,7 @@ Open http://localhost:8080. The home page should say **API: ok**.
 ```sh
 cargo fmt --all --check
 cargo clippy --all-targets -- -D warnings
-cargo clippy -p frontend --target wasm32-unknown-unknown -- -D warnings
+cargo clippy -p frontend -p shared --target wasm32-unknown-unknown -- -D warnings
 cargo test
 (cd frontend && trunk build --release)
 ```
