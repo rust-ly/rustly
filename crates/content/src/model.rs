@@ -82,6 +82,8 @@ pub struct Exercise {
     pub starter: String,
     pub hints: Vec<String>,
     /// Appended to the learner's code when grading.
+    #[cfg(feature = "server")]
     pub hidden_tests: String,
+    #[cfg(feature = "server")]
     pub solution: String,
 }

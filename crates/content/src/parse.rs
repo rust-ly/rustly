@@ -45,8 +45,18 @@ struct ExerciseFile {
     starter: String,
     #[serde(default)]
     hints: Vec<String>,
+    #[cfg(feature = "server")]
     hidden_tests: String,
+    #[cfg(feature = "server")]
     solution: String,
+    // Stripped from the embedded files without `server`, but accepted so
+    // the same TOML parses either way.
+    #[cfg(not(feature = "server"))]
+    #[serde(default, rename = "hidden_tests")]
+    _hidden_tests: serde::de::IgnoredAny,
+    #[cfg(not(feature = "server"))]
+    #[serde(default, rename = "solution")]
+    _solution: serde::de::IgnoredAny,
 }
 
 pub(crate) fn chapter(text: &str) -> Result<ChapterFile, String> {
@@ -62,7 +72,9 @@ pub(crate) fn exercise(text: &str) -> Result<Exercise, String> {
         prompt: file.prompt,
         starter: file.starter,
         hints: file.hints,
+        #[cfg(feature = "server")]
         hidden_tests: file.hidden_tests,
+        #[cfg(feature = "server")]
         solution: file.solution,
     })
 }
@@ -303,11 +315,20 @@ solution = "fn main() {}"
         assert_eq!(ex.hints.len(), 1);
     }
 
+    #[cfg(feature = "server")]
+    #[test]
+    fn server_requires_tests_and_solution() {
+        let ex = exercise(EXERCISE).unwrap();
+        assert_eq!(ex.hidden_tests, "#[test] fn t() {}");
+        let no_tests = EXERCISE.replace("hidden_tests = \"#[test] fn t() {}\"\n", "");
+        assert!(exercise(&no_tests).unwrap_err().contains("hidden_tests"));
+    }
+
     #[test]
     fn rejects_bad_exercises() {
         assert!(exercise("id = ").is_err(), "bad TOML");
-        let no_tests = EXERCISE.replace("hidden_tests = \"#[test] fn t() {}\"\n", "");
-        assert!(exercise(&no_tests).unwrap_err().contains("hidden_tests"));
+        let no_title = EXERCISE.replace("title = \"Fix the move\"\n", "");
+        assert!(exercise(&no_title).unwrap_err().contains("title"));
         let bad_kind = EXERCISE.replace("\"checkpoint\"", "\"quiz\"");
         assert!(exercise(&bad_kind).is_err());
         assert_eq!(

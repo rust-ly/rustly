@@ -76,6 +76,25 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "server"))]
+    #[test]
+    fn answers_are_not_embedded_without_server() {
+        for (path, text) in embedded::FILES {
+            assert!(!text.contains("hidden_tests"), "{path}");
+            assert!(!text.contains("solution ="), "{path}");
+        }
+        assert!(course().exercises().count() > 0);
+    }
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn server_keeps_answers() {
+        for ex in course().exercises() {
+            assert!(ex.hidden_tests.contains("#[test]"), "{}", ex.id);
+            assert!(!ex.solution.is_empty(), "{}", ex.id);
+        }
+    }
+
     #[test]
     fn looks_up_exercises_by_id() {
         let ex = exercise("book.ownership.challenge").unwrap();

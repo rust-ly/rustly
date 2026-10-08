@@ -5,7 +5,15 @@ edition = "2024"
 publish = false
 
 # Used by both the API and the wasm frontend.
+[features]
+# Keeps hidden tests and solutions. Only the API enables it, so the frontend
+# build never contains them.
+server = []
+
 [dependencies]
 pulldown-cmark = { version = "0.13", default-features = false }
 serde = { version = "1", features = ["derive"] }
+toml = "1"
+
+[build-dependencies]
 toml = "1"
