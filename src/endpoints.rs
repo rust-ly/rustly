@@ -1,19 +1,25 @@
 //! What each endpoint does once its request has been read.
 
+use runner::playground::Output;
 use runner::{PlaygroundClient, assemble_submission, parse_diagnostics, parse_tests};
 use shared::{CheckResponse, CodeRequest, RunResponse, SubmitRequest, SubmitResponse};
 
+use crate::cache::Cache;
 use crate::{Failure, check_size, redact};
 
 /// The API's handle on the compile service.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Api {
     client: PlaygroundClient,
+    cache: Cache,
 }
 
 impl Api {
     pub fn new(client: PlaygroundClient) -> Self {
-        Self { client }
+        Self {
+            client,
+            cache: Cache::default(),
+        }
     }
 
     /// Uses `RUNNER_URL`, falling back to the public Playground.
@@ -24,7 +30,7 @@ impl Api {
     /// `/api/check`: clippy's diagnostics for live squiggles.
     pub async fn check(&self, req: CodeRequest) -> Result<CheckResponse, Failure> {
         check_size(&req.code)?;
-        let out = self.client.clippy(&req.code).await?;
+        let out = self.clippy(&req.code).await?;
         Ok(CheckResponse {
             ok: out.success,
             diagnostics: parse_diagnostics(&out.stderr),
@@ -34,7 +40,7 @@ impl Api {
     /// `/api/run`: builds and runs the program.
     pub async fn run(&self, req: CodeRequest) -> Result<RunResponse, Failure> {
         check_size(&req.code)?;
-        let out = self.client.execute(&req.code, false).await?;
+        let out = self.execute(&req.code, false).await?;
         Ok(RunResponse {
             success: out.success,
             diagnostics: parse_diagnostics(&out.stderr),
@@ -57,7 +63,7 @@ impl Api {
             )
         })?;
         let program = assemble_submission(&req.code, &exercise.hidden_tests);
-        let out = self.client.execute(&program, true).await?;
+        let out = self.execute(&program, true).await?;
 
         let learner_lines = req.code.trim_end().lines().count() as u32;
         let compiled = !out.stderr.contains("error: could not compile");
@@ -74,5 +80,24 @@ impl Api {
             diagnostics,
             stderr: redact::hidden_test_lines(&out.stderr, learner_lines),
         })
+    }
+
+    async fn clippy(&self, code: &str) -> Result<Output, Failure> {
+        if let Some(out) = self.cache.get("clippy", code) {
+            return Ok(out);
+        }
+        let out = self.client.clippy(code).await?;
+        self.cache.put("clippy", code, out.clone());
+        Ok(out)
+    }
+
+    async fn execute(&self, code: &str, tests: bool) -> Result<Output, Failure> {
+        let endpoint = if tests { "test" } else { "execute" };
+        if let Some(out) = self.cache.get(endpoint, code) {
+            return Ok(out);
+        }
+        let out = self.client.execute(code, tests).await?;
+        self.cache.put(endpoint, code, out.clone());
+        Ok(out)
     }
 }

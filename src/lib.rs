@@ -2,6 +2,7 @@
 //! read the request, call into this crate, write the response. Keeping the
 //! logic here means it can be tested without Vercel or a network.
 
+mod cache;
 mod endpoints;
 mod http;
 mod redact;

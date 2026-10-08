@@ -165,3 +165,28 @@ async fn oversized_submission_is_413() {
         413
     );
 }
+
+#[tokio::test]
+async fn repeat_requests_are_served_from_the_cache() {
+    let playground = FakePlayground::answering(true, HELLO_STDOUT, "").await;
+    let api = Api::new(playground.client());
+
+    api.run(code("fn main() {}")).await.unwrap();
+    let again = api.run(code("fn main() {}")).await.unwrap();
+    api.check(code("fn main() {}")).await.unwrap();
+
+    assert_eq!(again.stdout, HELLO_STDOUT);
+    let paths: Vec<_> = playground.received().into_iter().map(|(p, _)| p).collect();
+    assert_eq!(paths, ["/execute", "/clippy"]);
+}
+
+#[tokio::test]
+async fn failed_calls_are_not_cached() {
+    let playground = FakePlayground::with_status(503, "busy".into()).await;
+    let api = Api::new(playground.client());
+
+    api.run(code("fn main() {}")).await.unwrap_err();
+    api.run(code("fn main() {}")).await.unwrap_err();
+
+    assert_eq!(playground.received().len(), 2);
+}
