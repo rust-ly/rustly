@@ -19,6 +19,11 @@
 .btn:hover  { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--crab); }
 .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--crab); transition-duration: 80ms; }
 
+/* Satoshi-labelled buttons from the landing mockup */
+.btn-sans { font: 700 var(--text-ui)/1 var(--font-sans); letter-spacing: 0; padding: 12px 18px; }
+/* Lava button with sand text, for the blue hero */
+.btn-ink { background: var(--lava); border-color: var(--lava); color: var(--sand); padding: 14px 18px; font-size: 14px; }
+
 .btn-secondary {
   background: transparent;
   color: var(--ink);
@@ -59,73 +64,34 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 56px;
-  background: var(--bg);
+  height: 70px;
+  background: var(--lava);
+  color: var(--cream);
   border-bottom: 1px solid var(--border);
 }
-.topbar-inner {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-.wordmark {
-  font: 900 22px/1 var(--font-sans);
-  letter-spacing: -0.045em;
-  color: var(--ink);
-  text-decoration: none;
-}
-.wordmark span { color: var(--wordmark-accent); }
-.topbar nav { display: flex; gap: var(--space-2); margin: 0 auto; }
+.topbar-inner { height: 100%; display: flex; align-items: center; gap: var(--space-4); }
+.brand { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; }
+.avatar { border-radius: 50%; object-fit: cover; flex: none; }
+.wordmark { font: 900 22px/1 var(--font-sans); letter-spacing: -0.045em; color: var(--cream); }
+.wordmark span, .wordmark-sm span { color: var(--crab); }
+.topbar nav { display: flex; gap: var(--space-1); margin: 0 auto; }
 .topbar nav a {
   font: 500 var(--text-ui)/1 var(--font-sans);
-  color: var(--ink);
+  color: var(--muted);
   text-decoration: none;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  padding: 11px 14px;
+  border-radius: var(--radius-pill);
 }
-.topbar nav a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--crab); }
-.topbar-actions { display: flex; align-items: center; gap: var(--space-3); }
+.topbar nav a:hover, .topbar nav a.active { color: var(--cream); background: var(--surface-2); }
+.topbar-actions { display: flex; align-items: center; gap: var(--space-4); }
+.icon-btn.round { width: 40px; height: 40px; border-radius: 50%; border-color: var(--code-line); color: var(--cream); }
 
 @media (max-width: 640px) {
-  .topbar nav, .topbar .chip-beta, .topbar .progress-chip { display: none; }
+  .topbar nav { display: none; }
   .topbar-actions { margin-left: auto; }
 }
 
 /* Page sections */
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-7);
-  padding-top: var(--space-7);
-}
-.hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-5); }
-.hero-art {
-  width: 100%;
-  max-width: 420px;
-  height: auto;
-  justify-self: end;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
-}
-@media (max-width: 768px) {
-  .hero { grid-template-columns: minmax(0, 1fr); }
-  .hero-art { max-width: 260px; justify-self: start; }
-}
-.hero-wordmark {
-  font-size: var(--text-hero);
-  font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 0.9;
-  margin-bottom: var(--space-5);
-}
-.hero-wordmark span { color: var(--wordmark-accent); }
-.pitch { font-size: 22px; font-weight: 500; max-width: 36ch; }
 .page-head h1 { margin-bottom: var(--space-4); }
 .lede { color: var(--muted); max-width: 68ch; font-size: 19px; }
 
@@ -213,9 +179,13 @@
 .concept .lock-line { padding-left: 22px; }
 
 /* Footer */
-.footer { padding: var(--space-6) 0; }
-.footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); }
+.footer { border-top: 1px solid var(--border); padding: var(--space-7) 0; }
+.footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-5); }
 .footer p { margin: 0; }
+.footer-brand { display: flex; align-items: center; gap: var(--space-3); }
+.wordmark-sm { font: 900 17px/1 var(--font-sans); letter-spacing: -0.04em; }
+.footer-credits { max-width: 600px; display: grid; gap: var(--space-2); }
+.footer-credits a { color: var(--tide); }
 
 /* Lesson page: prose / exercise columns, stacked under 1024px */
 .lesson {

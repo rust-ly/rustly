@@ -3,6 +3,7 @@ mod app;
 mod chapter;
 mod course_map;
 mod highlight;
+mod home;
 mod icons;
 mod learner;
 mod lesson;

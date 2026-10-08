@@ -43,12 +43,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .small { font-size: var(--text-small); }
 .nums { font-variant-numeric: tabular-nums; }
 
+/* `rustly::how_it_works`-style section labels, as in the landing mockup */
 .eyebrow {
-  font: 500 var(--text-eyebrow)/1.5 var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-  margin: 0 0 var(--space-2);
+  font: 500 13px/1.5 var(--font-mono);
+  color: var(--tide);
+  margin: 0 0 var(--space-3);
 }
 
 .container {

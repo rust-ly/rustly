@@ -52,5 +52,5 @@ pub fn requirement_label(id: &str) -> String {
 
 /// Where to send a learner who opens a locked page.
 pub fn locked_redirect(concept_id: &str) -> String {
-    format!("/?locked={concept_id}")
+    format!("/learn?locked={concept_id}")
 }

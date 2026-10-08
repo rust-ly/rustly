@@ -9,16 +9,28 @@
   --shell: #8C0303;
   --lava: #0D0D0D;
   --cream: #F7EBD6;
+  /* crab blue, from the landing page mockup */
+  --tide: #4FAEC4;
+  --coral: #FF6B4A;
+  --amber-light: #DE9F4A;
 
   /* dark theme = default */
   --bg: var(--lava);
   --surface: #161412;
   --surface-2: #1F1B18;
+  --bg-alt: #121010;
+  --tide-tint: rgb(79 174 196 / 0.06);
+  --tide-border: rgb(79 174 196 / 0.25);
+  /* on the blue hero and dark code cards (same in both themes) */
+  --on-tide-faint: rgb(13 13 13 / 0.18);
+  --on-tide-muted: rgb(13 13 13 / 0.78);
+  --on-tide-chip: rgb(247 235 214 / 0.65);
+  --code-line: rgb(247 235 214 / 0.12);
   --ink: var(--cream);
   --muted: #B5A68E;
   --border: rgb(242 188 87 / 0.14);
   --border-strong: rgb(242 188 87 / 0.4);
-  --error-text: #FF6B4A;
+  --error-text: var(--coral);
   --btn-bg: var(--sand);
   --btn-fg: var(--lava);
   --wordmark-accent: var(--crab);
@@ -29,8 +41,9 @@
   --macro: #FF8A5B;
 
   /* shape + depth */
-  --radius: 0;
-  --radius-control: 2px;
+  --radius: 6px;
+  --radius-control: 4px;
+  --radius-pill: 999px;
   --shadow-sm: 3px 3px 0 var(--crab);
   --shadow: 5px 5px 0 var(--crab);
 
@@ -67,6 +80,7 @@
   --bg: #FAF3E6;
   --surface: #FFFBF3;
   --surface-2: #F3E8D3;
+  --bg-alt: #F5ECDC;
   --ink: var(--lava);
   --muted: #5E5246;
   --border: rgb(13 13 13 / 0.12);

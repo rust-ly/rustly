@@ -1,35 +1,30 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
+use leptos_router::hooks::use_location;
 
+use crate::home::next_lesson;
 use crate::learner::Learner;
 use crate::storage;
 
 #[component]
 pub fn TopBar() -> impl IntoView {
     let learner = Learner::get();
-    let total = content::graph().concept_ids().count();
-    let done = move || {
-        content::graph()
-            .concept_ids()
-            .filter(|id| learner.is_done(id))
-            .count()
-    };
+    let location = use_location();
+    let on_learn = move || location.pathname.with(|p| p.starts_with("/learn"));
     view! {
         <header class="topbar">
             <div class="container topbar-inner">
-                <A href="/" attr:class="wordmark" attr:aria-label="Rustly home">
-                    "Rust"<span>"ly"</span>
+                <A href="/" attr:class="brand" attr:aria-label="Rustly home">
+                    <img class="avatar" src="/images/rustly-crab.jpg" width="36" height="36" alt="" />
+                    <span class="wordmark">"Rust"<span>"ly"</span></span>
                 </A>
-                <span class="chip chip-beta">"beta"</span>
-                <nav aria-label="Tracks">
-                    <a href="/#track-book">"Book"</a>
-                    <a href="/#track-tokio">"Tokio"</a>
+                <nav aria-label="Main">
+                    <a href="/learn#track-book" class:active=on_learn>"The Book"</a>
+                    <a href="/learn#track-tokio">"Tokio"</a>
                 </nav>
                 <div class="topbar-actions">
                     <ThemeToggle />
-                    <span class="chip progress-chip nums" title="Concepts passed">
-                        {done} " / " {total}
-                    </span>
+                    <A href=move || next_lesson(&learner) attr:class="btn btn-sans">"Start learning"</A>
                 </div>
             </div>
         </header>
@@ -52,7 +47,7 @@ fn ThemeToggle() -> impl IntoView {
     };
     view! {
         <button
-            class="icon-btn"
+            class="icon-btn round"
             on:click=toggle
             aria-label=move || if light.get() { "Switch to dark theme" } else { "Switch to light theme" }
         >
