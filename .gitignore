@@ -1,3 +1,5 @@
 /target
 /frontend/dist
 .vercel
+# Satoshi may not be redistributed; frontend/fetch-fonts.sh downloads it.
+/frontend/assets/fonts/satoshi

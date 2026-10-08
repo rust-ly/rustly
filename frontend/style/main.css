@@ -7,7 +7,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: "Satoshi", ui-sans-serif, system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
 }

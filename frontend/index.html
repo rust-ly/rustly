@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rustly</title>
     <link data-trunk rel="rust" data-wasm-opt="z" />
+    <link data-trunk rel="copy-dir" href="assets/fonts" />
+    <link rel="preload" href="/fonts/satoshi/Satoshi-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Trunk doesn't follow CSS @import, so each stylesheet is linked in order. -->
+    <link data-trunk rel="css" href="style/fonts.css" />
     <link data-trunk rel="css" href="style/main.css" />
   </head>
   <body></body>
