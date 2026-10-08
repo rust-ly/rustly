@@ -1,0 +1,8 @@
+{
+  "installCommand": "curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && . $HOME/.cargo/env && rustup target add wasm32-unknown-unknown && cargo install trunk --locked",
+  "buildCommand": ". $HOME/.cargo/env && cd frontend && trunk build --release",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
