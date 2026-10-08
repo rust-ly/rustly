@@ -1,0 +1,51 @@
+id = "book.getting-started.hello-cargo.checkpoint"
+kind = "checkpoint"
+title = "Cargo's compiling line"
+prompt = '''
+When Cargo builds a package, it prints a line like `Compiling hello_cargo v0.1.0`.
+Write `compiling_line(name, version)`, which returns that line for any package
+name and version. The version is given without the `v`, so add it yourself.
+'''
+starter = '''
+/// Returns the line Cargo prints while building a package,
+/// e.g. compiling_line("hello_cargo", "0.1.0") == "Compiling hello_cargo v0.1.0".
+fn compiling_line(name: &str, version: &str) -> String {
+    format!("Compiling {name} {version}")
+}
+
+fn main() {
+    println!("{}", compiling_line("hello_cargo", "0.1.0"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hello_cargo() {
+        assert_eq!(compiling_line("hello_cargo", "0.1.0"), "Compiling hello_cargo v0.1.0");
+    }
+
+    #[test]
+    fn other_packages() {
+        assert_eq!(compiling_line("rustly", "1.2.3"), "Compiling rustly v1.2.3");
+        assert_eq!(compiling_line("guessing_game", "0.1.0"), "Compiling guessing_game v0.1.0");
+    }
+}
+'''
+hints = [
+  "Run it and compare the output with the expected line. What's missing?",
+  "Put a `v` directly in front of `{version}` in the text.",
+]
+solution = '''
+/// Returns the line Cargo prints while building a package,
+/// e.g. compiling_line("hello_cargo", "0.1.0") == "Compiling hello_cargo v0.1.0".
+fn compiling_line(name: &str, version: &str) -> String {
+    format!("Compiling {name} v{version}")
+}
+
+fn main() {
+    println!("{}", compiling_line("hello_cargo", "0.1.0"));
+}
+'''

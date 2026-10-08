@@ -1,0 +1,53 @@
+id = "book.ownership.borrowing.checkpoint"
+kind = "checkpoint"
+title = "Borrow instead of taking ownership"
+prompt = '''
+This code doesn't compile: `greet` takes ownership of `name`, so `main` can't
+print it afterwards. Change `greet` to borrow the string instead. Don't use
+`.clone()`.
+'''
+starter = '''
+fn greet(name: String) -> String {
+    format!("Hello, {name}!")
+}
+
+fn main() {
+    let name = String::from("Ada");
+    let msg = greet(name);
+    println!("{msg} ({name})");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greets_by_reference() {
+        let n = String::from("Ada");
+        assert_eq!(greet(&n), "Hello, Ada!");
+        assert_eq!(n, "Ada");
+    }
+
+    #[test]
+    fn accepts_string_literals() {
+        assert_eq!(greet("Grace"), "Hello, Grace!");
+    }
+}
+'''
+hints = [
+  "Look at the type of the `name` parameter.",
+  "`&str` lets you borrow without taking ownership, and it accepts string literals too.",
+  "Change the parameter to `name: &str`, and call it as `greet(&name)`.",
+]
+solution = '''
+fn greet(name: &str) -> String {
+    format!("Hello, {name}!")
+}
+
+fn main() {
+    let name = String::from("Ada");
+    let msg = greet(&name);
+    println!("{msg} ({name})");
+}
+'''

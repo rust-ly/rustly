@@ -1,0 +1,71 @@
+id = "book.common-concepts.challenge"
+kind = "challenge"
+title = "The nth Fibonacci number"
+prompt = '''
+Write `fibonacci(n)`, which returns the nth Fibonacci number. The sequence starts
+0, 1, 1, 2, 3, 5, 8, ... so `fibonacci(0)` is 0, `fibonacci(1)` is 1, and every
+later number is the sum of the two before it.
+
+It must handle `n` up to 90 instantly. A version that calls itself twice for every
+number is far too slow, so use a loop and keep track of the last two values.
+'''
+starter = '''
+/// Returns the nth Fibonacci number: fibonacci(0) == 0, fibonacci(1) == 1.
+fn fibonacci(n: u32) -> u64 {
+    todo!()
+}
+
+fn main() {
+    for n in 0..10 {
+        println!("fibonacci({n}) = {}", fibonacci(n));
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_two() {
+        assert_eq!(fibonacci(0), 0);
+        assert_eq!(fibonacci(1), 1);
+    }
+
+    #[test]
+    fn small_values() {
+        let expected = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
+        for (n, want) in expected.iter().enumerate() {
+            assert_eq!(fibonacci(n as u32), *want, "fibonacci({n})");
+        }
+    }
+
+    #[test]
+    fn large_value_is_fast() {
+        assert_eq!(fibonacci(90), 2_880_067_194_370_816_120);
+    }
+}
+'''
+hints = [
+  "Keep two variables, `a` and `b`, for the last two numbers. Start them at 0 and 1.",
+  "Each time around the loop, the next pair is `(b, a + b)`.",
+  "Loop `n` times with `for _ in 0..n`, then return `a`.",
+]
+solution = '''
+/// Returns the nth Fibonacci number: fibonacci(0) == 0, fibonacci(1) == 1.
+fn fibonacci(n: u32) -> u64 {
+    let (mut a, mut b) = (0u64, 1u64);
+    for _ in 0..n {
+        let next = a + b;
+        a = b;
+        b = next;
+    }
+    a
+}
+
+fn main() {
+    for n in 0..10 {
+        println!("fibonacci({n}) = {}", fibonacci(n));
+    }
+}
+'''

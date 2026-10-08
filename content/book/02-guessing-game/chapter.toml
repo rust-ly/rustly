@@ -1,0 +1,7 @@
+id = "book.guessing-game"
+track = "book"
+title = "Programming a Guessing Game"
+order = 2
+source = "https://doc.rust-lang.org/book/ch02-00-guessing-game-tutorial.html"
+summary = "Build the logic of a number-guessing game: turn text into numbers, compare them, and loop until the player wins."
+requires = []

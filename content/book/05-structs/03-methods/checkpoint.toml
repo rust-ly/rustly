@@ -1,0 +1,67 @@
+id = "book.structs.methods.checkpoint"
+kind = "checkpoint"
+title = "Move area into an impl block"
+prompt = '''
+Add an `impl Rectangle` block with two methods:
+
+- `area(&self) -> u32` returns width × height.
+- `is_square(&self) -> bool` returns `true` when width and height are equal.
+'''
+starter = '''
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+// Add `impl Rectangle { ... }` here.
+
+fn main() {
+    let rect = Rectangle { width: 30, height: 50 };
+    println!("area = {}, square? {}", rect.area(), rect.is_square());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn area_method() {
+        assert_eq!(Rectangle { width: 30, height: 50 }.area(), 1500);
+        assert_eq!(Rectangle { width: 7, height: 1 }.area(), 7);
+    }
+
+    #[test]
+    fn square_detection() {
+        assert!(Rectangle { width: 4, height: 4 }.is_square());
+        assert!(!Rectangle { width: 4, height: 5 }.is_square());
+    }
+}
+'''
+hints = [
+  "The block looks like `impl Rectangle { fn area(&self) -> u32 { ... } }`.",
+  "Inside a method, reach the fields through `self`, as in `self.width`.",
+]
+solution = '''
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    fn is_square(&self) -> bool {
+        self.width == self.height
+    }
+}
+
+fn main() {
+    let rect = Rectangle { width: 30, height: 50 };
+    println!("area = {}, square? {}", rect.area(), rect.is_square());
+}
+'''

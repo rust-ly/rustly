@@ -1,0 +1,114 @@
+id = "book.structs.challenge"
+kind = "challenge"
+title = "A complete Rectangle"
+prompt = '''
+Give `Rectangle` a full set of behaviour:
+
+- `Rectangle::new(width, height)` and `Rectangle::square(size)` constructors (associated functions)
+- `area(&self) -> u32`
+- `can_hold(&self, other: &Rectangle) -> bool`: true when `self` is strictly wider
+  **and** strictly taller than `other`
+- `scale(&mut self, factor: u32)`: multiplies both sides by `factor`, in place
+
+`Rectangle` must also be printable with `{:?}` and comparable with `==`.
+(Hint: `PartialEq` can be derived just like `Debug`.)
+'''
+starter = '''
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // Your associated functions and methods go here.
+}
+
+fn main() {
+    let mut r = Rectangle::new(3, 4);
+    r.scale(2);
+    println!("{r:?} has area {}", r.area());
+    println!("holds a 5x5 square? {}", r.can_hold(&Rectangle::square(5)));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constructors() {
+        assert_eq!(Rectangle::new(3, 4), Rectangle { width: 3, height: 4 });
+        assert_eq!(Rectangle::square(5), Rectangle { width: 5, height: 5 });
+    }
+
+    #[test]
+    fn area() {
+        assert_eq!(Rectangle::new(30, 50).area(), 1500);
+    }
+
+    #[test]
+    fn can_hold_is_strict_on_both_sides() {
+        let big = Rectangle::new(30, 50);
+        assert!(big.can_hold(&Rectangle::new(10, 40)));
+        assert!(!big.can_hold(&Rectangle::new(60, 45)));
+        assert!(!big.can_hold(&Rectangle::new(30, 10)));
+        assert!(!Rectangle::new(10, 40).can_hold(&big));
+    }
+
+    #[test]
+    fn scale_changes_in_place() {
+        let mut r = Rectangle::new(3, 4);
+        r.scale(2);
+        assert_eq!(r, Rectangle::new(6, 8));
+        r.scale(0);
+        assert_eq!(r.area(), 0);
+    }
+
+    #[test]
+    fn debug_format() {
+        assert_eq!(format!("{:?}", Rectangle::square(2)), "Rectangle { width: 2, height: 2 }");
+    }
+}
+'''
+hints = [
+  "Put `#[derive(Debug, PartialEq)]` above the struct.",
+  "Constructors return `Self`, as in `fn new(width: u32, height: u32) -> Self { Self { width, height } }`.",
+  "`scale` changes the rectangle, so it takes `&mut self`.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+
+    fn square(size: u32) -> Self {
+        Self::new(size, size)
+    }
+
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+
+    fn scale(&mut self, factor: u32) {
+        self.width *= factor;
+        self.height *= factor;
+    }
+}
+
+fn main() {
+    let mut r = Rectangle::new(3, 4);
+    r.scale(2);
+    println!("{r:?} has area {}", r.area());
+    println!("holds a 5x5 square? {}", r.can_hold(&Rectangle::square(5)));
+}
+'''

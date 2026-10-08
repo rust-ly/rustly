@@ -1,0 +1,7 @@
+id = "book.getting-started"
+track = "book"
+title = "Getting Started"
+order = 1
+source = "https://doc.rust-lang.org/book/ch01-00-getting-started.html"
+summary = "Write your first Rust program, then see how Cargo builds and runs real projects on your own machine."
+requires = []
