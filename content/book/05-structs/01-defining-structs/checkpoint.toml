@@ -1,0 +1,71 @@
+id = "book.structs.defining.checkpoint"
+kind = "checkpoint"
+title = "Build a user"
+prompt = '''
+Finish `build_user`. It should return a `User` with the given email and username,
+`active` set to `true`, and `sign_in_count` set to `1`. Use field-init shorthand
+for `email` and `username`.
+'''
+starter = '''
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+
+fn build_user(email: String, username: String) -> User {
+    todo!("return a new User")
+}
+
+fn main() {
+    let user = build_user(String::from("ada@example.com"), String::from("ada"));
+    println!("{} <{}>", user.username, user.email);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn copies_email_and_username() {
+        let user = build_user(String::from("ada@example.com"), String::from("ada"));
+        assert_eq!(user.email, "ada@example.com");
+        assert_eq!(user.username, "ada");
+    }
+
+    #[test]
+    fn new_users_are_active_with_one_sign_in() {
+        let user = build_user(String::from("g@example.com"), String::from("grace"));
+        assert!(user.active);
+        assert_eq!(user.sign_in_count, 1);
+    }
+}
+'''
+hints = [
+  "Start the body with `User {` and give every field a value.",
+  "Because the parameters are named `email` and `username`, you can write just `email,` and `username,` inside the braces.",
+]
+solution = '''
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username,
+        email,
+        sign_in_count: 1,
+    }
+}
+
+fn main() {
+    let user = build_user(String::from("ada@example.com"), String::from("ada"));
+    println!("{} <{}>", user.username, user.email);
+}
+'''

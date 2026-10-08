@@ -1,0 +1,7 @@
+id = "book.structs"
+track = "book"
+title = "Using Structs"
+order = 5
+source = "https://doc.rust-lang.org/book/ch05-00-structs.html"
+summary = "Group related data into your own types, and give those types methods."
+requires = []

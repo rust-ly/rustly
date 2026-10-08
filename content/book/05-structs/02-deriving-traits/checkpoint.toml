@@ -1,0 +1,61 @@
+id = "book.structs.deriving-traits.checkpoint"
+kind = "checkpoint"
+title = "Print the rectangle"
+prompt = '''
+`main` wants to print a `Rectangle` with `{:?}`, but `Rectangle` can't be printed
+that way yet. Make it printable, then finish `area` so it returns width × height.
+'''
+starter = '''
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn area(rectangle: &Rectangle) -> u32 {
+    todo!()
+}
+
+fn main() {
+    let rect = Rectangle { width: 30, height: 50 };
+    println!("{rect:?} has area {}", area(&rect));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_output() {
+        let rect = Rectangle { width: 3, height: 4 };
+        assert_eq!(format!("{rect:?}"), "Rectangle { width: 3, height: 4 }");
+    }
+
+    #[test]
+    fn computes_area() {
+        assert_eq!(area(&Rectangle { width: 30, height: 50 }), 1500);
+        assert_eq!(area(&Rectangle { width: 0, height: 9 }), 0);
+    }
+}
+'''
+hints = [
+  "The compiler error says `Rectangle` doesn't implement `Debug`. Its help text tells you what to add.",
+  "Put `#[derive(Debug)]` on the line just above `struct Rectangle`.",
+  "`area` returns `rectangle.width * rectangle.height`.",
+]
+solution = '''
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn area(rectangle: &Rectangle) -> u32 {
+    rectangle.width * rectangle.height
+}
+
+fn main() {
+    let rect = Rectangle { width: 30, height: 50 };
+    println!("{rect:?} has area {}", area(&rect));
+}
+'''
