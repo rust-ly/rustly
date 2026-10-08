@@ -93,6 +93,13 @@ impl CourseGraph {
         })
     }
 
+    /// Every concept in the chapter is done, so its challenge can be tried.
+    pub fn is_challenge_open(&self, chapter: &str, progress: &Progress) -> bool {
+        self.chapters
+            .get(chapter)
+            .is_some_and(|c| c.concepts.iter().all(|id| self.is_done(id, progress)))
+    }
+
     /// The concept's requirements are all met, or its chapter is complete.
     pub fn is_open(&self, concept: &str, progress: &Progress) -> bool {
         self.concepts.get(concept).is_some_and(|c| {

@@ -67,6 +67,19 @@ mod tests {
     }
 
     #[test]
+    fn the_challenge_opens_once_every_concept_is_done() {
+        let graph = crate::graph();
+        let chapter = "book.getting-started";
+        let one = progress(&["book.getting-started.hello-world.checkpoint"]);
+        assert!(!graph.is_challenge_open(chapter, &one));
+        let both = progress(&[
+            "book.getting-started.hello-world.checkpoint",
+            "book.getting-started.hello-cargo.checkpoint",
+        ]);
+        assert!(graph.is_challenge_open(chapter, &both));
+    }
+
+    #[test]
     fn a_challenge_unlocks_the_next_chapter() {
         let open = unlocked_in_book(&[
             "book.getting-started.hello-world.checkpoint",
