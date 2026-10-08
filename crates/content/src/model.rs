@@ -71,6 +71,9 @@ pub struct Snippet {
     pub code: String,
     /// What the page shows: `# ` setup lines removed.
     pub visible_code: String,
+    /// For each line of `visible_code`, its 1-based line number in `code`, so
+    /// compiler errors can be shown on the right visible line.
+    pub visible_lines: Vec<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

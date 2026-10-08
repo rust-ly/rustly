@@ -2,6 +2,7 @@
 //! once on first use.
 
 mod graph;
+mod lesson;
 mod load;
 mod model;
 mod parse;
@@ -10,6 +11,7 @@ mod progress;
 use std::sync::LazyLock;
 
 pub use graph::CourseGraph;
+pub use lesson::{LessonBlock, lesson_blocks, markdown_html};
 pub use load::{Course, LoadError};
 pub use model::{Chapter, Concept, Exercise, ExerciseKind, Snippet, SnippetKind, Track};
 pub use progress::{Progress, unlocked};

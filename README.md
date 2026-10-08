@@ -15,10 +15,12 @@ VERCEL_DEV_PORT=3003 cargo run --bin run
 VERCEL_DEV_PORT=3004 cargo run --bin submit
 
 # 2. Frontend: Trunk serves the app on :8080 and proxies each /api/* route to its port.
+#    fetch-fonts.sh downloads Satoshi once (its license doesn't allow committing it).
+./frontend/fetch-fonts.sh
 cd frontend && trunk serve --port 8080
 ```
 
-Open http://localhost:8080. The home page should say **API: ok**.
+Open http://localhost:8080. The footer should say **API: ok**, and the course map is at `/learn`.
 
 Try an endpoint directly:
 

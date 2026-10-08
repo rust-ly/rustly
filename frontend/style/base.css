@@ -1,0 +1,70 @@
+/* Resets, typography and focus rings. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+body {
+  margin: 0;
+  font: 400 var(--text-body)/1.65 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; color: var(--ink); }
+h1 { font-size: var(--text-h1); font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+h2 { font-size: var(--text-h2); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+h3 { font-size: var(--text-h3); font-weight: 700; letter-spacing: -0.015em; line-height: 1.3; }
+
+p { margin: 0 0 var(--space-4); }
+
+a { color: var(--link); text-underline-offset: 3px; }
+
+code, pre { font-family: var(--font-mono); }
+
+:not(pre) > code {
+  font-size: 0.92em;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  padding: 0.1em 0.35em;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--crab);
+  outline-offset: 2px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: var(--text-small); }
+.nums { font-variant-numeric: tabular-nums; }
+
+/* `rustly::how_it_works`-style section labels, as in the landing mockup */
+.eyebrow {
+  font: 500 13px/1.5 var(--font-mono);
+  color: var(--tide);
+  margin: 0 0 var(--space-3);
+}
+
+.container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.section {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-8) 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
