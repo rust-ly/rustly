@@ -1,9 +1,11 @@
 use leptos::prelude::*;
 use leptos_router::components::{A, Route, Router, Routes};
-use leptos_router::hooks::use_location;
 use leptos_router::path;
 
+use crate::chapter::ChapterPage;
+use crate::course_map::Home;
 use crate::learner::Learner;
+use crate::lesson::ConceptPage;
 use crate::topbar::TopBar;
 
 #[component]
@@ -15,43 +17,45 @@ pub fn App() -> impl IntoView {
             <main class="container">
                 <Routes fallback=NotFound>
                     <Route path=path!("/") view=Home />
-                    <Route path=path!("/learn/*rest") view=Learn />
+                    <Route path=path!("/learn/:track/:chapter") view=ChapterPage />
+                    <Route path=path!("/learn/:track/:chapter/:concept") view=ConceptPage />
                 </Routes>
             </main>
+            <Footer />
         </Router>
     }
 }
 
 #[component]
-fn Home() -> impl IntoView {
+pub fn NotFound() -> impl IntoView {
     view! {
-        <h1>"Hello Rustly"</h1>
-        <p>"Learn Rust in the browser. The course map arrives in M4."</p>
-        <ApiStatus />
-        <A href="/learn/book/ch01">"Deep link test"</A>
-    }
-}
-
-/// Placeholder so deep links can be checked against the SPA rewrite in M0.
-#[component]
-fn Learn() -> impl IntoView {
-    let location = use_location();
-    view! {
-        <h1>"Rustly"</h1>
-        <p>"You are at " <code>{move || location.pathname.get()}</code></p>
-        <A href="/">"Home"</A>
+        <section class="section page-head">
+            <p class="eyebrow">"error[404] // not found"</p>
+            <h1>"There's nothing here."</h1>
+            <p><A href="/">"Back to the course map"</A></p>
+        </section>
     }
 }
 
 #[component]
-fn NotFound() -> impl IntoView {
+fn Footer() -> impl IntoView {
     view! {
-        <h1>"Not found"</h1>
-        <A href="/">"Back to the course map"</A>
+        <footer class="footer">
+            <div class="container footer-inner small muted">
+                <p>
+                    "Lessons adapted from "
+                    <a href="https://doc.rust-lang.org/book/">"The Rust Programming Language"</a>
+                    " (MIT / Apache-2.0) and the "
+                    <a href="https://tokio.rs/tokio/tutorial">"Tokio tutorial"</a>
+                    " (MIT)."
+                </p>
+                <ApiStatus />
+            </div>
+        </footer>
     }
 }
 
-/// Calls `/api/health` so M0 proves the frontend can reach the API.
+/// Calls `/api/health` so it's easy to see whether the API is reachable.
 #[component]
 fn ApiStatus() -> impl IntoView {
     let health = LocalResource::new(|| async {

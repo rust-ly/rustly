@@ -95,3 +95,105 @@
   .topbar nav, .topbar .chip-beta, .topbar .progress-chip { display: none; }
   .topbar-actions { margin-left: auto; }
 }
+
+/* Page sections */
+.intro { padding-top: var(--space-7); }
+.hero-wordmark {
+  font-size: var(--text-hero);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  margin-bottom: var(--space-5);
+}
+.hero-wordmark span { color: var(--wordmark-accent); }
+.pitch { font-size: 22px; font-weight: 500; max-width: 36ch; }
+.page-head h1 { margin-bottom: var(--space-4); }
+.lede { color: var(--muted); max-width: 68ch; font-size: 19px; }
+
+.notice {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--shell);
+  background: var(--surface);
+  color: var(--ink);
+}
+.notice .icon { color: var(--error-text); flex: none; }
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease), border-color 160ms var(--ease);
+}
+.card:not(.card-locked):hover {
+  border-color: var(--crab);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+.card h3 { margin: var(--space-2) 0; }
+.card h3 a { color: var(--ink); text-decoration: none; }
+.card h3 a::after { content: ""; position: absolute; inset: 0; } /* whole card is the link */
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.card-top .eyebrow { margin: 0; }
+.card-progress { border-left: 2px solid var(--amber); }
+.card-locked {
+  color: var(--muted);
+  background-image: repeating-linear-gradient(135deg, var(--hatch) 0 6px, transparent 6px 12px);
+}
+.card-locked h3 { color: var(--muted); }
+.track-soon { margin-top: var(--space-6); max-width: 560px; }
+
+.chip-open { border-color: var(--sand); color: var(--sand); }
+.chip-progress { border-color: var(--amber); color: var(--amber); }
+.chip-done { border-color: var(--sand); color: var(--sand); }
+.chip-locked { color: var(--muted); }
+:root[data-theme="light"] .chip-open,
+:root[data-theme="light"] .chip-done { border-color: var(--lava); color: var(--lava); }
+
+.icon { flex: none; vertical-align: -2px; }
+
+/* Concept lists */
+.concepts { list-style: none; margin: var(--space-4) 0 0; padding: 0; border-top: 1px solid var(--border); }
+.concept {
+  position: relative;
+  z-index: 1; /* above the card's stretched link */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-ui);
+}
+.concept a { color: var(--ink); }
+.concept-done .icon { color: var(--sand); }
+:root[data-theme="light"] .concept-done .icon { color: var(--lava); }
+.concept-locked { color: var(--muted); }
+.dot { width: 6px; height: 6px; background: var(--crab); flex: none; margin: 0 4px; }
+.lock-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  font: 400 var(--text-small)/1.5 var(--font-mono);
+  color: var(--muted);
+  margin: 0;
+}
+.concept .lock-line { padding-left: 22px; }
+
+/* Footer */
+.footer { padding: var(--space-6) 0; }
+.footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); }
+.footer p { margin: 0; }
