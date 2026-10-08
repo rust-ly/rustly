@@ -1,0 +1,65 @@
+id = "book.getting-started.challenge"
+kind = "challenge"
+title = "A name badge"
+prompt = '''
+Write `badge(name)`, which returns a name badge: the name with one space on each
+side, framed by a box. `badge("Ferris")` returns these three lines, joined with
+`\n` and with no newline at the end:
+
+    +--------+
+    | Ferris |
+    +--------+
+
+The top and bottom edges are a `+`, then one `-` for every character inside the
+frame (the name plus its two spaces), then another `+`.
+'''
+starter = '''
+/// Returns `name` framed in a box, as three lines joined with '\n'.
+fn badge(name: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", badge("Ferris"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ferris() {
+        assert_eq!(badge("Ferris"), "+--------+\n| Ferris |\n+--------+");
+    }
+
+    #[test]
+    fn short_name() {
+        assert_eq!(badge("Al"), "+----+\n| Al |\n+----+");
+    }
+
+    #[test]
+    fn longer_name() {
+        assert_eq!(
+            badge("Grace Hopper"),
+            "+--------------+\n| Grace Hopper |\n+--------------+"
+        );
+    }
+}
+'''
+hints = [
+  "Build the edge line first, then use `format!` to put the three lines together with `\\n` between them.",
+  "`\"-\".repeat(n)` returns a `String` made of `n` dashes.",
+  "The frame is `name.len() + 2` dashes wide. (`len` counts bytes, which is the same as characters for plain English letters.)",
+]
+solution = '''
+/// Returns `name` framed in a box, as three lines joined with '\n'.
+fn badge(name: &str) -> String {
+    let edge = format!("+{}+", "-".repeat(name.len() + 2));
+    format!("{edge}\n| {name} |\n{edge}")
+}
+
+fn main() {
+    println!("{}", badge("Ferris"));
+}
+'''

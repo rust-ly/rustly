@@ -1,0 +1,48 @@
+id = "book.getting-started.hello-world.checkpoint"
+kind = "checkpoint"
+title = "Greet someone by name"
+prompt = '''
+Make `greet` return a greeting for the name it's given. `greet("Ada")` should
+return exactly `Hello, Ada!`, with a capital H, a comma and an exclamation mark.
+'''
+starter = '''
+/// Returns a greeting such as "Hello, Ada!".
+fn greet(name: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", greet("Ada"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greets_ada() {
+        assert_eq!(greet("Ada"), "Hello, Ada!");
+    }
+
+    #[test]
+    fn greets_anyone() {
+        assert_eq!(greet("Ferris"), "Hello, Ferris!");
+        assert_eq!(greet("Grace Hopper"), "Hello, Grace Hopper!");
+    }
+}
+'''
+hints = [
+  "`format!` builds a `String` the same way `println!` builds a line of output.",
+  "Put `{name}` inside the text, and leave the semicolon off so the `String` is returned.",
+]
+solution = '''
+/// Returns a greeting such as "Hello, Ada!".
+fn greet(name: &str) -> String {
+    format!("Hello, {name}!")
+}
+
+fn main() {
+    println!("{}", greet("Ada"));
+}
+'''
