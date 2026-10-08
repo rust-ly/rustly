@@ -1,0 +1,95 @@
+id = "book.guessing-game.challenge"
+kind = "challenge"
+title = "Play a round"
+prompt = '''
+Write `play(secret, inputs)`, which plays the guessing game with a list of typed
+inputs and returns what the game would print, one `String` per input it reads:
+
+- `"Please type a number!"` if the input isn't a whole number (after trimming)
+- `"Too small!"` or `"Too big!"` for a wrong guess
+- `"You win!"` for the right guess, and then stop. Inputs after the winning
+  guess are never read, so they get no reply.
+
+If the inputs run out before the player wins, just return the replies so far.
+'''
+starter = '''
+use std::cmp::Ordering;
+
+/// Plays one game against `secret` and returns the game's reply to each input it reads.
+fn play(secret: u32, inputs: &[&str]) -> Vec<String> {
+    todo!()
+}
+
+fn main() {
+    for reply in play(42, &["50", "oops", "25\n", "42", "7"]) {
+        println!("{reply}");
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_game() {
+        assert_eq!(
+            play(42, &["50", "oops", "25\n", "42", "7"]),
+            vec!["Too big!", "Please type a number!", "Too small!", "You win!"]
+        );
+    }
+
+    #[test]
+    fn first_guess_wins() {
+        assert_eq!(play(7, &[" 7\n", "8"]), vec!["You win!"]);
+    }
+
+    #[test]
+    fn never_wins() {
+        assert_eq!(play(10, &["1", "", "100"]), vec!["Too small!", "Please type a number!", "Too big!"]);
+    }
+
+    #[test]
+    fn no_input() {
+        assert_eq!(play(10, &[]), Vec::<String>::new());
+    }
+}
+'''
+hints = [
+  "Start with `let mut replies = Vec::new();` and `push` a `String` for each input. Return `replies` at the end.",
+  "Loop with `for input in inputs`. Parse like the first concept: `match input.trim().parse::<u32>()`.",
+  "On a bad input, push the message and `continue`. On a win, push \"You win!\" and `break`.",
+  "`\"Too small!\".to_string()` turns text into a `String` you can push.",
+]
+solution = '''
+use std::cmp::Ordering;
+
+/// Plays one game against `secret` and returns the game's reply to each input it reads.
+fn play(secret: u32, inputs: &[&str]) -> Vec<String> {
+    let mut replies = Vec::new();
+    for input in inputs {
+        let guess: u32 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => {
+                replies.push("Please type a number!".to_string());
+                continue;
+            }
+        };
+        match guess.cmp(&secret) {
+            Ordering::Less => replies.push("Too small!".to_string()),
+            Ordering::Greater => replies.push("Too big!".to_string()),
+            Ordering::Equal => {
+                replies.push("You win!".to_string());
+                break;
+            }
+        }
+    }
+    replies
+}
+
+fn main() {
+    for reply in play(42, &["50", "oops", "25\n", "42", "7"]) {
+        println!("{reply}");
+    }
+}
+'''

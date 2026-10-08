@@ -1,0 +1,59 @@
+id = "book.guessing-game.comparing-guesses.checkpoint"
+kind = "checkpoint"
+title = "Compare a guess"
+prompt = '''
+Write `compare_guess(guess, secret)`. It returns `Ordering::Less` when the guess is
+too small, `Ordering::Greater` when it's too big, and `Ordering::Equal` when it's
+right.
+'''
+starter = '''
+use std::cmp::Ordering;
+
+/// Compares a guess with the secret number.
+fn compare_guess(guess: u32, secret: u32) -> Ordering {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", compare_guess(30, 50));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn too_small() {
+        assert_eq!(compare_guess(30, 50), Ordering::Less);
+        assert_eq!(compare_guess(1, 100), Ordering::Less);
+    }
+
+    #[test]
+    fn too_big() {
+        assert_eq!(compare_guess(70, 50), Ordering::Greater);
+        assert_eq!(compare_guess(100, 1), Ordering::Greater);
+    }
+
+    #[test]
+    fn exactly_right() {
+        assert_eq!(compare_guess(50, 50), Ordering::Equal);
+    }
+}
+'''
+hints = [
+  "Numbers have a `cmp` method that already returns an `Ordering`.",
+  "Compare the guess with the secret, in that order: `guess.cmp(&secret)`.",
+]
+solution = '''
+use std::cmp::Ordering;
+
+/// Compares a guess with the secret number.
+fn compare_guess(guess: u32, secret: u32) -> Ordering {
+    guess.cmp(&secret)
+}
+
+fn main() {
+    println!("{:?}", compare_guess(30, 50));
+}
+'''

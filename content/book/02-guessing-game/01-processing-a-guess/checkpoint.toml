@@ -1,0 +1,58 @@
+id = "book.guessing-game.processing-a-guess.checkpoint"
+kind = "checkpoint"
+title = "Read the guess"
+prompt = '''
+`parse_guess` should turn what the player typed into a number, or return `None`
+if it isn't one. It works for `"42"`, but real input looks like `"42\n"`, and
+for that it wrongly returns `None`. Fix it.
+'''
+starter = '''
+/// Turns raw player input such as "42\n" into a number.
+/// Returns None if the input isn't a whole number.
+fn parse_guess(input: &str) -> Option<u32> {
+    input.parse().ok()
+}
+
+fn main() {
+    println!("{:?}", parse_guess("42\n"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plain_number() {
+        assert_eq!(parse_guess("42"), Some(42));
+    }
+
+    #[test]
+    fn number_with_newline_and_spaces() {
+        assert_eq!(parse_guess("42\n"), Some(42));
+        assert_eq!(parse_guess("  7  \n"), Some(7));
+    }
+
+    #[test]
+    fn not_a_number() {
+        assert_eq!(parse_guess("forty-two\n"), None);
+        assert_eq!(parse_guess("\n"), None);
+        assert_eq!(parse_guess("-3"), None);
+    }
+}
+'''
+hints = [
+  "What's in the text besides the digits? Remember what `read_line` keeps.",
+  "Call `.trim()` on the input before you `parse` it.",
+]
+solution = '''
+/// Turns raw player input such as "42\n" into a number.
+/// Returns None if the input isn't a whole number.
+fn parse_guess(input: &str) -> Option<u32> {
+    input.trim().parse().ok()
+}
+
+fn main() {
+    println!("{:?}", parse_guess("42\n"));
+}
+'''
