@@ -23,3 +23,18 @@ async fn clippy_reports_lints() {
         .unwrap();
     assert!(out.stderr.contains("clippy::len_zero"), "{}", out.stderr);
 }
+
+#[tokio::test]
+#[ignore]
+async fn grades_a_submission() {
+    let code =
+        "fn greet(name: &str) -> String {\n    format!(\"Hello, {name}!\")\n}\n\nfn main() {}\n";
+    let hidden_tests = "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn greets_ada() {\n        assert_eq!(greet(\"Ada\"), \"Hello, Ada!\");\n    }\n}\n";
+    let out = PlaygroundClient::from_env()
+        .execute(&runner::assemble_submission(code, hidden_tests), true)
+        .await
+        .unwrap();
+    let tests = runner::parse_tests(&out.stdout);
+    assert_eq!(tests.len(), 1, "{}", out.stdout);
+    assert!(tests[0].passed);
+}
