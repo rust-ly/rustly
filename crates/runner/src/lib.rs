@@ -1,1 +1,5 @@
-//! Playground client, code assembly and output parsers. Filled in during M1.
+//! Talks to the compile service and turns its output into the shared API types.
+
+pub mod playground;
+
+pub use playground::PlaygroundClient;
