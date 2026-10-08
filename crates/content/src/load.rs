@@ -13,6 +13,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
+use crate::graph::CourseGraph;
 use crate::model::{Chapter, Concept, Exercise, ExerciseKind, Snippet, Track};
 use crate::parse;
 
@@ -35,6 +36,7 @@ impl std::error::Error for LoadError {}
 #[derive(Debug, Clone)]
 pub struct Course {
     tracks: BTreeMap<Track, Vec<Chapter>>,
+    graph: CourseGraph,
 }
 
 impl Course {
@@ -90,14 +92,24 @@ impl Course {
             resolve_requires(chapters);
         }
 
-        let course = Course { tracks };
+        let graph = CourseGraph::new(tracks.values().flatten());
+        let course = Course { tracks, graph };
         course.check_unique_ids(&mut errors);
+        if errors.0.is_empty() {
+            for (id, message) in course.graph.validate() {
+                errors.push(&id, message);
+            }
+        }
         errors.finish(course)
     }
 
     /// One track's chapters, sorted by order.
     pub fn chapters(&self, track: Track) -> &[Chapter] {
         self.tracks.get(&track).map_or(&[], Vec::as_slice)
+    }
+
+    pub fn graph(&self) -> &CourseGraph {
+        &self.graph
     }
 
     /// Every chapter, track by track.

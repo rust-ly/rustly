@@ -1,12 +1,14 @@
 //! Lessons and exercises from `content/`, embedded at compile time and parsed
 //! once on first use.
 
+mod graph;
 mod load;
 mod model;
 mod parse;
 
 use std::sync::LazyLock;
 
+pub use graph::CourseGraph;
 pub use load::{Course, LoadError};
 pub use model::{Chapter, Concept, Exercise, ExerciseKind, Snippet, SnippetKind, Track};
 
@@ -39,6 +41,10 @@ pub fn snippets() -> impl Iterator<Item = &'static Snippet> {
     course().snippets()
 }
 
+pub fn graph() -> &'static CourseGraph {
+    course().graph()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,6 +72,11 @@ mod tests {
                 "book.structs",
             ]
         );
+    }
+
+    #[test]
+    fn learners_start_at_hello_world() {
+        assert_eq!(graph().root(), Some("book.getting-started.hello-world"));
     }
 
     #[test]
