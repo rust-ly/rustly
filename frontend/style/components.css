@@ -94,7 +94,29 @@
 }
 
 /* Page sections */
-.intro { padding-top: var(--space-7); }
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-7);
+  padding-top: var(--space-7);
+}
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-5); }
+.hero-art {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  justify-self: end;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+@media (max-width: 768px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .hero-art { max-width: 260px; justify-self: start; }
+}
 .hero-wordmark {
   font-size: var(--text-hero);
   font-weight: 900;

@@ -12,12 +12,34 @@ use crate::routes;
 
 #[component]
 pub fn Home() -> impl IntoView {
+    let learner = Learner::get();
+    // The first open concept not passed yet, or the very first one.
+    let next_lesson = move || {
+        let next = content::course()
+            .concepts()
+            .find(|c| learner.is_open(&c.id) && !learner.is_done(&c.id))
+            .or_else(|| content::course().concepts().next());
+        next.map_or_else(|| "/".to_string(), routes::concept_path)
+    };
     view! {
         <LockedNotice />
-        <section class="section intro">
-            <p class="eyebrow">"sys.boot // rust-book + tokio"</p>
-            <h1 class="hero-wordmark">"Rust"<span>"ly"</span></h1>
-            <p class="pitch">"Learn Rust by writing it, one passing exercise at a time."</p>
+        <section class="section hero">
+            <div class="hero-text">
+                <p class="eyebrow">"sys.boot // rust-book + tokio"</p>
+                <h1 class="hero-wordmark">"Rust"<span>"ly"</span></h1>
+                <p class="pitch">"Learn Rust by writing it, one passing exercise at a time."</p>
+                <div class="hero-actions">
+                    <A href=next_lesson attr:class="btn">"cargo run --learn"</A>
+                    <a href="#track-book" class="btn btn-secondary">"./browse-chapters"</a>
+                </div>
+            </div>
+            <img
+                class="hero-art"
+                src="/images/rustly-crab.jpg"
+                width="720"
+                height="720"
+                alt="A blue crab with red claw tips under a red scribbled circle, above the word Rustly"
+            />
         </section>
         <TrackSection track=Track::Book title="The Rust Book" />
         <TrackSection track=Track::Tokio title="Async with Tokio" />
