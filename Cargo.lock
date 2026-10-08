@@ -1903,6 +1903,7 @@ dependencies = [
 name = "rustly-api"
 version = "0.1.0"
 dependencies = [
+ "content",
  "http-body-util",
  "runner",
  "serde",

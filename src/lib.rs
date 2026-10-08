@@ -4,6 +4,7 @@
 
 mod endpoints;
 mod http;
+mod redact;
 
 pub use endpoints::Api;
 pub use http::{read_json, respond};

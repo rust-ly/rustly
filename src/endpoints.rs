@@ -1,9 +1,9 @@
 //! What each endpoint does once its request has been read.
 
-use runner::{PlaygroundClient, parse_diagnostics};
-use shared::{CheckResponse, CodeRequest, RunResponse};
+use runner::{PlaygroundClient, assemble_submission, parse_diagnostics, parse_tests};
+use shared::{CheckResponse, CodeRequest, RunResponse, SubmitRequest, SubmitResponse};
 
-use crate::{Failure, check_size};
+use crate::{Failure, check_size, redact};
 
 /// The API's handle on the compile service.
 #[derive(Debug, Clone)]
@@ -40,6 +40,39 @@ impl Api {
             diagnostics: parse_diagnostics(&out.stderr),
             stdout: out.stdout,
             stderr: out.stderr,
+        })
+    }
+
+    /// `/api/submit`: grades the code against the exercise's hidden tests.
+    ///
+    /// The response never includes the tests themselves: diagnostics that
+    /// point into them are dropped, and lines rustc quotes from them are
+    /// replaced in `stderr`.
+    pub async fn submit(&self, req: SubmitRequest) -> Result<SubmitResponse, Failure> {
+        check_size(&req.code)?;
+        let exercise = content::exercise(&req.exercise_id).ok_or_else(|| {
+            Failure::new(
+                404,
+                format!("There's no exercise called `{}`.", req.exercise_id),
+            )
+        })?;
+        let program = assemble_submission(&req.code, &exercise.hidden_tests);
+        let out = self.client.execute(&program, true).await?;
+
+        let learner_lines = req.code.trim_end().lines().count() as u32;
+        let compiled = !out.stderr.contains("error: could not compile");
+        let tests = parse_tests(&out.stdout);
+        let passed = compiled && !tests.is_empty() && tests.iter().all(|t| t.passed);
+        let diagnostics = parse_diagnostics(&out.stderr)
+            .into_iter()
+            .filter(|d| d.line <= learner_lines)
+            .collect();
+        Ok(SubmitResponse {
+            compiled,
+            passed,
+            tests,
+            diagnostics,
+            stderr: redact::hidden_test_lines(&out.stderr, learner_lines),
         })
     }
 }
