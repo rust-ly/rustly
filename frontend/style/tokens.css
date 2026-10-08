@@ -22,8 +22,10 @@
   --btn-bg: var(--sand);
   --btn-fg: var(--lava);
   --wordmark-accent: var(--crab);
+  --link: var(--sand);
   --grain-opacity: 0.04;
   --hatch: rgb(140 3 3 / 0.08);
+  --error-line: rgb(140 3 3 / 0.25);
   --macro: #FF8A5B;
 
   /* shape + depth */
@@ -73,8 +75,10 @@
   --btn-bg: var(--lava);
   --btn-fg: var(--sand);
   --wordmark-accent: var(--shell);
+  --link: var(--shell);
   --grain-opacity: 0.03;
   --macro: var(--shell);
+  --error-line: rgb(140 3 3 / 0.12);
   color-scheme: light;
 }
 

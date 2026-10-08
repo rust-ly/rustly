@@ -1,10 +1,13 @@
+mod api;
 mod app;
 mod chapter;
 mod course_map;
+mod highlight;
 mod icons;
 mod learner;
 mod lesson;
 mod routes;
+mod snippet;
 mod storage;
 mod topbar;
 

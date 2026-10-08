@@ -540,6 +540,7 @@ dependencies = [
  "leptos_router",
  "serde_json",
  "shared",
+ "web-sys",
 ]
 
 [[package]]

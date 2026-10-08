@@ -21,8 +21,7 @@ h3 { font-size: var(--text-h3); font-weight: 700; letter-spacing: -0.015em; line
 
 p { margin: 0 0 var(--space-4); }
 
-a { color: var(--sand); text-underline-offset: 3px; }
-:root[data-theme="light"] a { color: var(--shell); }
+a { color: var(--link); text-underline-offset: 3px; }
 
 code, pre { font-family: var(--font-mono); }
 
