@@ -5,12 +5,14 @@ mod graph;
 mod load;
 mod model;
 mod parse;
+mod progress;
 
 use std::sync::LazyLock;
 
 pub use graph::CourseGraph;
 pub use load::{Course, LoadError};
 pub use model::{Chapter, Concept, Exercise, ExerciseKind, Snippet, SnippetKind, Track};
+pub use progress::{Progress, unlocked};
 
 mod embedded {
     include!(concat!(env!("OUT_DIR"), "/files.rs"));

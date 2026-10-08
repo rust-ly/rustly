@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::model::{Chapter, Track};
+use crate::progress::Progress;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CourseGraph {
@@ -65,6 +66,45 @@ impl CourseGraph {
     /// The concept a new learner starts on.
     pub fn root(&self) -> Option<&str> {
         self.root.as_deref()
+    }
+
+    pub fn concept_ids(&self) -> impl Iterator<Item = &str> {
+        self.concepts.keys().map(String::as_str)
+    }
+
+    /// What a concept needs before it opens: concept and chapter ids.
+    pub fn concept_requires(&self, concept: &str) -> &[String] {
+        self.concepts.get(concept).map_or(&[], |c| &c.requires)
+    }
+
+    /// The concept's checkpoint is passed, or its whole chapter is complete.
+    pub fn is_done(&self, concept: &str, progress: &Progress) -> bool {
+        self.concepts.get(concept).is_some_and(|c| {
+            progress.completed.contains(&c.checkpoint) || self.is_complete(&c.chapter, progress)
+        })
+    }
+
+    /// The chapter's challenge or test-out is passed.
+    pub fn is_complete(&self, chapter: &str, progress: &Progress) -> bool {
+        self.chapters.get(chapter).is_some_and(|c| {
+            c.completed_by
+                .iter()
+                .any(|e| progress.completed.contains(e))
+        })
+    }
+
+    /// The concept's requirements are all met, or its chapter is complete.
+    pub fn is_open(&self, concept: &str, progress: &Progress) -> bool {
+        self.concepts.get(concept).is_some_and(|c| {
+            self.is_complete(&c.chapter, progress)
+                || c.requires.iter().all(|r| {
+                    if self.chapters.contains_key(r) {
+                        self.is_complete(r, progress)
+                    } else {
+                        self.is_done(r, progress)
+                    }
+                })
+        })
     }
 
     /// Checks that every `requires` id exists, there are no cycles, and every
