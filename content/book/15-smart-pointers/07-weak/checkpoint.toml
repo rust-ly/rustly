@@ -1,0 +1,142 @@
+id = "book.smart-pointers.weak.checkpoint"
+kind = "checkpoint"
+title = "Folders that know their parent"
+prompt = '''
+A `Folder` owns its children (`Rc`) and knows its parent through a `Weak` link.
+Write:
+
+- `add_child(parent: &Rc<Folder>, child: &Rc<Folder>)`: adds `child` to the parent's
+  `children` and sets the child's `parent` to a weak link to `parent`.
+- `path(folder: &Rc<Folder>) -> String`: the folder's full path by following parent
+  links up to the root, joined with `/`, like `"home/ada/docs"`.
+- `parent_name(folder: &Folder) -> Option<String>`: the parent's name, or `None` if
+  it has no parent **or the parent has been dropped**.
+'''
+starter = '''
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+struct Folder {
+    name: String,
+    parent: RefCell<Weak<Folder>>,
+    children: RefCell<Vec<Rc<Folder>>>,
+}
+
+fn folder(name: &str) -> Rc<Folder> {
+    Rc::new(Folder {
+        name: name.to_string(),
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    })
+}
+
+fn add_child(parent: &Rc<Folder>, child: &Rc<Folder>) {
+    todo!()
+}
+
+fn path(folder: &Rc<Folder>) -> String {
+    todo!()
+}
+
+fn parent_name(folder: &Folder) -> Option<String> {
+    todo!()
+}
+
+fn main() {
+    let home = folder("home");
+    let ada = folder("ada");
+    let docs = folder("docs");
+    add_child(&home, &ada);
+    add_child(&ada, &docs);
+    println!("{}", path(&docs));
+    println!("{:?}", parent_name(&docs));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_paths() {
+        let home = folder("home");
+        let ada = folder("ada");
+        let docs = folder("docs");
+        add_child(&home, &ada);
+        add_child(&ada, &docs);
+        assert_eq!(path(&docs), "home/ada/docs");
+        assert_eq!(path(&home), "home");
+        assert_eq!(home.children.borrow().len(), 1);
+    }
+
+    #[test]
+    fn parents_are_weak() {
+        let child = folder("child");
+        assert_eq!(parent_name(&child), None);
+        {
+            let parent = folder("parent");
+            add_child(&parent, &child);
+            assert_eq!(parent_name(&child), Some(String::from("parent")));
+            assert_eq!(Rc::strong_count(&parent), 1);
+            assert_eq!(Rc::weak_count(&parent), 1);
+        }
+        assert_eq!(parent_name(&child), None);
+    }
+}
+'''
+hints = [
+  "`parent.children.borrow_mut().push(Rc::clone(child));` and `*child.parent.borrow_mut() = Rc::downgrade(parent);`",
+  "`parent_name`: `folder.parent.borrow().upgrade().map(|p| p.name.clone())`",
+  "`path`: start with the folder's name; while `upgrade()` gives a parent, put its name in front with `/`, and move up.",
+]
+solution = '''
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+struct Folder {
+    name: String,
+    parent: RefCell<Weak<Folder>>,
+    children: RefCell<Vec<Rc<Folder>>>,
+}
+
+fn folder(name: &str) -> Rc<Folder> {
+    Rc::new(Folder {
+        name: name.to_string(),
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    })
+}
+
+fn add_child(parent: &Rc<Folder>, child: &Rc<Folder>) {
+    parent.children.borrow_mut().push(Rc::clone(child));
+    *child.parent.borrow_mut() = Rc::downgrade(parent);
+}
+
+fn path(folder: &Rc<Folder>) -> String {
+    let mut parts = vec![folder.name.clone()];
+    let mut current = folder.parent.borrow().upgrade();
+    loop {
+        let Some(p) = current else {
+            break;
+        };
+        parts.push(p.name.clone());
+        current = p.parent.borrow().upgrade();
+    }
+    parts.reverse();
+    parts.join("/")
+}
+
+fn parent_name(folder: &Folder) -> Option<String> {
+    folder.parent.borrow().upgrade().map(|p| p.name.clone())
+}
+
+fn main() {
+    let home = folder("home");
+    let ada = folder("ada");
+    let docs = folder("docs");
+    add_child(&home, &ada);
+    add_child(&ada, &docs);
+    println!("{}", path(&docs));
+    println!("{:?}", parent_name(&docs));
+}
+'''
