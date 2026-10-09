@@ -1,0 +1,95 @@
+id = "book.generics.traits.checkpoint"
+kind = "checkpoint"
+title = "Every animal speaks"
+prompt = '''
+Define a trait `Speak` with two methods:
+
+- `name(&self) -> String`
+- `sound(&self) -> String`
+
+Implement it for `Dog` (sound `"woof"`) and `Cat` (sound `"meow"`). Each animal's
+`name` returns the name stored in its struct.
+'''
+starter = '''
+struct Dog {
+    name: String,
+}
+
+struct Cat {
+    name: String,
+}
+
+// Define the Speak trait and implement it for Dog and Cat.
+
+fn main() {
+    let d = Dog { name: String::from("Rex") };
+    let c = Cat { name: String::from("Tom") };
+    println!("{} says {}", d.name(), d.sound());
+    println!("{} says {}", c.name(), c.sound());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dogs_woof() {
+        let d = Dog { name: String::from("Rex") };
+        assert_eq!(d.name(), "Rex");
+        assert_eq!(d.sound(), "woof");
+    }
+
+    #[test]
+    fn cats_meow() {
+        let c = Cat { name: String::from("Tom") };
+        assert_eq!(c.name(), "Tom");
+        assert_eq!(c.sound(), "meow");
+    }
+}
+'''
+hints = [
+  "`trait Speak { fn name(&self) -> String; fn sound(&self) -> String; }`",
+  "`impl Speak for Dog { fn name(&self) -> String { self.name.clone() } fn sound(&self) -> String { String::from(\"woof\") } }`",
+]
+solution = '''
+struct Dog {
+    name: String,
+}
+
+struct Cat {
+    name: String,
+}
+
+trait Speak {
+    fn name(&self) -> String;
+    fn sound(&self) -> String;
+}
+
+impl Speak for Dog {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn sound(&self) -> String {
+        String::from("woof")
+    }
+}
+
+impl Speak for Cat {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn sound(&self) -> String {
+        String::from("meow")
+    }
+}
+
+fn main() {
+    let d = Dog { name: String::from("Rex") };
+    let c = Cat { name: String::from("Tom") };
+    println!("{} says {}", d.name(), d.sound());
+    println!("{} says {}", c.name(), c.sound());
+}
+'''
