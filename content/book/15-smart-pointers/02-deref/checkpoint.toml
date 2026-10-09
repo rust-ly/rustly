@@ -1,0 +1,83 @@
+id = "book.smart-pointers.deref.checkpoint"
+kind = "checkpoint"
+title = "A wrapper that acts like what it wraps"
+prompt = '''
+`Labelled<T>` wraps a value with a label. Implement `Deref` for it, with
+`Target = T`, so that:
+
+- `*labelled` gives the inner value,
+- methods of `T` can be called directly (`labelled.len()` on a `Labelled<String>`),
+- `&Labelled<String>` can be passed to `shout(text: &str)` thanks to deref coercion.
+
+Also write `shout`, which returns the text in upper case followed by `"!"`.
+'''
+starter = '''
+use std::ops::Deref;
+
+struct Labelled<T> {
+    label: &'static str,
+    value: T,
+}
+
+// impl<T> Deref for Labelled<T> { ... }
+
+fn shout(text: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    let name = Labelled { label: "name", value: String::from("ferris") };
+    println!("{}: {} ({} letters)", name.label, *name, name.len());
+    println!("{}", shout(&name));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derefs_to_the_value() {
+        let n = Labelled { label: "n", value: 41 };
+        assert_eq!(*n + 1, 42);
+    }
+
+    #[test]
+    fn methods_and_coercion() {
+        let s = Labelled { label: "word", value: String::from("crab") };
+        assert_eq!(s.len(), 4);
+        assert_eq!(shout(&s), "CRAB!");
+        assert_eq!(s.label, "word");
+    }
+}
+'''
+hints = [
+  "`impl<T> Deref for Labelled<T> { type Target = T; fn deref(&self) -> &T { &self.value } }`",
+  "`shout`: `format!(\"{}!\", text.to_uppercase())`.",
+]
+solution = '''
+use std::ops::Deref;
+
+struct Labelled<T> {
+    label: &'static str,
+    value: T,
+}
+
+impl<T> Deref for Labelled<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+
+fn shout(text: &str) -> String {
+    format!("{}!", text.to_uppercase())
+}
+
+fn main() {
+    let name = Labelled { label: "name", value: String::from("ferris") };
+    println!("{}: {} ({} letters)", name.label, *name, name.len());
+    println!("{}", shout(&name));
+}
+'''

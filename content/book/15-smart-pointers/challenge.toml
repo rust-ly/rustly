@@ -1,0 +1,155 @@
+id = "book.smart-pointers.challenge"
+kind = "challenge"
+title = "A calculator with shared variables"
+prompt = '''
+Build a tiny expression evaluator:
+
+1. `Expr` is a **recursive** enum, so its sub-expressions are boxed:
+   `Num(i64)`, `Var(String)`, `Add(Box<Expr>, Box<Expr>)`, `Mul(Box<Expr>, Box<Expr>)`
+   and `Neg(Box<Expr>)`.
+2. `Env` holds variable values. It's shared between several calculators, and any of
+   them can change it, so it's an `Rc<RefCell<HashMap<String, i64>>>`.
+3. `eval(expr: &Expr, env: &Env) -> Result<i64, String>` evaluates the expression.
+   An unknown variable is `Err("unknown variable: NAME")`.
+4. `Calculator::new(env: &Env)` keeps a shared handle to the environment.
+   `Calculator::set(&self, name: &str, value: i64)` stores a variable (visible to every
+   calculator sharing the env), and `Calculator::run(&self, expr: &Expr)` calls `eval`.
+'''
+starter = '''
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+type Env = Rc<RefCell<HashMap<String, i64>>>;
+
+// Define Expr here.
+
+fn eval(expr: &Expr, env: &Env) -> Result<i64, String> {
+    todo!()
+}
+
+struct Calculator {
+    env: Env,
+}
+
+fn main() {
+    let env: Env = Rc::new(RefCell::new(HashMap::new()));
+    let a = Calculator::new(&env);
+    let b = Calculator::new(&env);
+    a.set("x", 4);
+    // (x + 3) * -2
+    let expr = Expr::Mul(
+        Box::new(Expr::Add(Box::new(Expr::Var(String::from("x"))), Box::new(Expr::Num(3)))),
+        Box::new(Expr::Neg(Box::new(Expr::Num(2)))),
+    );
+    println!("{:?}", b.run(&expr));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn num(n: i64) -> Box<Expr> { Box::new(Expr::Num(n)) }
+    fn var(s: &str) -> Box<Expr> { Box::new(Expr::Var(s.to_string())) }
+
+    fn new_env() -> Env {
+        Rc::new(RefCell::new(HashMap::new()))
+    }
+
+    #[test]
+    fn evaluates_numbers() {
+        let env = new_env();
+        let e = Expr::Add(num(2), Box::new(Expr::Mul(num(3), num(4))));
+        assert_eq!(eval(&e, &env), Ok(14));
+        assert_eq!(eval(&Expr::Neg(num(5)), &env), Ok(-5));
+    }
+
+    #[test]
+    fn variables_and_errors() {
+        let env = new_env();
+        env.borrow_mut().insert(String::from("y"), 10);
+        assert_eq!(eval(&Expr::Mul(var("y"), var("y")), &env), Ok(100));
+        assert_eq!(eval(&Expr::Add(var("y"), var("z")), &env), Err(String::from("unknown variable: z")));
+    }
+
+    #[test]
+    fn calculators_share_the_env() {
+        let env = new_env();
+        let a = Calculator::new(&env);
+        let b = Calculator::new(&env);
+        assert_eq!(Rc::strong_count(&env), 3);
+        a.set("x", 4);
+        let e = Expr::Mul(Box::new(Expr::Add(var("x"), num(3))), Box::new(Expr::Neg(num(2))));
+        assert_eq!(b.run(&e), Ok(-14));
+        b.set("x", 0);
+        assert_eq!(a.run(&e), Ok(-6));
+    }
+}
+'''
+hints = [
+  "`enum Expr { Num(i64), Var(String), Add(Box<Expr>, Box<Expr>), Mul(Box<Expr>, Box<Expr>), Neg(Box<Expr>) }`",
+  "In `eval`, `match expr` and recurse: `Expr::Add(l, r) => Ok(eval(l, env)? + eval(r, env)?)`.",
+  "For a variable: `env.borrow().get(name).copied().ok_or(format!(\"unknown variable: {name}\"))`.",
+  "`Calculator::new` stores `Rc::clone(env)`; `set` does `self.env.borrow_mut().insert(...)`.",
+]
+solution = '''
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+type Env = Rc<RefCell<HashMap<String, i64>>>;
+
+enum Expr {
+    Num(i64),
+    Var(String),
+    Add(Box<Expr>, Box<Expr>),
+    Mul(Box<Expr>, Box<Expr>),
+    Neg(Box<Expr>),
+}
+
+fn eval(expr: &Expr, env: &Env) -> Result<i64, String> {
+    match expr {
+        Expr::Num(n) => Ok(*n),
+        Expr::Var(name) => env
+            .borrow()
+            .get(name)
+            .copied()
+            .ok_or(format!("unknown variable: {name}")),
+        Expr::Add(l, r) => Ok(eval(l, env)? + eval(r, env)?),
+        Expr::Mul(l, r) => Ok(eval(l, env)? * eval(r, env)?),
+        Expr::Neg(e) => Ok(-eval(e, env)?),
+    }
+}
+
+struct Calculator {
+    env: Env,
+}
+
+impl Calculator {
+    fn new(env: &Env) -> Calculator {
+        Calculator { env: Rc::clone(env) }
+    }
+
+    fn set(&self, name: &str, value: i64) {
+        self.env.borrow_mut().insert(name.to_string(), value);
+    }
+
+    fn run(&self, expr: &Expr) -> Result<i64, String> {
+        eval(expr, &self.env)
+    }
+}
+
+fn main() {
+    let env: Env = Rc::new(RefCell::new(HashMap::new()));
+    let a = Calculator::new(&env);
+    let b = Calculator::new(&env);
+    a.set("x", 4);
+    // (x + 3) * -2
+    let expr = Expr::Mul(
+        Box::new(Expr::Add(Box::new(Expr::Var(String::from("x"))), Box::new(Expr::Num(3)))),
+        Box::new(Expr::Neg(Box::new(Expr::Num(2)))),
+    );
+    println!("{:?}", b.run(&expr));
+}
+'''

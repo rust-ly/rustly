@@ -1,0 +1,108 @@
+id = "book.smart-pointers.box.checkpoint"
+kind = "checkpoint"
+title = "A boxed linked list"
+prompt = '''
+Using the boxed cons list, write three recursive functions:
+
+- `len(list: &List) -> usize`: how many values are in the list.
+- `max(list: &List) -> Option<i32>`: the largest value, or `None` for `Nil`.
+- `from_slice(values: &[i32]) -> List`: builds a list with the values in the same
+  order. (`from_slice(&[1, 2])` is `Cons(1, Box::new(Cons(2, Box::new(Nil))))`.)
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn len(list: &List) -> usize {
+    todo!()
+}
+
+fn max(list: &List) -> Option<i32> {
+    todo!()
+}
+
+fn from_slice(values: &[i32]) -> List {
+    todo!()
+}
+
+fn main() {
+    let list = from_slice(&[3, 9, 4]);
+    println!("{list:?}");
+    println!("len {}, max {:?}", len(&list), max(&list));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_in_order() {
+        assert_eq!(from_slice(&[1, 2]), Cons(1, Box::new(Cons(2, Box::new(Nil)))));
+        assert_eq!(from_slice(&[]), Nil);
+    }
+
+    #[test]
+    fn length() {
+        assert_eq!(len(&from_slice(&[3, 9, 4])), 3);
+        assert_eq!(len(&Nil), 0);
+    }
+
+    #[test]
+    fn maximum() {
+        assert_eq!(max(&from_slice(&[3, 9, 4])), Some(9));
+        assert_eq!(max(&from_slice(&[-5, -2])), Some(-2));
+        assert_eq!(max(&Nil), None);
+    }
+}
+'''
+hints = [
+  "`len`: `match list { Cons(_, rest) => 1 + len(rest), Nil => 0 }`",
+  "`max`: for `Cons(v, rest)`, compare `*v` with `max(rest)`, which is an `Option`.",
+  "`from_slice`: if the slice is empty return `Nil`, otherwise `Cons(values[0], Box::new(from_slice(&values[1..])))`.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn len(list: &List) -> usize {
+    match list {
+        Cons(_, rest) => 1 + len(rest),
+        Nil => 0,
+    }
+}
+
+fn max(list: &List) -> Option<i32> {
+    match list {
+        Cons(v, rest) => match max(rest) {
+            Some(m) => Some(if m > *v { m } else { *v }),
+            None => Some(*v),
+        },
+        Nil => None,
+    }
+}
+
+fn from_slice(values: &[i32]) -> List {
+    if values.is_empty() {
+        Nil
+    } else {
+        Cons(values[0], Box::new(from_slice(&values[1..])))
+    }
+}
+
+fn main() {
+    let list = from_slice(&[3, 9, 4]);
+    println!("{list:?}");
+    println!("len {}, max {:?}", len(&list), max(&list));
+}
+'''
