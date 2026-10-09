@@ -1,0 +1,105 @@
+id = "book.async.streams.checkpoint"
+kind = "checkpoint"
+title = "Process a stream of readings"
+prompt = '''
+Temperature readings arrive as a stream of `i32`s. Using `futures::stream` and
+`StreamExt`, write:
+
+- `async fn above(readings: Vec<i32>, limit: i32) -> Vec<i32>`: the readings strictly
+  above `limit`, in order (`stream::iter`, `filter`, `collect`).
+- `async fn labelled(readings: Vec<i32>) -> Vec<String>`: each reading as `"N°C"`,
+  produced with the async `label(n)` function and `then`.
+- `async fn first_n_total(readings: Vec<i32>, n: usize) -> i32`: the sum of the first
+  `n` readings, using `take` and a `while let ... next().await` loop.
+'''
+starter = '''
+use futures::stream::{self, StreamExt};
+
+async fn label(n: i32) -> String {
+    format!("{n}°C")
+}
+
+async fn above(readings: Vec<i32>, limit: i32) -> Vec<i32> {
+    todo!()
+}
+
+async fn labelled(readings: Vec<i32>) -> Vec<String> {
+    todo!()
+}
+
+async fn first_n_total(readings: Vec<i32>, n: usize) -> i32 {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let r = vec![18, 25, 21, 30];
+    println!("{:?}", above(r.clone(), 20).await);
+    println!("{:?}", labelled(r.clone()).await);
+    println!("{}", first_n_total(r, 2).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn filtering() {
+        assert_eq!(above(vec![18, 25, 21, 30], 20).await, vec![25, 21, 30]);
+        assert!(above(vec![1, 2], 5).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn labels() {
+        assert_eq!(labelled(vec![18, -2]).await, vec!["18°C", "-2°C"]);
+    }
+
+    #[tokio::test]
+    async fn totals() {
+        assert_eq!(first_n_total(vec![18, 25, 21, 30], 2).await, 43);
+        assert_eq!(first_n_total(vec![5], 10).await, 5);
+        assert_eq!(first_n_total(vec![], 3).await, 0);
+    }
+}
+'''
+hints = [
+  "`stream::iter(readings).filter(|n| futures::future::ready(*n > limit)).collect().await`",
+  "`stream::iter(readings).then(label).collect().await`",
+  "`let mut s = stream::iter(readings).take(n); let mut total = 0; while let Some(x) = s.next().await { total += x; } total`",
+]
+solution = '''
+use futures::stream::{self, StreamExt};
+
+async fn label(n: i32) -> String {
+    format!("{n}°C")
+}
+
+async fn above(readings: Vec<i32>, limit: i32) -> Vec<i32> {
+    stream::iter(readings)
+        .filter(|n| futures::future::ready(*n > limit))
+        .collect()
+        .await
+}
+
+async fn labelled(readings: Vec<i32>) -> Vec<String> {
+    stream::iter(readings).then(label).collect().await
+}
+
+async fn first_n_total(readings: Vec<i32>, n: usize) -> i32 {
+    let mut s = stream::iter(readings).take(n);
+    let mut total = 0;
+    while let Some(x) = s.next().await {
+        total += x;
+    }
+    total
+}
+
+#[tokio::main]
+async fn main() {
+    let r = vec![18, 25, 21, 30];
+    println!("{:?}", above(r.clone(), 20).await);
+    println!("{:?}", labelled(r.clone()).await);
+    println!("{}", first_n_total(r, 2).await);
+}
+'''
