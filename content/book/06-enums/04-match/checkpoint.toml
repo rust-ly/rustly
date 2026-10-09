@@ -1,0 +1,85 @@
+id = "book.enums.match.checkpoint"
+kind = "checkpoint"
+title = "Traffic lights"
+prompt = '''
+Write two functions with `match`:
+
+- `seconds(light: &Light) -> u32`: how long each light stays on.
+  `Red` is 30 seconds, `Yellow` is 3 and `Green` is 25.
+- `next(light: &Light) -> Light`: the light that comes after it.
+  Red goes to Green, Green to Yellow, and Yellow back to Red.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum Light {
+    Red,
+    Yellow,
+    Green,
+}
+
+fn seconds(light: &Light) -> u32 {
+    todo!()
+}
+
+fn next(light: &Light) -> Light {
+    todo!()
+}
+
+fn main() {
+    let light = Light::Red;
+    println!("{light:?} for {}s, then {:?}", seconds(&light), next(&light));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn durations() {
+        assert_eq!(seconds(&Light::Red), 30);
+        assert_eq!(seconds(&Light::Yellow), 3);
+        assert_eq!(seconds(&Light::Green), 25);
+    }
+
+    #[test]
+    fn cycle() {
+        assert_eq!(next(&Light::Red), Light::Green);
+        assert_eq!(next(&Light::Green), Light::Yellow);
+        assert_eq!(next(&Light::Yellow), Light::Red);
+    }
+}
+'''
+hints = [
+  "`match light { Light::Red => 30, ... }` with one arm per variant.",
+  "Because `light` is a reference, matching on `Light::Red` still works: Rust looks through the `&` for you.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum Light {
+    Red,
+    Yellow,
+    Green,
+}
+
+fn seconds(light: &Light) -> u32 {
+    match light {
+        Light::Red => 30,
+        Light::Yellow => 3,
+        Light::Green => 25,
+    }
+}
+
+fn next(light: &Light) -> Light {
+    match light {
+        Light::Red => Light::Green,
+        Light::Green => Light::Yellow,
+        Light::Yellow => Light::Red,
+    }
+}
+
+fn main() {
+    let light = Light::Red;
+    println!("{light:?} for {}s, then {:?}", seconds(&light), next(&light));
+}
+'''

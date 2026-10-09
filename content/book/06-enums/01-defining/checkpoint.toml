@@ -1,0 +1,64 @@
+id = "book.enums.defining.checkpoint"
+kind = "checkpoint"
+title = "Red or black?"
+prompt = '''
+Hearts and diamonds are red; clubs and spades are black.
+
+1. Finish the `Suit` enum: it needs all four variants, `Clubs`, `Diamonds`,
+   `Hearts` and `Spades`.
+2. Write `is_red(suit: Suit) -> bool` so it returns `true` for hearts and diamonds.
+   Compare with `==`.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum Suit {
+    Clubs,
+}
+
+fn is_red(suit: Suit) -> bool {
+    todo!()
+}
+
+fn main() {
+    println!("Hearts are red? {}", is_red(Suit::Hearts));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn red_suits() {
+        assert!(is_red(Suit::Hearts));
+        assert!(is_red(Suit::Diamonds));
+    }
+
+    #[test]
+    fn black_suits() {
+        assert!(!is_red(Suit::Clubs));
+        assert!(!is_red(Suit::Spades));
+    }
+}
+'''
+hints = [
+  "Add the three missing variants inside the braces, separated by commas.",
+  "`suit == Suit::Hearts || suit == Suit::Diamonds` is a `bool`.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum Suit {
+    Clubs,
+    Diamonds,
+    Hearts,
+    Spades,
+}
+
+fn is_red(suit: Suit) -> bool {
+    suit == Suit::Hearts || suit == Suit::Diamonds
+}
+
+fn main() {
+    println!("Hearts are red? {}", is_red(Suit::Hearts));
+}
+'''

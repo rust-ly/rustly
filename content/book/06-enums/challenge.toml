@@ -1,0 +1,164 @@
+id = "book.enums.challenge"
+kind = "challenge"
+title = "The coin counter"
+prompt = '''
+A vending machine takes US coins. Quarters were minted with a state on the back,
+so `Quarter` carries a `State`.
+
+1. `Coin::value(&self) -> u32`: 1, 5, 10 or 25 cents, using `match`.
+2. `total(coins: &[Coin]) -> u32`: the value of all the coins together.
+3. `quarters_from(coins: &[Coin], state: State) -> usize`: how many quarters came
+   from `state`. `if let` is handy here.
+4. `first_quarter_state(coins: &[Coin]) -> Option<State>`: the state on the first
+   quarter in the list, or `None` if there are no quarters.
+'''
+starter = '''
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum State {
+    Alabama,
+    Alaska,
+    Hawaii,
+}
+
+#[derive(Debug)]
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(State),
+}
+
+impl Coin {
+    fn value(&self) -> u32 {
+        todo!()
+    }
+}
+
+fn total(coins: &[Coin]) -> u32 {
+    todo!()
+}
+
+fn quarters_from(coins: &[Coin], state: State) -> usize {
+    todo!()
+}
+
+fn first_quarter_state(coins: &[Coin]) -> Option<State> {
+    todo!()
+}
+
+fn main() {
+    let coins = [Coin::Dime, Coin::Quarter(State::Alaska), Coin::Penny];
+    println!("total: {} cents", total(&coins));
+    println!("from Alaska: {}", quarters_from(&coins, State::Alaska));
+    println!("first quarter: {:?}", first_quarter_state(&coins));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn coin_values() {
+        assert_eq!(Coin::Penny.value(), 1);
+        assert_eq!(Coin::Nickel.value(), 5);
+        assert_eq!(Coin::Dime.value(), 10);
+        assert_eq!(Coin::Quarter(State::Hawaii).value(), 25);
+    }
+
+    #[test]
+    fn totals() {
+        assert_eq!(total(&[]), 0);
+        let coins = [Coin::Quarter(State::Alabama), Coin::Dime, Coin::Nickel, Coin::Penny];
+        assert_eq!(total(&coins), 41);
+    }
+
+    #[test]
+    fn counts_quarters_by_state() {
+        let coins = [
+            Coin::Quarter(State::Alaska),
+            Coin::Quarter(State::Hawaii),
+            Coin::Dime,
+            Coin::Quarter(State::Alaska),
+        ];
+        assert_eq!(quarters_from(&coins, State::Alaska), 2);
+        assert_eq!(quarters_from(&coins, State::Alabama), 0);
+    }
+
+    #[test]
+    fn finds_the_first_quarter() {
+        let coins = [Coin::Penny, Coin::Quarter(State::Hawaii), Coin::Quarter(State::Alaska)];
+        assert_eq!(first_quarter_state(&coins), Some(State::Hawaii));
+        assert_eq!(first_quarter_state(&[Coin::Dime]), None);
+    }
+}
+'''
+hints = [
+  "In `value`, the quarter arm can ignore its state: `Coin::Quarter(_) => 25`.",
+  "Loop with `for coin in coins` and add up `coin.value()`.",
+  "`if let Coin::Quarter(s) = coin { if *s == state { count += 1; } }`",
+  "For the first quarter, return early from inside the loop with `return Some(*s);`, and return `None` after it.",
+]
+solution = '''
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum State {
+    Alabama,
+    Alaska,
+    Hawaii,
+}
+
+#[derive(Debug)]
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(State),
+}
+
+impl Coin {
+    fn value(&self) -> u32 {
+        match self {
+            Coin::Penny => 1,
+            Coin::Nickel => 5,
+            Coin::Dime => 10,
+            Coin::Quarter(_) => 25,
+        }
+    }
+}
+
+fn total(coins: &[Coin]) -> u32 {
+    let mut sum = 0;
+    for coin in coins {
+        sum += coin.value();
+    }
+    sum
+}
+
+fn quarters_from(coins: &[Coin], state: State) -> usize {
+    let mut count = 0;
+    for coin in coins {
+        if let Coin::Quarter(s) = coin {
+            if *s == state {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn first_quarter_state(coins: &[Coin]) -> Option<State> {
+    for coin in coins {
+        if let Coin::Quarter(s) = coin {
+            return Some(*s);
+        }
+    }
+    None
+}
+
+fn main() {
+    let coins = [Coin::Dime, Coin::Quarter(State::Alaska), Coin::Penny];
+    println!("total: {} cents", total(&coins));
+    println!("from Alaska: {}", quarters_from(&coins, State::Alaska));
+    println!("first quarter: {:?}", first_quarter_state(&coins));
+}
+'''

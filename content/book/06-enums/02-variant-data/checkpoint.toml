@@ -1,0 +1,82 @@
+id = "book.enums.variant-data.checkpoint"
+kind = "checkpoint"
+title = "Shapes with measurements"
+prompt = '''
+Define a `Shape` enum with three variants that carry data:
+
+- `Circle` holding a radius as one `f64` (tuple style)
+- `Rectangle` holding a width and a height as two `f64`s (tuple style)
+- `Triangle` with named fields `base` and `height`, both `f64` (struct style)
+
+Then finish `examples()` so it returns, in this order: a circle of radius 1.0,
+a 2.0 × 3.0 rectangle, and a triangle with base 4.0 and height 5.0.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum Shape {
+    // Add the three variants here.
+}
+
+fn examples() -> Vec<Shape> {
+    vec![]
+}
+
+fn main() {
+    for shape in examples() {
+        println!("{shape:?}");
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn variants_can_be_built() {
+        let c = Shape::Circle(2.5);
+        let r = Shape::Rectangle(1.0, 2.0);
+        let t = Shape::Triangle { base: 3.0, height: 4.0 };
+        assert_ne!(c, r);
+        assert_ne!(r, t);
+    }
+
+    #[test]
+    fn example_list() {
+        assert_eq!(
+            examples(),
+            vec![
+                Shape::Circle(1.0),
+                Shape::Rectangle(2.0, 3.0),
+                Shape::Triangle { base: 4.0, height: 5.0 },
+            ]
+        );
+    }
+}
+'''
+hints = [
+  "Tuple-style variants look like `Circle(f64)`; struct-style ones like `Triangle { base: f64, height: f64 }`.",
+  "Build the list with `vec![Shape::Circle(1.0), ...]`.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum Shape {
+    Circle(f64),
+    Rectangle(f64, f64),
+    Triangle { base: f64, height: f64 },
+}
+
+fn examples() -> Vec<Shape> {
+    vec![
+        Shape::Circle(1.0),
+        Shape::Rectangle(2.0, 3.0),
+        Shape::Triangle { base: 4.0, height: 5.0 },
+    ]
+}
+
+fn main() {
+    for shape in examples() {
+        println!("{shape:?}");
+    }
+}
+'''

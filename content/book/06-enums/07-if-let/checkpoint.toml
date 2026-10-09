@@ -1,0 +1,72 @@
+id = "book.enums.if-let.checkpoint"
+kind = "checkpoint"
+title = "Greet the user, if there is one"
+prompt = '''
+Write two functions with `if let`:
+
+- `greeting(name: Option<&str>) -> String` returns `"Hello, NAME!"` when there
+  is a name, and `"Hello, stranger!"` otherwise.
+- `bonus(score: Option<u32>) -> u32` returns the score plus 10 when there is
+  one, and 0 otherwise.
+'''
+starter = '''
+fn greeting(name: Option<&str>) -> String {
+    todo!()
+}
+
+fn bonus(score: Option<u32>) -> u32 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", greeting(Some("Ferris")));
+    println!("{}", greeting(None));
+    println!("{}", bonus(Some(5)));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greets_by_name() {
+        assert_eq!(greeting(Some("Ada")), "Hello, Ada!");
+        assert_eq!(greeting(None), "Hello, stranger!");
+    }
+
+    #[test]
+    fn adds_a_bonus() {
+        assert_eq!(bonus(Some(5)), 15);
+        assert_eq!(bonus(Some(0)), 10);
+        assert_eq!(bonus(None), 0);
+    }
+}
+'''
+hints = [
+  "`if let Some(n) = name { format!(\"Hello, {n}!\") } else { ... }`",
+  "`if let` with an `else` is an expression, so it can be the whole function body.",
+]
+solution = '''
+fn greeting(name: Option<&str>) -> String {
+    if let Some(n) = name {
+        format!("Hello, {n}!")
+    } else {
+        String::from("Hello, stranger!")
+    }
+}
+
+fn bonus(score: Option<u32>) -> u32 {
+    if let Some(s) = score {
+        s + 10
+    } else {
+        0
+    }
+}
+
+fn main() {
+    println!("{}", greeting(Some("Ferris")));
+    println!("{}", greeting(None));
+    println!("{}", bonus(Some(5)));
+}
+'''

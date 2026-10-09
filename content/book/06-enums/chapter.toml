@@ -1,0 +1,7 @@
+id = "book.enums"
+track = "book"
+title = "Enums and Pattern Matching"
+order = 6
+source = "https://doc.rust-lang.org/book/ch06-00-enums.html"
+summary = "Types that are one of several variants, Option instead of null, and match to handle every case."
+requires = []

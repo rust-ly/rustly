@@ -1,0 +1,55 @@
+id = "book.enums.option.checkpoint"
+kind = "checkpoint"
+title = "Return None instead of crashing"
+prompt = '''
+`safe_divide(a, b)` should return `Some(a / b)`, or `None` when `b` is zero,
+because dividing by zero would crash the program.
+
+Change its return type to `Option<i32>` and return the right variant in each case.
+'''
+starter = '''
+fn safe_divide(a: i32, b: i32) -> i32 {
+    a / b
+}
+
+fn main() {
+    println!("{:?}", safe_divide(10, 2));
+    println!("{:?}", safe_divide(1, 0));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn divides_normally() {
+        assert_eq!(safe_divide(10, 2), Some(5));
+        assert_eq!(safe_divide(-9, 3), Some(-3));
+    }
+
+    #[test]
+    fn zero_gives_none() {
+        assert_eq!(safe_divide(1, 0), None);
+        assert_eq!(safe_divide(0, 0), None);
+    }
+}
+'''
+hints = [
+  "The signature becomes `fn safe_divide(a: i32, b: i32) -> Option<i32>`.",
+  "Check `b == 0` with an `if`, and return `None` or `Some(a / b)`.",
+]
+solution = '''
+fn safe_divide(a: i32, b: i32) -> Option<i32> {
+    if b == 0 {
+        None
+    } else {
+        Some(a / b)
+    }
+}
+
+fn main() {
+    println!("{:?}", safe_divide(10, 2));
+    println!("{:?}", safe_divide(1, 0));
+}
+'''
