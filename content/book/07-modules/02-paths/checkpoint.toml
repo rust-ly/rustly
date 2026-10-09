@@ -1,0 +1,62 @@
+id = "book.modules.paths.checkpoint"
+kind = "checkpoint"
+title = "Fix the bakery"
+prompt = '''
+The bakery doesn't compile. Make the smallest changes that fix it:
+
+- `main` and the tests need to call `bakery::shop::sell(n)`.
+- `sell` calls `bake` from its parent module, `bakery`. Use a `super::` path.
+- `bake` should stay private (no `pub`): only code inside `bakery` uses it.
+
+`sell(n)` returns how many loaves were sold, after baking that many.
+'''
+starter = '''
+mod bakery {
+    fn bake(loaves: u32) -> u32 {
+        loaves
+    }
+
+    mod shop {
+        fn sell(n: u32) -> u32 {
+            bake(n)
+        }
+    }
+}
+
+fn main() {
+    println!("sold {}", bakery::shop::sell(3));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sells_what_it_bakes() {
+        assert_eq!(bakery::shop::sell(3), 3);
+        assert_eq!(bakery::shop::sell(0), 0);
+    }
+}
+'''
+hints = [
+  "`shop` and `sell` both need `pub` so `main` can reach them.",
+  "Inside `shop`, the parent module is `bakery`, so call `super::bake(n)`.",
+]
+solution = '''
+mod bakery {
+    fn bake(loaves: u32) -> u32 {
+        loaves
+    }
+
+    pub mod shop {
+        pub fn sell(n: u32) -> u32 {
+            super::bake(n)
+        }
+    }
+}
+
+fn main() {
+    println!("sold {}", bakery::shop::sell(3));
+}
+'''
