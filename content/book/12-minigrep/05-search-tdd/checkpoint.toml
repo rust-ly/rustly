@@ -1,0 +1,75 @@
+id = "book.minigrep.search-tdd.checkpoint"
+kind = "checkpoint"
+title = "Implement search"
+prompt = '''
+Make the tests pass by implementing `search<'a>(query: &str, contents: &'a str) -> Vec<&'a str>`.
+It returns every line of `contents` that contains `query`, in order, as slices of the
+original text (no copying).
+
+The starter's signature is missing the lifetime, so it doesn't compile yet.
+'''
+starter = '''
+pub fn search(query: &str, contents: &str) -> Vec<&str> {
+    vec![]
+}
+
+fn main() {
+    let contents = "Rust:\nsafe, fast, productive.\nPick three.";
+    println!("{:?}", search("duct", contents));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEXT: &str = "Rust:\nsafe, fast, productive.\nPick three.\nDuct tape.";
+
+    #[test]
+    fn one_result() {
+        assert_eq!(search("duct", TEXT), vec!["safe, fast, productive."]);
+    }
+
+    #[test]
+    fn several_results_in_order() {
+        assert_eq!(search("u", TEXT), vec!["Rust:", "safe, fast, productive.", "Duct tape."]);
+    }
+
+    #[test]
+    fn no_results() {
+        assert!(search("monkey", TEXT).is_empty());
+        assert!(search("x", "").is_empty());
+    }
+
+    #[test]
+    fn results_borrow_from_contents() {
+        let contents = String::from("alpha\nbeta");
+        let results;
+        {
+            let query = String::from("bet");
+            results = search(&query, &contents);
+        }
+        assert_eq!(results, vec!["beta"]);
+    }
+}
+'''
+hints = [
+  "Signature: `pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str>`.",
+  "Loop over `contents.lines()` and `push(line)` when `line.contains(query)`.",
+]
+solution = '''
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+    results
+}
+
+fn main() {
+    let contents = "Rust:\nsafe, fast, productive.\nPick three.";
+    println!("{:?}", search("duct", contents));
+}
+'''
