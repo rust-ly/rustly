@@ -25,9 +25,7 @@ pub fn ChapterPage() -> impl IntoView {
             let first = &chapter.concepts[0].id;
             return view! { <Redirect path=routes::locked_redirect(first) /> }.into_any();
         }
-        let challenge_open = learner
-            .progress
-            .with(|p| content::graph().is_challenge_open(&chapter.id, p));
+        let challenge_open = learner.is_challenge_open(&chapter.id);
         view! {
             <section class="section page-head">
                 <div class="card-top">
