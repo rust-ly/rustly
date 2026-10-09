@@ -1,0 +1,162 @@
+id = "book.minigrep.challenge"
+kind = "challenge"
+title = "The whole minigrep"
+prompt = '''
+Put the chapter together into one testable program:
+
+`minigrep(args: &[String], files: &[(&str, &str)], ignore_case_var: Option<&str>) -> Result<Vec<String>, String>`
+
+- `args` is the argument list, like `["minigrep", "to", "poem.txt"]`. With fewer than
+  three arguments, return `Err("not enough arguments")`.
+- `files` stands in for the file system: a list of `(path, contents)` pairs. If the
+  path isn't there, return `Err("file not found: PATH")`.
+- Search the contents for the query (case-insensitively when `ignore_case_var` is
+  `Some`) and return each matching line prefixed with its **line number** in the
+  file: `"2: Are you nobody, too?"`.
+- Optional flag: if `args` has a **fourth** argument `"--count"`, return a single
+  line with the number of matches instead, like `"3"`.
+'''
+starter = '''
+fn minigrep(
+    args: &[String],
+    files: &[(&str, &str)],
+    ignore_case_var: Option<&str>,
+) -> Result<Vec<String>, String> {
+    todo!()
+}
+
+fn main() {
+    let poem = "I'm nobody! Who are you?\nAre you nobody, too?\nThen there's a pair of us";
+    let files = [("poem.txt", poem)];
+    let args = vec![String::from("minigrep"), String::from("nobody"), String::from("poem.txt")];
+    match minigrep(&args, &files, None) {
+        Ok(lines) => {
+            for line in lines {
+                println!("{line}");
+            }
+        }
+        Err(e) => eprintln!("Application error: {e}"),
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const POEM: &str = "I'm nobody! Who are you?\nAre you nobody, too?\nThen there's a pair of us - don't tell!\nNobody knows.";
+
+    fn args(list: &[&str]) -> Vec<String> {
+        let mut v = Vec::new();
+        for a in list {
+            v.push(a.to_string());
+        }
+        v
+    }
+
+    #[test]
+    fn numbered_matches() {
+        let r = minigrep(&args(&["minigrep", "nobody", "poem.txt"]), &[("poem.txt", POEM)], None);
+        assert_eq!(r, Ok(vec![
+            String::from("1: I'm nobody! Who are you?"),
+            String::from("2: Are you nobody, too?"),
+        ]));
+    }
+
+    #[test]
+    fn ignore_case() {
+        let r = minigrep(&args(&["minigrep", "NOBODY", "poem.txt"]), &[("poem.txt", POEM)], Some("1"));
+        assert_eq!(r.unwrap().len(), 3);
+    }
+
+    #[test]
+    fn count_flag() {
+        let r = minigrep(&args(&["minigrep", "o", "poem.txt", "--count"]), &[("poem.txt", POEM)], None);
+        assert_eq!(r, Ok(vec![String::from("4")]));
+    }
+
+    #[test]
+    fn picks_the_right_file() {
+        let files = [("a.txt", "apple\nbanana"), ("b.txt", "banana bread")];
+        let r = minigrep(&args(&["minigrep", "banana", "b.txt"]), &files, None);
+        assert_eq!(r, Ok(vec![String::from("1: banana bread")]));
+    }
+
+    #[test]
+    fn errors() {
+        assert_eq!(
+            minigrep(&args(&["minigrep", "x"]), &[], None),
+            Err(String::from("not enough arguments"))
+        );
+        assert_eq!(
+            minigrep(&args(&["minigrep", "x", "missing.txt"]), &[("poem.txt", POEM)], None),
+            Err(String::from("file not found: missing.txt"))
+        );
+    }
+}
+'''
+hints = [
+  "Find the file with a loop over `files`: `for (path, text) in files { if *path == args[2] { ... } }`. Keep the contents in an `Option<&str>`.",
+  "Number lines with a counter while looping over `contents.lines()`, and decide the match with `to_lowercase()` when ignoring case.",
+  "`args.len() > 3 && args[3] == \"--count\"` checks for the flag.",
+]
+solution = '''
+fn minigrep(
+    args: &[String],
+    files: &[(&str, &str)],
+    ignore_case_var: Option<&str>,
+) -> Result<Vec<String>, String> {
+    if args.len() < 3 {
+        return Err(String::from("not enough arguments"));
+    }
+    let query = &args[1];
+    let path = &args[2];
+    let count_only = args.len() > 3 && args[3] == "--count";
+    let ignore_case = ignore_case_var.is_some();
+
+    let mut contents = None;
+    for (p, text) in files {
+        if *p == path.as_str() {
+            contents = Some(*text);
+        }
+    }
+    let Some(contents) = contents else {
+        return Err(format!("file not found: {path}"));
+    };
+
+    let lowered_query = query.to_lowercase();
+    let mut matches = Vec::new();
+    let mut number = 1;
+    for line in contents.lines() {
+        let hit = if ignore_case {
+            line.to_lowercase().contains(&lowered_query)
+        } else {
+            line.contains(query.as_str())
+        };
+        if hit {
+            matches.push(format!("{number}: {line}"));
+        }
+        number += 1;
+    }
+
+    if count_only {
+        Ok(vec![matches.len().to_string()])
+    } else {
+        Ok(matches)
+    }
+}
+
+fn main() {
+    let poem = "I'm nobody! Who are you?\nAre you nobody, too?\nThen there's a pair of us";
+    let files = [("poem.txt", poem)];
+    let args = vec![String::from("minigrep"), String::from("nobody"), String::from("poem.txt")];
+    match minigrep(&args, &files, None) {
+        Ok(lines) => {
+            for line in lines {
+                println!("{line}");
+            }
+        }
+        Err(e) => eprintln!("Application error: {e}"),
+    }
+}
+'''

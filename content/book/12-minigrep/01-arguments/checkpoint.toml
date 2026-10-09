@@ -1,0 +1,71 @@
+id = "book.minigrep.arguments.checkpoint"
+kind = "checkpoint"
+title = "Pick out the arguments"
+prompt = '''
+Write `query_and_path(args: &[String]) -> (String, String)`, which returns the search
+query and the file path from an argument list like `["minigrep", "frog", "poem.txt"]`.
+
+Remember that `args[0]` is the program's name, not the query.
+'''
+starter = '''
+fn query_and_path(args: &[String]) -> (String, String) {
+    (args[0].clone(), args[1].clone())
+}
+
+fn main() {
+    let args = vec![
+        String::from("minigrep"),
+        String::from("frog"),
+        String::from("poem.txt"),
+    ];
+    let (query, path) = query_and_path(&args);
+    println!("Searching for {query} in {path}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        let mut v = Vec::new();
+        for a in list {
+            v.push(a.to_string());
+        }
+        v
+    }
+
+    #[test]
+    fn skips_the_program_name() {
+        let (q, p) = query_and_path(&args(&["minigrep", "frog", "poem.txt"]));
+        assert_eq!(q, "frog");
+        assert_eq!(p, "poem.txt");
+    }
+
+    #[test]
+    fn ignores_extra_arguments() {
+        let (q, p) = query_and_path(&args(&["target/debug/minigrep", "to", "a.txt", "extra"]));
+        assert_eq!(q, "to");
+        assert_eq!(p, "a.txt");
+    }
+}
+'''
+hints = [
+  "The query is `args[1]` and the path is `args[2]`.",
+  "`.clone()` makes owned `String`s to return.",
+]
+solution = '''
+fn query_and_path(args: &[String]) -> (String, String) {
+    (args[1].clone(), args[2].clone())
+}
+
+fn main() {
+    let args = vec![
+        String::from("minigrep"),
+        String::from("frog"),
+        String::from("poem.txt"),
+    ];
+    let (query, path) = query_and_path(&args);
+    println!("Searching for {query} in {path}");
+}
+'''
