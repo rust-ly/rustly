@@ -1,0 +1,74 @@
+id = "book.collections.iterating-vectors.checkpoint"
+kind = "checkpoint"
+title = "Totals and discounts"
+prompt = '''
+Write two functions:
+
+- `total(prices: &Vec<u32>) -> u32` adds up all the prices with a `for` loop over
+  a borrowed vector.
+- `apply_discount(prices: &mut Vec<u32>, percent: u32)` lowers every price by
+  `percent` per cent, in place. Use integer maths: `price * (100 - percent) / 100`.
+'''
+starter = '''
+fn total(prices: &Vec<u32>) -> u32 {
+    todo!()
+}
+
+fn apply_discount(prices: &mut Vec<u32>, percent: u32) {
+    todo!()
+}
+
+fn main() {
+    let mut prices = vec![200, 450, 1000];
+    println!("total before: {}", total(&prices));
+    apply_discount(&mut prices, 10);
+    println!("after 10% off: {prices:?}, total {}", total(&prices));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn totals() {
+        assert_eq!(total(&vec![200, 450, 1000]), 1650);
+        assert_eq!(total(&vec![]), 0);
+    }
+
+    #[test]
+    fn discounts_in_place() {
+        let mut prices = vec![200, 450, 1000];
+        apply_discount(&mut prices, 10);
+        assert_eq!(prices, vec![180, 405, 900]);
+        apply_discount(&mut prices, 100);
+        assert_eq!(prices, vec![0, 0, 0]);
+    }
+}
+'''
+hints = [
+  "`for p in prices { sum += p; }` works because `prices` is already a reference. You may need `*p`.",
+  "In `apply_discount`, loop with `for p in prices.iter_mut()` (or `for p in prices`) and set `*p = *p * (100 - percent) / 100;`.",
+]
+solution = '''
+fn total(prices: &Vec<u32>) -> u32 {
+    let mut sum = 0;
+    for p in prices {
+        sum += *p;
+    }
+    sum
+}
+
+fn apply_discount(prices: &mut Vec<u32>, percent: u32) {
+    for p in prices {
+        *p = *p * (100 - percent) / 100;
+    }
+}
+
+fn main() {
+    let mut prices = vec![200, 450, 1000];
+    println!("total before: {}", total(&prices));
+    apply_discount(&mut prices, 10);
+    println!("after 10% off: {prices:?}, total {}", total(&prices));
+}
+'''

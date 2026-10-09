@@ -1,0 +1,69 @@
+id = "book.collections.updating-maps.checkpoint"
+kind = "checkpoint"
+title = "Letter frequency"
+prompt = '''
+Write `letter_counts(text: &str) -> HashMap<char, u32>`, which counts how many times
+each letter appears. Only count alphabetic characters (`c.is_alphabetic()`), and
+count upper- and lower-case together by lowering each one first
+(`c.to_ascii_lowercase()`).
+
+Use `entry(...).or_insert(0)`.
+'''
+starter = '''
+use std::collections::HashMap;
+
+fn letter_counts(text: &str) -> HashMap<char, u32> {
+    todo!()
+}
+
+fn main() {
+    let counts = letter_counts("Hello, World!");
+    println!("l appears {} times", counts[&'l']);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_letters() {
+        let counts = letter_counts("Hello, World!");
+        assert_eq!(counts[&'l'], 3);
+        assert_eq!(counts[&'o'], 2);
+        assert_eq!(counts[&'h'], 1);
+        assert_eq!(counts[&'w'], 1);
+    }
+
+    #[test]
+    fn ignores_non_letters_and_case() {
+        let counts = letter_counts("Aa a!! 123");
+        assert_eq!(counts.len(), 1);
+        assert_eq!(counts[&'a'], 3);
+        assert!(letter_counts("").is_empty());
+    }
+}
+'''
+hints = [
+  "Loop with `for c in text.chars()` and skip anything where `!c.is_alphabetic()` using `continue`.",
+  "`*counts.entry(c.to_ascii_lowercase()).or_insert(0) += 1;`",
+]
+solution = '''
+use std::collections::HashMap;
+
+fn letter_counts(text: &str) -> HashMap<char, u32> {
+    let mut counts = HashMap::new();
+    for c in text.chars() {
+        if !c.is_alphabetic() {
+            continue;
+        }
+        *counts.entry(c.to_ascii_lowercase()).or_insert(0) += 1;
+    }
+    counts
+}
+
+fn main() {
+    let counts = letter_counts("Hello, World!");
+    println!("l appears {} times", counts[&'l']);
+}
+'''

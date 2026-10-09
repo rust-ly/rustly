@@ -1,0 +1,88 @@
+id = "book.collections.reading-vectors.checkpoint"
+kind = "checkpoint"
+title = "Safe lookups"
+prompt = '''
+Write two functions that read from a slice of names:
+
+- `nth_name(names: &[String], n: usize) -> String` returns the name at position
+  `n`, or `"nobody"` if there isn't one. Use `get`, not `[]`, so it never panics.
+- `first_and_last(names: &[String]) -> Option<(String, String)>` returns the first
+  and last names as a pair, or `None` if the slice is empty. (For one name, it's
+  both first and last.)
+'''
+starter = '''
+fn nth_name(names: &[String], n: usize) -> String {
+    names[n].clone()
+}
+
+fn first_and_last(names: &[String]) -> Option<(String, String)> {
+    todo!()
+}
+
+fn main() {
+    let names = vec![String::from("Ada"), String::from("Grace"), String::from("Linus")];
+    println!("{}", nth_name(&names, 1));
+    println!("{}", nth_name(&names, 9));
+    println!("{:?}", first_and_last(&names));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn names() -> Vec<String> {
+        vec![String::from("Ada"), String::from("Grace"), String::from("Linus")]
+    }
+
+    #[test]
+    fn looks_up_safely() {
+        assert_eq!(nth_name(&names(), 0), "Ada");
+        assert_eq!(nth_name(&names(), 2), "Linus");
+        assert_eq!(nth_name(&names(), 3), "nobody");
+        assert_eq!(nth_name(&[], 0), "nobody");
+    }
+
+    #[test]
+    fn ends_of_the_list() {
+        assert_eq!(
+            first_and_last(&names()),
+            Some((String::from("Ada"), String::from("Linus")))
+        );
+        let one = vec![String::from("Solo")];
+        assert_eq!(
+            first_and_last(&one),
+            Some((String::from("Solo"), String::from("Solo")))
+        );
+        assert_eq!(first_and_last(&[]), None);
+    }
+}
+'''
+hints = [
+  "`match names.get(n) { Some(name) => name.clone(), None => ... }`",
+  "Slices have `.first()` and `.last()`, which return `Option<&String>`.",
+  "`let Some(first) = names.first() else { return None; };` keeps it on the happy path.",
+]
+solution = '''
+fn nth_name(names: &[String], n: usize) -> String {
+    match names.get(n) {
+        Some(name) => name.clone(),
+        None => String::from("nobody"),
+    }
+}
+
+fn first_and_last(names: &[String]) -> Option<(String, String)> {
+    let Some(first) = names.first() else {
+        return None;
+    };
+    let last = names.last().unwrap();
+    Some((first.clone(), last.clone()))
+}
+
+fn main() {
+    let names = vec![String::from("Ada"), String::from("Grace"), String::from("Linus")];
+    println!("{}", nth_name(&names, 1));
+    println!("{}", nth_name(&names, 9));
+    println!("{:?}", first_and_last(&names));
+}
+'''

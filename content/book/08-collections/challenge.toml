@@ -1,0 +1,123 @@
+id = "book.collections.challenge"
+kind = "challenge"
+title = "Stats and Pig Latin"
+prompt = '''
+Three classic exercises from the end of the Book's collections chapter:
+
+1. `median(numbers: &[i32]) -> Option<f64>`: the middle value once the numbers are
+   sorted, or the average of the two middle values when there's an even count.
+   `None` for an empty slice. (Copy the numbers into a `Vec` and call `.sort()`.)
+2. `mode(numbers: &[i32]) -> Option<i32>`: the value that appears most often. Use a
+   `HashMap` to count. If several values tie, return the **smallest** of them.
+   `None` for an empty slice.
+3. `pig_latin(word: &str) -> String`: if the word starts with a vowel (a, e, i, o, u),
+   add `"-hay"` to the end (`"apple"` → `"apple-hay"`). Otherwise move the first
+   letter to the end and add `"ay"` (`"first"` → `"irst-fay"`). Words are lowercase
+   ASCII and never empty.
+'''
+starter = '''
+use std::collections::HashMap;
+
+fn median(numbers: &[i32]) -> Option<f64> {
+    todo!()
+}
+
+fn mode(numbers: &[i32]) -> Option<i32> {
+    todo!()
+}
+
+fn pig_latin(word: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    let data = [3, 1, 4, 1, 5, 9, 2, 6];
+    println!("median {:?}, mode {:?}", median(&data), mode(&data));
+    println!("{} {}", pig_latin("first"), pig_latin("apple"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn medians() {
+        assert_eq!(median(&[3, 1, 2]), Some(2.0));
+        assert_eq!(median(&[3, 1, 4, 1, 5, 9, 2, 6]), Some(3.5));
+        assert_eq!(median(&[7]), Some(7.0));
+        assert_eq!(median(&[]), None);
+    }
+
+    #[test]
+    fn modes() {
+        assert_eq!(mode(&[3, 1, 4, 1, 5]), Some(1));
+        assert_eq!(mode(&[2, 2, 3, 3, 1]), Some(2));
+        assert_eq!(mode(&[-5]), Some(-5));
+        assert_eq!(mode(&[]), None);
+    }
+
+    #[test]
+    fn pig_latin_words() {
+        assert_eq!(pig_latin("first"), "irst-fay");
+        assert_eq!(pig_latin("apple"), "apple-hay");
+        assert_eq!(pig_latin("rust"), "ust-ray");
+        assert_eq!(pig_latin("o"), "o-hay");
+    }
+}
+'''
+hints = [
+  "For the median: `let mut v = numbers.to_vec(); v.sort();` then look at `v[len / 2]` (and `v[len / 2 - 1]` when `len` is even).",
+  "For the mode, count with `*counts.entry(n).or_insert(0) += 1`, then loop over the map keeping the best `(count, value)` seen so far.",
+  "For Pig Latin, `word.chars().next()` gives the first letter and `&word[1..]` the rest (safe here because the words are ASCII).",
+]
+solution = '''
+use std::collections::HashMap;
+
+fn median(numbers: &[i32]) -> Option<f64> {
+    if numbers.is_empty() {
+        return None;
+    }
+    let mut v = numbers.to_vec();
+    v.sort();
+    let mid = v.len() / 2;
+    if v.len() % 2 == 0 {
+        Some((v[mid - 1] as f64 + v[mid] as f64) / 2.0)
+    } else {
+        Some(v[mid] as f64)
+    }
+}
+
+fn mode(numbers: &[i32]) -> Option<i32> {
+    let mut counts = HashMap::new();
+    for n in numbers {
+        *counts.entry(*n).or_insert(0) += 1;
+    }
+    let mut best_value = None;
+    let mut best_count = 0;
+    for (value, count) in &counts {
+        let better = *count > best_count;
+        let tie_but_smaller = *count == best_count && Some(*value) < best_value;
+        if better || tie_but_smaller {
+            best_value = Some(*value);
+            best_count = *count;
+        }
+    }
+    best_value
+}
+
+fn pig_latin(word: &str) -> String {
+    let first = word.chars().next().unwrap();
+    if "aeiou".contains(first) {
+        format!("{word}-hay")
+    } else {
+        format!("{}-{first}ay", &word[1..])
+    }
+}
+
+fn main() {
+    let data = [3, 1, 4, 1, 5, 9, 2, 6];
+    println!("median {:?}, mode {:?}", median(&data), mode(&data));
+    println!("{} {}", pig_latin("first"), pig_latin("apple"));
+}
+'''

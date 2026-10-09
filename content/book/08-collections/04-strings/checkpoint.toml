@@ -1,0 +1,64 @@
+id = "book.collections.strings.checkpoint"
+kind = "checkpoint"
+title = "Build a badge"
+prompt = '''
+Write two functions:
+
+- `shout(word: &str) -> String` returns the word followed by three exclamation
+  marks, built with `String::from`, `push_str` and/or `push`.
+- `badge(first: &str, last: &str, role: &str) -> String` returns
+  `"LAST, First (role)"`, with the last name in capitals. `format!` and
+  `.to_uppercase()` will help.
+'''
+starter = '''
+fn shout(word: &str) -> String {
+    todo!()
+}
+
+fn badge(first: &str, last: &str, role: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", shout("hello"));
+    println!("{}", badge("Ada", "Lovelace", "engineer"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shouts() {
+        assert_eq!(shout("hello"), "hello!!!");
+        assert_eq!(shout(""), "!!!");
+    }
+
+    #[test]
+    fn badges() {
+        assert_eq!(badge("Ada", "Lovelace", "engineer"), "LOVELACE, Ada (engineer)");
+        assert_eq!(badge("Grace", "Hopper", "admiral"), "HOPPER, Grace (admiral)");
+    }
+}
+'''
+hints = [
+  "`let mut s = String::from(word); s.push_str(\"!!!\"); s`",
+  "`format!(\"{}, {first} ({role})\", last.to_uppercase())`",
+]
+solution = '''
+fn shout(word: &str) -> String {
+    let mut s = String::from(word);
+    s.push_str("!!!");
+    s
+}
+
+fn badge(first: &str, last: &str, role: &str) -> String {
+    format!("{}, {first} ({role})", last.to_uppercase())
+}
+
+fn main() {
+    println!("{}", shout("hello"));
+    println!("{}", badge("Ada", "Lovelace", "engineer"));
+}
+'''

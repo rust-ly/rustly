@@ -1,0 +1,7 @@
+id = "book.collections"
+track = "book"
+title = "Common Collections"
+order = 8
+source = "https://doc.rust-lang.org/book/ch08-00-common-collections.html"
+summary = "Vectors, strings and hash maps: the standard library's growable collections, stored on the heap."
+requires = []
