@@ -1,0 +1,68 @@
+id = "book.errors.unwrap-expect.checkpoint"
+kind = "checkpoint"
+title = "Settings with sensible defaults"
+prompt = '''
+Write two functions for reading settings:
+
+- `threads(setting: &str) -> u32` parses the setting, falling back to `4` if it
+  isn't a valid number. Use `unwrap_or`.
+- `required_port(setting: &str) -> u16` parses the setting and **panics** if it
+  isn't valid, since the program can't run without a port. Use `expect` with a
+  message containing `"PORT must be a number"`.
+'''
+starter = '''
+fn threads(setting: &str) -> u32 {
+    todo!()
+}
+
+fn required_port(setting: &str) -> u16 {
+    todo!()
+}
+
+fn main() {
+    println!("threads: {}", threads("eight"));
+    println!("port: {}", required_port("8080"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn threads_fall_back_to_four() {
+        assert_eq!(threads("8"), 8);
+        assert_eq!(threads("eight"), 4);
+        assert_eq!(threads(""), 4);
+    }
+
+    #[test]
+    fn valid_port() {
+        assert_eq!(required_port("8080"), 8080);
+    }
+
+    #[test]
+    #[should_panic(expected = "PORT must be a number")]
+    fn invalid_port_panics() {
+        required_port("http");
+    }
+}
+'''
+hints = [
+  "`setting.parse().unwrap_or(4)`: the return type tells `parse` to make a `u32`.",
+  "`setting.parse().expect(\"PORT must be a number\")`",
+]
+solution = '''
+fn threads(setting: &str) -> u32 {
+    setting.parse().unwrap_or(4)
+}
+
+fn required_port(setting: &str) -> u16 {
+    setting.parse().expect("PORT must be a number")
+}
+
+fn main() {
+    println!("threads: {}", threads("eight"));
+    println!("port: {}", required_port("8080"));
+}
+'''
