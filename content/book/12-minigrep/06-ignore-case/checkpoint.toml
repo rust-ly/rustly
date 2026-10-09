@@ -1,0 +1,99 @@
+id = "book.minigrep.ignore-case.checkpoint"
+kind = "checkpoint"
+title = "Ignore case when asked"
+prompt = '''
+Write two functions:
+
+- `search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str>`:
+  like `search`, but ignoring upper/lower case. Return the original lines.
+- `find<'a>(query: &str, contents: &'a str, ignore_case_var: Option<&str>) -> Vec<&'a str>`:
+  uses the case-insensitive search when `ignore_case_var` is `Some(...)` (the variable
+  is set, whatever its value), and the normal `search` (provided) when it's `None`.
+'''
+starter = '''
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+    results
+}
+
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    todo!()
+}
+
+pub fn find<'a>(query: &str, contents: &'a str, ignore_case_var: Option<&str>) -> Vec<&'a str> {
+    search(query, contents)
+}
+
+fn main() {
+    let contents = "Rust:\nsafe, fast, productive.\nTrust me.";
+    println!("{:?}", find("rUsT", contents, None));
+    println!("{:?}", find("rUsT", contents, Some("1")));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEXT: &str = "Rust:\nsafe, fast, productive.\nPick three.\nTrust me.";
+
+    #[test]
+    fn case_insensitive() {
+        assert_eq!(search_case_insensitive("rUsT", TEXT), vec!["Rust:", "Trust me."]);
+        assert_eq!(search_case_insensitive("PICK", TEXT), vec!["Pick three."]);
+        assert!(search_case_insensitive("monkey", TEXT).is_empty());
+    }
+
+    #[test]
+    fn find_respects_the_variable() {
+        assert_eq!(find("rust", TEXT, None), vec!["Trust me."]);
+        assert_eq!(find("rust", TEXT, Some("1")), vec!["Rust:", "Trust me."]);
+        assert_eq!(find("rust", TEXT, Some("")), vec!["Rust:", "Trust me."]);
+    }
+}
+'''
+hints = [
+  "Lower-case the query once: `let query = query.to_lowercase();` then compare with `line.to_lowercase().contains(&query)`.",
+  "In `find`, `match ignore_case_var { Some(_) => ..., None => ... }` or `if ignore_case_var.is_some()`.",
+]
+solution = '''
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+    results
+}
+
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line);
+        }
+    }
+    results
+}
+
+pub fn find<'a>(query: &str, contents: &'a str, ignore_case_var: Option<&str>) -> Vec<&'a str> {
+    if ignore_case_var.is_some() {
+        search_case_insensitive(query, contents)
+    } else {
+        search(query, contents)
+    }
+}
+
+fn main() {
+    let contents = "Rust:\nsafe, fast, productive.\nTrust me.";
+    println!("{:?}", find("rUsT", contents, None));
+    println!("{:?}", find("rUsT", contents, Some("1")));
+}
+'''

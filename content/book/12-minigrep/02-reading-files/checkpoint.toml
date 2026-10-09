@@ -1,0 +1,78 @@
+id = "book.minigrep.reading-files.checkpoint"
+kind = "checkpoint"
+title = "Number the lines"
+prompt = '''
+Write two functions that work on a file's contents:
+
+- `line_count(contents: &str) -> usize`: how many lines there are (an empty string
+  has 0).
+- `numbered(contents: &str) -> Vec<String>`: each line prefixed with its number,
+  starting at 1, like `"1: I'm nobody! Who are you?"`.
+'''
+starter = '''
+fn line_count(contents: &str) -> usize {
+    todo!()
+}
+
+fn numbered(contents: &str) -> Vec<String> {
+    todo!()
+}
+
+fn main() {
+    let poem = "I'm nobody! Who are you?\nAre you nobody, too?";
+    println!("{} lines", line_count(poem));
+    for line in numbered(poem) {
+        println!("{line}");
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_lines() {
+        assert_eq!(line_count("a\nb\nc"), 3);
+        assert_eq!(line_count("one line"), 1);
+        assert_eq!(line_count(""), 0);
+        assert_eq!(line_count("a\r\nb\r\n"), 2);
+    }
+
+    #[test]
+    fn numbers_lines() {
+        assert_eq!(
+            numbered("I'm nobody!\nWho are you?"),
+            vec![String::from("1: I'm nobody!"), String::from("2: Who are you?")]
+        );
+        assert!(numbered("").is_empty());
+    }
+}
+'''
+hints = [
+  "`contents.lines()` gives each line; count them in a loop (or with `.count()`).",
+  "In `numbered`, keep a counter starting at 1 and `push(format!(\"{n}: {line}\"))`.",
+]
+solution = '''
+fn line_count(contents: &str) -> usize {
+    contents.lines().count()
+}
+
+fn numbered(contents: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut n = 1;
+    for line in contents.lines() {
+        out.push(format!("{n}: {line}"));
+        n += 1;
+    }
+    out
+}
+
+fn main() {
+    let poem = "I'm nobody! Who are you?\nAre you nobody, too?";
+    println!("{} lines", line_count(poem));
+    for line in numbered(poem) {
+        println!("{line}");
+    }
+}
+'''

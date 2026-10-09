@@ -1,0 +1,7 @@
+id = "book.minigrep"
+track = "book"
+title = "An I/O Project: minigrep"
+order = 12
+source = "https://doc.rust-lang.org/book/ch12-00-an-io-project.html"
+summary = "Build a small grep: read arguments, search text, handle errors, and keep the logic separate from the I/O."
+requires = []
