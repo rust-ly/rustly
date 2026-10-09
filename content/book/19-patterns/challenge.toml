@@ -1,0 +1,180 @@
+id = "book.patterns.challenge"
+kind = "challenge"
+title = "A command interpreter"
+prompt = '''
+A tiny robot understands commands. Write `run(commands: &[Command]) -> Robot` that
+starts a `Robot` at `(0, 0)` facing north with 10 battery, and applies each command
+with **one `match`** that uses destructuring, guards and `@` bindings:
+
+- `Move { steps }`: moves that many steps in the current direction and uses one
+  battery per step. If there isn't enough battery, the move is **skipped**.
+- `Turn(Dir::Left)` / `Turn(Dir::Right)`: turns 90°. Turning is free.
+- `Charge(amount)`: amounts from 1 to 5 add to the battery; any other amount is
+  ignored. (Use `amount @ 1..=5`.)
+- `Teleport(Point { x, y })`: only allowed when **both** coordinates are between -5 and
+  5 (inclusive); it costs 3 battery and is skipped if the battery is below 3 or the
+  target is out of range.
+
+North is `y + 1`, east is `x + 1`, south is `y - 1` and west is `x - 1`.
+'''
+starter = '''
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Facing { North, East, South, West }
+
+#[derive(Debug, Clone, Copy)]
+enum Dir { Left, Right }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Point { x: i32, y: i32 }
+
+#[derive(Debug, Clone, Copy)]
+enum Command {
+    Move { steps: u32 },
+    Turn(Dir),
+    Charge(u32),
+    Teleport(Point),
+}
+
+#[derive(Debug, PartialEq)]
+struct Robot {
+    pos: Point,
+    facing: Facing,
+    battery: u32,
+}
+
+fn run(commands: &[Command]) -> Robot {
+    todo!()
+}
+
+fn main() {
+    let robot = run(&[
+        Command::Move { steps: 3 },
+        Command::Turn(Dir::Right),
+        Command::Move { steps: 2 },
+        Command::Charge(4),
+        Command::Teleport(Point { x: -5, y: 5 }),
+    ]);
+    println!("{robot:?}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn at(x: i32, y: i32) -> Point { Point { x, y } }
+
+    #[test]
+    fn moves_and_turns() {
+        let r = run(&[Command::Move { steps: 3 }, Command::Turn(Dir::Right), Command::Move { steps: 2 }]);
+        assert_eq!(r, Robot { pos: at(2, 3), facing: Facing::East, battery: 5 });
+        let r = run(&[Command::Turn(Dir::Left), Command::Turn(Dir::Left), Command::Move { steps: 1 }]);
+        assert_eq!(r.pos, at(0, -1));
+        assert_eq!(r.facing, Facing::South);
+    }
+
+    #[test]
+    fn skips_moves_without_battery() {
+        let r = run(&[Command::Move { steps: 11 }, Command::Move { steps: 10 }, Command::Move { steps: 1 }]);
+        assert_eq!(r.pos, at(0, 10));
+        assert_eq!(r.battery, 0);
+    }
+
+    #[test]
+    fn charging_rules() {
+        let r = run(&[Command::Charge(5), Command::Charge(6), Command::Charge(0)]);
+        assert_eq!(r.battery, 15);
+    }
+
+    #[test]
+    fn teleport_rules() {
+        let r = run(&[Command::Teleport(at(-5, 5))]);
+        assert_eq!((r.pos, r.battery), (at(-5, 5), 7));
+        let r = run(&[Command::Teleport(at(6, 0))]);
+        assert_eq!((r.pos, r.battery), (at(0, 0), 10));
+        let r = run(&[Command::Move { steps: 8 }, Command::Teleport(at(1, 1))]);
+        assert_eq!((r.pos, r.battery), (at(0, 8), 2));
+    }
+}
+'''
+hints = [
+  "Keep `let mut robot = Robot { pos: Point { x: 0, y: 0 }, facing: Facing::North, battery: 10 };` and loop over the commands.",
+  "`Command::Move { steps } if steps <= robot.battery => { ... }` then a later `Command::Move { .. } => {}` skips the rest.",
+  "`Command::Charge(amount @ 1..=5) => robot.battery += amount`, and `Command::Teleport(Point { x, y }) if (-5..=5).contains(&x) && (-5..=5).contains(&y) && robot.battery >= 3 => ...`",
+  "A helper `fn turn(f: Facing, d: Dir) -> Facing` with a `match (f, d)` keeps the main match short.",
+]
+solution = '''
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Facing { North, East, South, West }
+
+#[derive(Debug, Clone, Copy)]
+enum Dir { Left, Right }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Point { x: i32, y: i32 }
+
+#[derive(Debug, Clone, Copy)]
+enum Command {
+    Move { steps: u32 },
+    Turn(Dir),
+    Charge(u32),
+    Teleport(Point),
+}
+
+#[derive(Debug, PartialEq)]
+struct Robot {
+    pos: Point,
+    facing: Facing,
+    battery: u32,
+}
+
+fn turn(f: Facing, d: Dir) -> Facing {
+    match (f, d) {
+        (Facing::North, Dir::Right) | (Facing::South, Dir::Left) => Facing::East,
+        (Facing::East, Dir::Right) | (Facing::West, Dir::Left) => Facing::South,
+        (Facing::South, Dir::Right) | (Facing::North, Dir::Left) => Facing::West,
+        (Facing::West, Dir::Right) | (Facing::East, Dir::Left) => Facing::North,
+    }
+}
+
+fn run(commands: &[Command]) -> Robot {
+    let mut robot = Robot { pos: Point { x: 0, y: 0 }, facing: Facing::North, battery: 10 };
+    for &command in commands {
+        match command {
+            Command::Move { steps } if steps <= robot.battery => {
+                let n = steps as i32;
+                match robot.facing {
+                    Facing::North => robot.pos.y += n,
+                    Facing::East => robot.pos.x += n,
+                    Facing::South => robot.pos.y -= n,
+                    Facing::West => robot.pos.x -= n,
+                }
+                robot.battery -= steps;
+            }
+            Command::Move { .. } => {}
+            Command::Turn(d) => robot.facing = turn(robot.facing, d),
+            Command::Charge(amount @ 1..=5) => robot.battery += amount,
+            Command::Charge(_) => {}
+            Command::Teleport(Point { x, y })
+                if (-5..=5).contains(&x) && (-5..=5).contains(&y) && robot.battery >= 3 =>
+            {
+                robot.pos = Point { x, y };
+                robot.battery -= 3;
+            }
+            Command::Teleport(_) => {}
+        }
+    }
+    robot
+}
+
+fn main() {
+    let robot = run(&[
+        Command::Move { steps: 3 },
+        Command::Turn(Dir::Right),
+        Command::Move { steps: 2 },
+        Command::Charge(4),
+        Command::Teleport(Point { x: -5, y: 5 }),
+    ]);
+    println!("{robot:?}");
+}
+'''
