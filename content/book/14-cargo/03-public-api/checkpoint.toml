@@ -1,0 +1,105 @@
+id = "book.cargo.public-api.checkpoint"
+kind = "checkpoint"
+title = "A friendlier shapes crate"
+prompt = '''
+The `shapes` module keeps everything in nested modules. Without changing the nested
+modules, add re-exports to `shapes` so users can write:
+
+- `shapes::Circle` and `shapes::Square` (from `shapes::types`)
+- `shapes::area_of_circle` and `shapes::area_of_square` (from `shapes::maths::area`)
+
+Then make the `use` line in `main` work by using the short paths.
+'''
+starter = '''
+mod shapes {
+    pub mod types {
+        pub struct Circle {
+            pub radius: f64,
+        }
+        pub struct Square {
+            pub side: f64,
+        }
+    }
+
+    pub mod maths {
+        pub mod area {
+            use crate::shapes::types::{Circle, Square};
+
+            pub fn area_of_circle(c: &Circle) -> f64 {
+                3.14159 * c.radius * c.radius
+            }
+
+            pub fn area_of_square(s: &Square) -> f64 {
+                s.side * s.side
+            }
+        }
+    }
+}
+
+use shapes::{area_of_circle, area_of_square, Circle, Square};
+
+fn main() {
+    println!("{:.2}", area_of_circle(&Circle { radius: 1.0 }));
+    println!("{:.2}", area_of_square(&Square { side: 3.0 }));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_paths_work() {
+        let c = shapes::Circle { radius: 2.0 };
+        assert!((shapes::area_of_circle(&c) - 12.56636).abs() < 1e-9);
+        let s = shapes::Square { side: 4.0 };
+        assert_eq!(shapes::area_of_square(&s), 16.0);
+    }
+
+    #[test]
+    fn long_paths_still_work() {
+        let s = shapes::types::Square { side: 2.0 };
+        assert_eq!(shapes::maths::area::area_of_square(&s), 4.0);
+    }
+}
+'''
+hints = [
+  "Inside `mod shapes`, add `pub use self::types::{Circle, Square};`.",
+  "And `pub use self::maths::area::{area_of_circle, area_of_square};`.",
+]
+solution = '''
+mod shapes {
+    pub use self::maths::area::{area_of_circle, area_of_square};
+    pub use self::types::{Circle, Square};
+
+    pub mod types {
+        pub struct Circle {
+            pub radius: f64,
+        }
+        pub struct Square {
+            pub side: f64,
+        }
+    }
+
+    pub mod maths {
+        pub mod area {
+            use crate::shapes::types::{Circle, Square};
+
+            pub fn area_of_circle(c: &Circle) -> f64 {
+                3.14159 * c.radius * c.radius
+            }
+
+            pub fn area_of_square(s: &Square) -> f64 {
+                s.side * s.side
+            }
+        }
+    }
+}
+
+use shapes::{area_of_circle, area_of_square, Circle, Square};
+
+fn main() {
+    println!("{:.2}", area_of_circle(&Circle { radius: 1.0 }));
+    println!("{:.2}", area_of_square(&Square { side: 3.0 }));
+}
+'''
