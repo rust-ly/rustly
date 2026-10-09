@@ -1,0 +1,131 @@
+id = "book.oop.dispatch.checkpoint"
+kind = "checkpoint"
+title = "Pick the right dispatch"
+prompt = '''
+Using the `Shape` trait, write:
+
+- `largest_area<T: Shape>(shapes: &[T]) -> f64`: the largest area among shapes of one
+  type (generics). `0.0` for an empty slice.
+- `make_shape(kind: &str, size: f64) -> Option<Box<dyn Shape>>`: returns a `Square`
+  for `"square"`, a `Circle` for `"circle"`, and `None` for anything else.
+- `total_area(shapes: &[Box<dyn Shape>]) -> f64`: the sum of a **mixed** list's areas.
+'''
+starter = '''
+trait Shape {
+    fn area(&self) -> f64;
+}
+
+struct Square(f64);
+struct Circle(f64);
+
+impl Shape for Square {
+    fn area(&self) -> f64 {
+        self.0 * self.0
+    }
+}
+
+impl Shape for Circle {
+    fn area(&self) -> f64 {
+        3.0 * self.0 * self.0
+    }
+}
+
+fn largest_area<T: Shape>(shapes: &[T]) -> f64 {
+    todo!()
+}
+
+fn make_shape(kind: &str, size: f64) -> Option<Box<dyn Shape>> {
+    todo!()
+}
+
+fn total_area(shapes: &[Box<dyn Shape>]) -> f64 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", largest_area(&[Square(1.0), Square(3.0)]));
+    let shapes: Vec<Box<dyn Shape>> = vec![
+        make_shape("square", 2.0).unwrap(),
+        make_shape("circle", 1.0).unwrap(),
+    ];
+    println!("{}", total_area(&shapes));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn largest_of_one_type() {
+        assert_eq!(largest_area(&[Square(1.0), Square(3.0), Square(2.0)]), 9.0);
+        assert_eq!(largest_area(&[Circle(1.0)]), 3.0);
+        let none: [Square; 0] = [];
+        assert_eq!(largest_area(&none), 0.0);
+    }
+
+    #[test]
+    fn factory() {
+        assert_eq!(make_shape("square", 2.0).unwrap().area(), 4.0);
+        assert_eq!(make_shape("circle", 2.0).unwrap().area(), 12.0);
+        assert!(make_shape("hexagon", 1.0).is_none());
+    }
+
+    #[test]
+    fn mixed_total() {
+        let shapes: Vec<Box<dyn Shape>> = vec![Box::new(Square(2.0)), Box::new(Circle(1.0))];
+        assert_eq!(total_area(&shapes), 7.0);
+        assert_eq!(total_area(&[]), 0.0);
+    }
+}
+'''
+hints = [
+  "`shapes.iter().map(|s| s.area()).fold(0.0, f64::max)`",
+  "`match kind { \"square\" => Some(Box::new(Square(size))), \"circle\" => Some(Box::new(Circle(size))), _ => None }`",
+  "`shapes.iter().map(|s| s.area()).sum()`",
+]
+solution = '''
+trait Shape {
+    fn area(&self) -> f64;
+}
+
+struct Square(f64);
+struct Circle(f64);
+
+impl Shape for Square {
+    fn area(&self) -> f64 {
+        self.0 * self.0
+    }
+}
+
+impl Shape for Circle {
+    fn area(&self) -> f64 {
+        3.0 * self.0 * self.0
+    }
+}
+
+fn largest_area<T: Shape>(shapes: &[T]) -> f64 {
+    shapes.iter().map(|s| s.area()).fold(0.0, f64::max)
+}
+
+fn make_shape(kind: &str, size: f64) -> Option<Box<dyn Shape>> {
+    match kind {
+        "square" => Some(Box::new(Square(size))),
+        "circle" => Some(Box::new(Circle(size))),
+        _ => None,
+    }
+}
+
+fn total_area(shapes: &[Box<dyn Shape>]) -> f64 {
+    shapes.iter().map(|s| s.area()).sum()
+}
+
+fn main() {
+    println!("{}", largest_area(&[Square(1.0), Square(3.0)]));
+    let shapes: Vec<Box<dyn Shape>> = vec![
+        make_shape("square", 2.0).unwrap(),
+        make_shape("circle", 1.0).unwrap(),
+    ];
+    println!("{}", total_area(&shapes));
+}
+'''

@@ -1,0 +1,100 @@
+id = "book.oop.states-as-types.checkpoint"
+kind = "checkpoint"
+title = "An order that can't skip steps"
+prompt = '''
+Model a shop order whose steps can only happen in order, with each state as its own
+type:
+
+- `Order::new(item: &str) -> NewOrder`
+- `NewOrder::pay(self, amount: u32) -> PaidOrder`
+- `PaidOrder::ship(self, tracking: &str) -> ShippedOrder`
+- `ShippedOrder::summary(&self) -> String`, returning `"ITEM paid AMOUNT, tracking TRACKING"`.
+
+Each type stores only what it needs. `item` travels through every step; a `NewOrder`
+has no `ship` method, and only a `ShippedOrder` has `summary`.
+'''
+starter = '''
+pub struct Order;
+
+pub struct NewOrder {
+    item: String,
+}
+
+// Define PaidOrder and ShippedOrder, and the methods.
+
+fn main() {
+    let order = Order::new("crab plushie").pay(1200).ship("TRK-42");
+    println!("{}", order.summary());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_journey() {
+        let order = Order::new("crab plushie");
+        let paid = order.pay(1200);
+        let shipped = paid.ship("TRK-42");
+        assert_eq!(shipped.summary(), "crab plushie paid 1200, tracking TRK-42");
+    }
+
+    #[test]
+    fn another_order() {
+        assert_eq!(Order::new("book").pay(5).ship("X").summary(), "book paid 5, tracking X");
+    }
+}
+'''
+hints = [
+  "`impl Order { pub fn new(item: &str) -> NewOrder { NewOrder { item: item.to_string() } } }`",
+  "`pub struct PaidOrder { item: String, amount: u32 }` and `pub struct ShippedOrder { item: String, amount: u32, tracking: String }`.",
+  "`pay` and `ship` take `self` and move the fields into the next type.",
+]
+solution = '''
+pub struct Order;
+
+pub struct NewOrder {
+    item: String,
+}
+
+pub struct PaidOrder {
+    item: String,
+    amount: u32,
+}
+
+pub struct ShippedOrder {
+    item: String,
+    amount: u32,
+    tracking: String,
+}
+
+impl Order {
+    pub fn new(item: &str) -> NewOrder {
+        NewOrder { item: item.to_string() }
+    }
+}
+
+impl NewOrder {
+    pub fn pay(self, amount: u32) -> PaidOrder {
+        PaidOrder { item: self.item, amount }
+    }
+}
+
+impl PaidOrder {
+    pub fn ship(self, tracking: &str) -> ShippedOrder {
+        ShippedOrder { item: self.item, amount: self.amount, tracking: tracking.to_string() }
+    }
+}
+
+impl ShippedOrder {
+    pub fn summary(&self) -> String {
+        format!("{} paid {}, tracking {}", self.item, self.amount, self.tracking)
+    }
+}
+
+fn main() {
+    let order = Order::new("crab plushie").pay(1200).ship("TRK-42");
+    println!("{}", order.summary());
+}
+'''

@@ -1,0 +1,227 @@
+id = "book.oop.challenge"
+kind = "challenge"
+title = "The blog post, with two approvals"
+prompt = '''
+Implement the blog post workflow with the **state pattern** (trait objects), including
+two extensions the Book suggests:
+
+1. `Post::new()`, `add_text`, `request_review`, `approve`, `reject` and `content`.
+2. **Text can only be added in the draft state.** `add_text` on a post under review or
+   published does nothing.
+3. **Two approvals are needed.** The first `approve` on a post in review leaves it in
+   review; the second publishes it. `reject` sends a post in review back to draft, and
+   the approval count starts again from zero next time.
+4. `content()` returns the text only when published, otherwise `""`.
+5. `status()` returns `"draft"`, `"review"` or `"published"`.
+'''
+starter = '''
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+trait State {
+    // Design the methods you need.
+}
+
+fn main() {
+    let mut post = Post::new();
+    post.add_text("Two approvals please");
+    post.request_review();
+    post.approve();
+    println!("{} {:?}", post.status(), post.content());
+    post.approve();
+    println!("{} {:?}", post.status(), post.content());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn needs_two_approvals() {
+        let mut p = Post::new();
+        p.add_text("hello");
+        p.request_review();
+        p.approve();
+        assert_eq!(p.status(), "review");
+        assert_eq!(p.content(), "");
+        p.approve();
+        assert_eq!(p.status(), "published");
+        assert_eq!(p.content(), "hello");
+    }
+
+    #[test]
+    fn text_only_in_draft() {
+        let mut p = Post::new();
+        p.add_text("a");
+        p.request_review();
+        p.add_text("b");
+        p.approve();
+        p.approve();
+        p.add_text("c");
+        assert_eq!(p.content(), "a");
+    }
+
+    #[test]
+    fn reject_resets_approvals() {
+        let mut p = Post::new();
+        p.add_text("x");
+        p.request_review();
+        p.approve();
+        p.reject();
+        assert_eq!(p.status(), "draft");
+        p.add_text("y");
+        p.request_review();
+        p.approve();
+        assert_eq!(p.status(), "review");
+        p.approve();
+        assert_eq!(p.status(), "published");
+        assert_eq!(p.content(), "xy");
+    }
+
+    #[test]
+    fn approving_a_draft_does_nothing() {
+        let mut p = Post::new();
+        p.approve();
+        p.approve();
+        assert_eq!(p.status(), "draft");
+    }
+}
+'''
+hints = [
+  "Give `State` methods `request_review`, `approve` and `reject` (each `self: Box<Self>` → `Box<dyn State>`), plus `name(&self)`, `can_edit(&self) -> bool` and a default `content`.",
+  "`PendingReview` can hold a count: `struct PendingReview { approvals: u32 }`. `approve` returns `Box::new(PendingReview { approvals: 1 })` the first time and `Box::new(Published {})` the second.",
+  "In `Post::add_text`, only push when `self.state.as_ref().unwrap().can_edit()` is true.",
+]
+solution = '''
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post { state: Some(Box::new(Draft {})), content: String::new() }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        if self.state.as_ref().unwrap().can_edit() {
+            self.content.push_str(text);
+        }
+    }
+
+    pub fn content(&self) -> &str {
+        self.state.as_ref().unwrap().content(self)
+    }
+
+    pub fn status(&self) -> &'static str {
+        self.state.as_ref().unwrap().name()
+    }
+
+    pub fn request_review(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review());
+        }
+    }
+
+    pub fn approve(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.approve());
+        }
+    }
+
+    pub fn reject(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.reject());
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+    fn approve(self: Box<Self>) -> Box<dyn State>;
+    fn reject(self: Box<Self>) -> Box<dyn State>;
+    fn name(&self) -> &'static str;
+    fn can_edit(&self) -> bool {
+        false
+    }
+    fn content<'a>(&self, _post: &'a Post) -> &'a str {
+        ""
+    }
+}
+
+struct Draft {}
+
+struct PendingReview {
+    approvals: u32,
+}
+
+struct Published {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        Box::new(PendingReview { approvals: 0 })
+    }
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn reject(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn name(&self) -> &'static str {
+        "draft"
+    }
+    fn can_edit(&self) -> bool {
+        true
+    }
+}
+
+impl State for PendingReview {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        if self.approvals + 1 >= 2 {
+            Box::new(Published {})
+        } else {
+            Box::new(PendingReview { approvals: self.approvals + 1 })
+        }
+    }
+    fn reject(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Draft {})
+    }
+    fn name(&self) -> &'static str {
+        "review"
+    }
+}
+
+impl State for Published {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn reject(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+    fn name(&self) -> &'static str {
+        "published"
+    }
+    fn content<'a>(&self, post: &'a Post) -> &'a str {
+        &post.content
+    }
+}
+
+fn main() {
+    let mut post = Post::new();
+    post.add_text("Two approvals please");
+    post.request_review();
+    post.approve();
+    println!("{} {:?}", post.status(), post.content());
+    post.approve();
+    println!("{} {:?}", post.status(), post.content());
+}
+'''
