@@ -1,0 +1,101 @@
+id = "book.generics.trait-bounds.checkpoint"
+kind = "checkpoint"
+title = "Report on anything"
+prompt = '''
+Using the `Summary` trait provided, write two functions:
+
+- `headline(item: &impl Summary) -> String` returns `"BREAKING: "` followed by the
+  item's summary.
+- `longest_summary<T: Summary>(items: &[T]) -> String` returns the longest summary
+  (by `.len()`) among `items`, or an empty `String` if there are none. If two are
+  equally long, keep the first.
+'''
+starter = '''
+trait Summary {
+    fn summarize(&self) -> String;
+}
+
+struct Post {
+    text: String,
+}
+
+impl Summary for Post {
+    fn summarize(&self) -> String {
+        self.text.clone()
+    }
+}
+
+fn main() {
+    let posts = [Post { text: String::from("hi") }, Post { text: String::from("hello") }];
+    println!("{}", headline(&posts[0]));
+    println!("{}", longest_summary(&posts));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Fixed(&'static str);
+
+    impl Summary for Fixed {
+        fn summarize(&self) -> String {
+            self.0.to_string()
+        }
+    }
+
+    #[test]
+    fn headlines() {
+        assert_eq!(headline(&Post { text: String::from("hi") }), "BREAKING: hi");
+        assert_eq!(headline(&Fixed("rain")), "BREAKING: rain");
+    }
+
+    #[test]
+    fn longest() {
+        assert_eq!(longest_summary(&[Fixed("ab"), Fixed("abcd"), Fixed("abc")]), "abcd");
+        assert_eq!(longest_summary(&[Fixed("xy"), Fixed("zw")]), "xy");
+        let none: [Fixed; 0] = [];
+        assert_eq!(longest_summary(&none), "");
+    }
+}
+'''
+hints = [
+  "`fn headline(item: &impl Summary) -> String { format!(\"BREAKING: {}\", item.summarize()) }`",
+  "In `longest_summary`, start with `let mut best = String::new();` and replace it whenever `s.len() > best.len()`.",
+]
+solution = '''
+trait Summary {
+    fn summarize(&self) -> String;
+}
+
+struct Post {
+    text: String,
+}
+
+impl Summary for Post {
+    fn summarize(&self) -> String {
+        self.text.clone()
+    }
+}
+
+fn headline(item: &impl Summary) -> String {
+    format!("BREAKING: {}", item.summarize())
+}
+
+fn longest_summary<T: Summary>(items: &[T]) -> String {
+    let mut best = String::new();
+    for item in items {
+        let s = item.summarize();
+        if s.len() > best.len() {
+            best = s;
+        }
+    }
+    best
+}
+
+fn main() {
+    let posts = [Post { text: String::from("hi") }, Post { text: String::from("hello") }];
+    println!("{}", headline(&posts[0]));
+    println!("{}", longest_summary(&posts));
+}
+'''

@@ -1,0 +1,72 @@
+id = "book.generics.extracting-functions.checkpoint"
+kind = "checkpoint"
+title = "Pull out the repeated loop"
+prompt = '''
+`main` computes the average of two lists with the same code twice. Write the
+function `average(list: &[f64]) -> f64` so the duplication can go, and make it
+return `0.0` for an empty list (instead of dividing by zero).
+'''
+starter = '''
+fn average(list: &[f64]) -> f64 {
+    todo!()
+}
+
+fn main() {
+    let temps = vec![21.5, 23.0, 19.5];
+    let mut sum = 0.0;
+    for t in &temps {
+        sum += t;
+    }
+    println!("average temp: {}", sum / temps.len() as f64);
+
+    let scores = [8.0, 9.5, 7.0, 10.0];
+    let mut sum = 0.0;
+    for s in &scores {
+        sum += s;
+    }
+    println!("average score: {}", sum / scores.len() as f64);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn averages() {
+        assert_eq!(average(&[21.5, 23.0, 19.5]), 21.333333333333332);
+        assert_eq!(average(&[8.0, 9.5, 7.0, 10.0]), 8.625);
+        assert_eq!(average(&[4.0]), 4.0);
+    }
+
+    #[test]
+    fn empty_list_is_zero() {
+        assert_eq!(average(&[]), 0.0);
+    }
+}
+'''
+hints = [
+  "Move one copy of the loop into `average`, using `list` instead of `temps`.",
+  "Check `if list.is_empty() { return 0.0; }` first.",
+  "`list.len()` is a `usize`; divide by `list.len() as f64`.",
+]
+solution = '''
+fn average(list: &[f64]) -> f64 {
+    if list.is_empty() {
+        return 0.0;
+    }
+    let mut sum = 0.0;
+    for x in list {
+        sum += x;
+    }
+    sum / list.len() as f64
+}
+
+fn main() {
+    let temps = vec![21.5, 23.0, 19.5];
+    println!("average temp: {}", average(&temps));
+
+    let scores = [8.0, 9.5, 7.0, 10.0];
+    println!("average score: {}", average(&scores));
+}
+'''
