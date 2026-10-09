@@ -1,0 +1,7 @@
+id = "book.modules"
+track = "book"
+title = "Packages, Crates, and Modules"
+order = 7
+source = "https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html"
+summary = "Organise a growing program into modules, control what's public, and bring names into scope with use."
+requires = []

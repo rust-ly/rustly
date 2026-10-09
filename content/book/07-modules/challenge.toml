@@ -1,0 +1,133 @@
+id = "book.modules.challenge"
+kind = "challenge"
+title = "Organise the library"
+prompt = '''
+Everything for a small library app is crammed into the crate root. Organise it:
+
+1. Put `Book` and its methods in a module `catalog`. `Book::new(title, author)`
+   and the `title` and `author` fields should be public; the `on_loan` field must
+   stay **private**.
+2. Make a module `desk` with two functions: `desk::lend(book: &mut Book) -> bool`
+   (returns `false` if the book was already on loan) and
+   `desk::give_back(book: &mut Book)`. Since `on_loan` is private to `catalog`,
+   they'll need public methods on `Book` to change it.
+3. Re-export both at the crate root with `pub use`, so `Book` and `desk::lend`
+   still work for the code in `main`.
+
+`Book::is_available(&self) -> bool` should also be public.
+'''
+starter = '''
+pub struct Book {
+    pub title: String,
+    pub author: String,
+    on_loan: bool,
+}
+
+impl Book {
+    pub fn new(title: &str, author: &str) -> Book {
+        Book { title: title.to_string(), author: author.to_string(), on_loan: false }
+    }
+
+    pub fn is_available(&self) -> bool {
+        !self.on_loan
+    }
+}
+
+fn main() {
+    let mut book = Book::new("The Rust Programming Language", "Klabnik & Nichols");
+    println!("lent? {}", desk::lend(&mut book));
+    println!("lent again? {}", desk::lend(&mut book));
+    desk::give_back(&mut book);
+    println!("available? {}", book.is_available());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn book_lives_in_catalog() {
+        let b = catalog::Book::new("Dune", "Herbert");
+        assert_eq!(b.title, "Dune");
+        assert_eq!(b.author, "Herbert");
+        assert!(b.is_available());
+    }
+
+    #[test]
+    fn root_re_export_is_the_same_type() {
+        let b: catalog::Book = Book::new("Emma", "Austen");
+        assert!(b.is_available());
+    }
+
+    #[test]
+    fn lending_and_returning() {
+        let mut b = Book::new("Emma", "Austen");
+        assert!(desk::lend(&mut b));
+        assert!(!b.is_available());
+        assert!(!desk::lend(&mut b));
+        desk::give_back(&mut b);
+        assert!(b.is_available());
+        assert!(desk::lend(&mut b));
+    }
+}
+'''
+hints = [
+  "`mod catalog { pub struct Book { ... } impl Book { ... } }`, then `pub use catalog::Book;` at the root.",
+  "`desk` can't touch `on_loan` directly because it's private to `catalog`. Give `Book` public methods like `pub fn mark_lent(&mut self)` and `pub fn mark_returned(&mut self)`.",
+  "Inside `desk`, bring the type in with `use crate::catalog::Book;`.",
+]
+solution = '''
+mod catalog {
+    pub struct Book {
+        pub title: String,
+        pub author: String,
+        on_loan: bool,
+    }
+
+    impl Book {
+        pub fn new(title: &str, author: &str) -> Book {
+            Book { title: title.to_string(), author: author.to_string(), on_loan: false }
+        }
+
+        pub fn is_available(&self) -> bool {
+            !self.on_loan
+        }
+
+        pub fn mark_lent(&mut self) {
+            self.on_loan = true;
+        }
+
+        pub fn mark_returned(&mut self) {
+            self.on_loan = false;
+        }
+    }
+}
+
+pub mod desk {
+    use crate::catalog::Book;
+
+    pub fn lend(book: &mut Book) -> bool {
+        if book.is_available() {
+            book.mark_lent();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn give_back(book: &mut Book) {
+        book.mark_returned();
+    }
+}
+
+pub use catalog::Book;
+
+fn main() {
+    let mut book = Book::new("The Rust Programming Language", "Klabnik & Nichols");
+    println!("lent? {}", desk::lend(&mut book));
+    println!("lent again? {}", desk::lend(&mut book));
+    desk::give_back(&mut book);
+    println!("available? {}", book.is_available());
+}
+'''

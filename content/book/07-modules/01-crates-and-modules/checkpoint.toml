@@ -1,0 +1,59 @@
+id = "book.modules.crates-and-modules.checkpoint"
+kind = "checkpoint"
+title = "Put the maths in a module"
+prompt = '''
+Move `square` and `cube` into a module called `math`, so `main` (and the tests)
+call them as `math::square(...)` and `math::cube(...)`.
+
+Remember that items in a module are private unless you mark them `pub`.
+'''
+starter = '''
+fn square(n: i64) -> i64 {
+    n * n
+}
+
+fn cube(n: i64) -> i64 {
+    n * n * n
+}
+
+fn main() {
+    println!("{} {}", math::square(4), math::cube(3));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn squares() {
+        assert_eq!(math::square(4), 16);
+        assert_eq!(math::square(-3), 9);
+    }
+
+    #[test]
+    fn cubes() {
+        assert_eq!(math::cube(3), 27);
+        assert_eq!(math::cube(-2), -8);
+    }
+}
+'''
+hints = [
+  "Wrap both functions in `mod math { ... }`.",
+  "Add `pub` before each `fn` so code outside the module can call it.",
+]
+solution = '''
+mod math {
+    pub fn square(n: i64) -> i64 {
+        n * n
+    }
+
+    pub fn cube(n: i64) -> i64 {
+        n * n * n
+    }
+}
+
+fn main() {
+    println!("{} {}", math::square(4), math::cube(3));
+}
+'''
