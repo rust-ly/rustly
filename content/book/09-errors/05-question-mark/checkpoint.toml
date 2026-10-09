@@ -1,0 +1,64 @@
+id = "book.errors.question-mark.checkpoint"
+kind = "checkpoint"
+title = "Parse a date"
+prompt = '''
+Write `parse_date(text: &str) -> Result<(u32, u32, u32), ParseIntError>`.
+
+The text looks like `"2026-10-09"`: year, month and day separated by `-`. Split it
+with `text.split('-')`, parse each of the three parts with `?`, and return them as a
+tuple `(year, month, day)`.
+
+You can assume there are always three parts; only the numbers might be invalid.
+'''
+starter = '''
+use std::num::ParseIntError;
+
+fn parse_date(text: &str) -> Result<(u32, u32, u32), ParseIntError> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", parse_date("2026-10-09"));
+    println!("{:?}", parse_date("2026-oct-09"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_valid_dates() {
+        assert_eq!(parse_date("2026-10-09"), Ok((2026, 10, 9)));
+        assert_eq!(parse_date("1999-1-31"), Ok((1999, 1, 31)));
+    }
+
+    #[test]
+    fn passes_errors_up() {
+        assert!(parse_date("2026-oct-09").is_err());
+        assert!(parse_date("2026-10-").is_err());
+        assert!(parse_date("x-1-1").is_err());
+    }
+}
+'''
+hints = [
+  "`let mut parts = text.split('-');` then `parts.next().unwrap()` gives each piece in turn.",
+  "`let year = parts.next().unwrap().parse::<u32>()?;` and the same for month and day.",
+  "Finish with `Ok((year, month, day))`.",
+]
+solution = '''
+use std::num::ParseIntError;
+
+fn parse_date(text: &str) -> Result<(u32, u32, u32), ParseIntError> {
+    let mut parts = text.split('-');
+    let year = parts.next().unwrap().parse::<u32>()?;
+    let month = parts.next().unwrap().parse::<u32>()?;
+    let day = parts.next().unwrap().parse::<u32>()?;
+    Ok((year, month, day))
+}
+
+fn main() {
+    println!("{:?}", parse_date("2026-10-09"));
+    println!("{:?}", parse_date("2026-oct-09"));
+}
+'''
