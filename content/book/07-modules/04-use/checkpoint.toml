@@ -1,0 +1,75 @@
+id = "book.modules.use.checkpoint"
+kind = "checkpoint"
+title = "Tidy up with use"
+prompt = '''
+`main` uses short names that aren't in scope yet. Add `use` lines at the top
+(no other changes) so that:
+
+- `units::to_metres(...)` works (bring in the `units` **module**, idiomatic for functions)
+- `HashMap` means `std::collections::HashMap`
+- `Celsius` means the `Temperature` struct from `weather`, renamed with `as`
+'''
+starter = '''
+mod tools {
+    pub mod units {
+        pub fn to_metres(feet: f64) -> f64 {
+            feet * 0.3048
+        }
+    }
+}
+
+mod weather {
+    pub struct Temperature(pub f64);
+}
+
+fn main() {
+    let mut heights = HashMap::new();
+    heights.insert("tower", units::to_metres(1000.0));
+    let today = Celsius(21.5);
+    println!("{:.1} m, {} C", heights["tower"], today.0);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_are_in_scope() {
+        let mut m: HashMap<&str, f64> = HashMap::new();
+        m.insert("x", units::to_metres(10.0));
+        assert!((m["x"] - 3.048).abs() < 1e-9);
+        let t = Celsius(5.0);
+        assert_eq!(t.0, 5.0);
+    }
+}
+'''
+hints = [
+  "`use crate::tools::units;` brings in the module.",
+  "`use crate::weather::Temperature as Celsius;` renames the struct.",
+]
+solution = '''
+use std::collections::HashMap;
+
+use crate::tools::units;
+use crate::weather::Temperature as Celsius;
+
+mod tools {
+    pub mod units {
+        pub fn to_metres(feet: f64) -> f64 {
+            feet * 0.3048
+        }
+    }
+}
+
+mod weather {
+    pub struct Temperature(pub f64);
+}
+
+fn main() {
+    let mut heights = HashMap::new();
+    heights.insert("tower", units::to_metres(1000.0));
+    let today = Celsius(21.5);
+    println!("{:.1} m, {} C", heights["tower"], today.0);
+}
+'''
