@@ -1,0 +1,91 @@
+id = "book.generics.default-methods.checkpoint"
+kind = "checkpoint"
+title = "Price tags"
+prompt = '''
+Finish the `Priced` trait:
+
+- `price_cents(&self) -> u32` is **required** (no default).
+- `label(&self) -> String` has a **default**: the price formatted as
+  `"$D.CC"`, e.g. 1999 cents → `"$19.99"` and 5 → `"$0.05"`.
+  (`format!("${}.{:02}", cents / 100, cents % 100)`)
+
+Implement it for `Book` (uses the default `label`) and for `Gift` (overrides
+`label` to always return `"free"`; its price is 0).
+'''
+starter = '''
+trait Priced {
+    fn price_cents(&self) -> u32;
+}
+
+struct Book {
+    cents: u32,
+}
+
+struct Gift;
+
+fn main() {
+    println!("{}", Book { cents: 1999 }.label());
+    println!("{}", Gift.label());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn books_use_the_default_label() {
+        assert_eq!(Book { cents: 1999 }.label(), "$19.99");
+        assert_eq!(Book { cents: 5 }.label(), "$0.05");
+        assert_eq!(Book { cents: 1200 }.price_cents(), 1200);
+    }
+
+    #[test]
+    fn gifts_override_it() {
+        assert_eq!(Gift.label(), "free");
+        assert_eq!(Gift.price_cents(), 0);
+    }
+}
+'''
+hints = [
+  "Add `fn label(&self) -> String { let cents = self.price_cents(); format!(...) }` inside the trait.",
+  "`impl Priced for Book { fn price_cents(&self) -> u32 { self.cents } }`",
+  "`Gift` implements both methods: `price_cents` returns 0 and `label` returns `String::from(\"free\")`.",
+]
+solution = '''
+trait Priced {
+    fn price_cents(&self) -> u32;
+
+    fn label(&self) -> String {
+        let cents = self.price_cents();
+        format!("${}.{:02}", cents / 100, cents % 100)
+    }
+}
+
+struct Book {
+    cents: u32,
+}
+
+struct Gift;
+
+impl Priced for Book {
+    fn price_cents(&self) -> u32 {
+        self.cents
+    }
+}
+
+impl Priced for Gift {
+    fn price_cents(&self) -> u32 {
+        0
+    }
+
+    fn label(&self) -> String {
+        String::from("free")
+    }
+}
+
+fn main() {
+    println!("{}", Book { cents: 1999 }.label());
+    println!("{}", Gift.label());
+}
+'''
