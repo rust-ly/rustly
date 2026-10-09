@@ -1,0 +1,72 @@
+id = "book.enums.let-else.checkpoint"
+kind = "checkpoint"
+title = "Initials and totals"
+prompt = '''
+Use `let...else` in both functions:
+
+- `initial(name: Option<&str>) -> char` returns `'?'` early when there's no name,
+  and otherwise the first character of the name. (Names are never empty.)
+- `total_known(scores: &[Option<u32>]) -> u32` adds up the scores, skipping the
+  `None`s with `continue`.
+'''
+starter = '''
+fn initial(name: Option<&str>) -> char {
+    todo!()
+}
+
+fn total_known(scores: &[Option<u32>]) -> u32 {
+    todo!()
+}
+
+fn main() {
+    println!("{} {}", initial(Some("Ferris")), initial(None));
+    println!("{}", total_known(&[Some(3), None, Some(4)]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_letter() {
+        assert_eq!(initial(Some("Grace")), 'G');
+        assert_eq!(initial(None), '?');
+    }
+
+    #[test]
+    fn skips_missing_scores() {
+        assert_eq!(total_known(&[Some(3), None, Some(4)]), 7);
+        assert_eq!(total_known(&[None, None]), 0);
+        assert_eq!(total_known(&[]), 0);
+    }
+}
+'''
+hints = [
+  "`let Some(n) = name else { return '?'; };` then `n.chars().next().unwrap()`.",
+  "Loop with `for score in scores`. Each `score` is a `&Option<u32>`, so write `let Some(points) = score else { continue; };` and add `*points`.",
+]
+solution = '''
+fn initial(name: Option<&str>) -> char {
+    let Some(n) = name else {
+        return '?';
+    };
+    n.chars().next().unwrap()
+}
+
+fn total_known(scores: &[Option<u32>]) -> u32 {
+    let mut total = 0;
+    for score in scores {
+        let Some(points) = score else {
+            continue;
+        };
+        total += *points;
+    }
+    total
+}
+
+fn main() {
+    println!("{} {}", initial(Some("Ferris")), initial(None));
+    println!("{}", total_known(&[Some(3), None, Some(4)]));
+}
+'''
