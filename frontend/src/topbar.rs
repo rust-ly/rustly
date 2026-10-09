@@ -23,6 +23,9 @@ pub fn TopBar() -> impl IntoView {
                     <a href="/learn#track-tokio">"Tokio"</a>
                 </nav>
                 <div class="topbar-actions">
+                    {learner.preview.then(|| view! {
+                        <a class="pill pill-outline" href="?preview=off" title="Local dev preview: everything is open. Click to turn off.">"Preview"</a>
+                    })}
                     <ThemeToggle />
                     <A href=move || next_lesson(&learner) attr:class="btn btn-sans">"Start learning"</A>
                 </div>

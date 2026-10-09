@@ -76,11 +76,7 @@ fn ConceptLesson(chapter: &'static Chapter, concept: &'static Concept) -> impl I
 #[component]
 fn ChallengeLesson(chapter: &'static Chapter) -> impl IntoView {
     let learner = Learner::get();
-    let open = Memo::new(move |_| {
-        learner
-            .progress
-            .with(|p| content::graph().is_challenge_open(&chapter.id, p))
-    });
+    let open = Memo::new(move |_| learner.is_challenge_open(&chapter.id));
     move || {
         if !open.get() {
             // The chapter page explains what's left before the challenge.
