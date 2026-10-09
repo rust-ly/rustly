@@ -1,0 +1,7 @@
+id = "book.cargo"
+track = "book"
+title = "More about Cargo and Crates.io"
+order = 14
+source = "https://doc.rust-lang.org/book/ch14-00-more-about-cargo.html"
+summary = "Build profiles, documentation that's also tests, designing a public API, versions and workspaces."
+requires = []

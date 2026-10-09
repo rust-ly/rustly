@@ -1,0 +1,149 @@
+id = "book.cargo.challenge"
+kind = "challenge"
+title = "A documented Version type"
+prompt = '''
+Build a small, well-documented `Version` type, the kind you might publish as a crate:
+
+1. `Version::parse(s: &str) -> Result<Version, String>` reads `"MAJOR.MINOR.PATCH"`.
+   Anything else (wrong number of parts, or a part that isn't a number) returns
+   `Err("invalid version: S")`, with the original text.
+2. `Version` implements `std::fmt::Display` so `format!("{v}")` gives `"1.4.2"`.
+3. `is_breaking_update(&self, newer: &Version) -> bool`: true when upgrading from
+   `self` to `newer` might break code under SemVer: a different major version, or,
+   for `0.x` versions, a different minor version.
+4. `latest_compatible(&self, available: &[Version]) -> Option<Version>`: the highest
+   version in `available` that is at least `self` and **not** a breaking update.
+
+Add a `///` doc comment to `parse` with an example. (The grader can't read comments,
+but it's good practice!)
+'''
+starter = '''
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Version {
+    major: u32,
+    minor: u32,
+    patch: u32,
+}
+
+impl Version {
+    fn parse(s: &str) -> Result<Version, String> {
+        todo!()
+    }
+}
+
+fn main() {
+    let v = Version::parse("1.4.2").unwrap();
+    println!("{v}");
+    println!("{:?}", Version::parse("1.x.2"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn v(s: &str) -> Version {
+        Version::parse(s).unwrap()
+    }
+
+    #[test]
+    fn parses() {
+        assert_eq!(v("1.4.2"), Version { major: 1, minor: 4, patch: 2 });
+        assert_eq!(Version::parse("1.4"), Err(String::from("invalid version: 1.4")));
+        assert_eq!(Version::parse("1.x.2"), Err(String::from("invalid version: 1.x.2")));
+        assert_eq!(Version::parse("1.2.3.4"), Err(String::from("invalid version: 1.2.3.4")));
+    }
+
+    #[test]
+    fn displays() {
+        assert_eq!(format!("{}", v("10.0.7")), "10.0.7");
+    }
+
+    #[test]
+    fn breaking_updates() {
+        assert!(!v("1.4.2").is_breaking_update(&v("1.9.0")));
+        assert!(v("1.4.2").is_breaking_update(&v("2.0.0")));
+        assert!(v("0.8.5").is_breaking_update(&v("0.9.0")));
+        assert!(!v("0.8.5").is_breaking_update(&v("0.8.9")));
+    }
+
+    #[test]
+    fn picks_latest_compatible() {
+        let available = [v("1.3.0"), v("1.4.5"), v("1.9.1"), v("2.0.0")];
+        assert_eq!(v("1.4.2").latest_compatible(&available), Some(v("1.9.1")));
+        assert_eq!(v("2.1.0").latest_compatible(&available), None);
+        let zero = [v("0.8.1"), v("0.8.7"), v("0.9.0")];
+        assert_eq!(v("0.8.5").latest_compatible(&zero), Some(v("0.8.7")));
+    }
+}
+'''
+hints = [
+  "Split on `'.'` and collect into a `Vec<&str>`; it must have exactly 3 parts, each parsed with `.parse::<u32>()`.",
+  "`impl fmt::Display for Version { fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, \"{}.{}.{}\", self.major, self.minor, self.patch) } }`",
+  "Because `Version` derives `Ord`, `available.iter().filter(...).max()` finds the highest.",
+]
+solution = '''
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Version {
+    major: u32,
+    minor: u32,
+    patch: u32,
+}
+
+impl Version {
+    /// Parses a `MAJOR.MINOR.PATCH` version string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v = Version::parse("1.4.2").unwrap();
+    /// assert_eq!(v.to_string(), "1.4.2");
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there aren't exactly three numeric parts.
+    fn parse(s: &str) -> Result<Version, String> {
+        let err = || format!("invalid version: {s}");
+        let parts: Vec<&str> = s.split('.').collect();
+        if parts.len() != 3 {
+            return Err(err());
+        }
+        let major = parts[0].parse().map_err(|_| err())?;
+        let minor = parts[1].parse().map_err(|_| err())?;
+        let patch = parts[2].parse().map_err(|_| err())?;
+        Ok(Version { major, minor, patch })
+    }
+
+    fn is_breaking_update(&self, newer: &Version) -> bool {
+        if self.major != newer.major {
+            return true;
+        }
+        self.major == 0 && self.minor != newer.minor
+    }
+
+    fn latest_compatible(&self, available: &[Version]) -> Option<Version> {
+        available
+            .iter()
+            .filter(|v| *v >= self && !self.is_breaking_update(v))
+            .max()
+            .copied()
+    }
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+fn main() {
+    let v = Version::parse("1.4.2").unwrap();
+    println!("{v}");
+    println!("{:?}", Version::parse("1.x.2"));
+}
+'''
