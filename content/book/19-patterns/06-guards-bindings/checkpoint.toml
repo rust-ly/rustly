@@ -1,0 +1,80 @@
+id = "book.patterns.guards-bindings.checkpoint"
+kind = "checkpoint"
+title = "Guards and bindings"
+prompt = '''
+Write each function with one `match`, using guards and `@`:
+
+- `classify(n: i32) -> String`: negative numbers → `"negative N"`; `0` → `"zero"`;
+  1–9 → `"digit N"` (use `@` to bind the value); even numbers 10 or more →
+  `"big even N"` (guard); everything else → `"big odd N"`.
+- `fits(size: Option<u32>, limit: u32) -> &'static str`: `"fits"` when the size is
+  `Some(s)` with `s <= limit` (guard), `"too big"` for any other `Some`, `"unknown"`
+  for `None`.
+'''
+starter = '''
+fn classify(n: i32) -> String {
+    todo!()
+}
+
+fn fits(size: Option<u32>, limit: u32) -> &'static str {
+    todo!()
+}
+
+fn main() {
+    println!("{} | {}", classify(7), classify(42));
+    println!("{}", fits(Some(3), 5));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classifies() {
+        assert_eq!(classify(-3), "negative -3");
+        assert_eq!(classify(0), "zero");
+        assert_eq!(classify(7), "digit 7");
+        assert_eq!(classify(42), "big even 42");
+        assert_eq!(classify(11), "big odd 11");
+        assert_eq!(classify(10), "big even 10");
+    }
+
+    #[test]
+    fn sizes() {
+        assert_eq!(fits(Some(3), 5), "fits");
+        assert_eq!(fits(Some(5), 5), "fits");
+        assert_eq!(fits(Some(6), 5), "too big");
+        assert_eq!(fits(None, 5), "unknown");
+    }
+}
+'''
+hints = [
+  "`n if n < 0 => format!(\"negative {n}\")` handles negatives with a guard.",
+  "`d @ 1..=9 => format!(\"digit {d}\")`",
+  "`Some(s) if s <= limit => \"fits\"`, then `Some(_) => \"too big\"` and `None => \"unknown\"`.",
+]
+solution = '''
+fn classify(n: i32) -> String {
+    match n {
+        n if n < 0 => format!("negative {n}"),
+        0 => String::from("zero"),
+        d @ 1..=9 => format!("digit {d}"),
+        n if n % 2 == 0 => format!("big even {n}"),
+        n => format!("big odd {n}"),
+    }
+}
+
+fn fits(size: Option<u32>, limit: u32) -> &'static str {
+    match size {
+        Some(s) if s <= limit => "fits",
+        Some(_) => "too big",
+        None => "unknown",
+    }
+}
+
+fn main() {
+    println!("{} | {}", classify(7), classify(42));
+    println!("{}", fits(Some(3), 5));
+}
+'''

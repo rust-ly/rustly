@@ -1,0 +1,7 @@
+id = "book.patterns"
+track = "book"
+title = "Patterns and Matching"
+order = 19
+source = "https://doc.rust-lang.org/book/ch19-00-patterns.html"
+summary = "Everywhere patterns appear, which can fail to match, and the full syntax: ranges, destructuring, ignoring values, guards and @ bindings."
+requires = []

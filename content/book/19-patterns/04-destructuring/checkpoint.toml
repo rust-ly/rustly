@@ -1,0 +1,126 @@
+id = "book.patterns.destructuring.checkpoint"
+kind = "checkpoint"
+title = "Read the shapes"
+prompt = '''
+Use destructuring patterns (no `.field` access in your code):
+
+- `quadrant(p: Point) -> &'static str`: `"origin"` for (0, 0), `"x axis"` when only
+  `y` is 0, `"y axis"` when only `x` is 0, and otherwise `"Q1"`, `"Q2"`, `"Q3"` or
+  `"Q4"` (Q1 is both positive, Q2 is x negative and y positive, and so on
+  anticlockwise).
+- `describe(e: Event) -> String`: `Click { x, y }` → `"click at X,Y"`;
+  `Key(c)` → `"key C"`; `Resize(Size { w, h })` → `"resize to WxH"`.
+'''
+starter = '''
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+struct Size {
+    w: u32,
+    h: u32,
+}
+
+enum Event {
+    Click { x: i32, y: i32 },
+    Key(char),
+    Resize(Size),
+}
+
+fn quadrant(p: Point) -> &'static str {
+    todo!()
+}
+
+fn describe(e: Event) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", quadrant(Point { x: -2, y: 5 }));
+    println!("{}", describe(Event::Resize(Size { w: 800, h: 600 })));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn q(x: i32, y: i32) -> &'static str {
+        quadrant(Point { x, y })
+    }
+
+    #[test]
+    fn quadrants() {
+        assert_eq!(q(0, 0), "origin");
+        assert_eq!(q(4, 0), "x axis");
+        assert_eq!(q(0, -3), "y axis");
+        assert_eq!(q(1, 1), "Q1");
+        assert_eq!(q(-1, 1), "Q2");
+        assert_eq!(q(-1, -1), "Q3");
+        assert_eq!(q(1, -1), "Q4");
+    }
+
+    #[test]
+    fn events() {
+        assert_eq!(describe(Event::Click { x: 3, y: 4 }), "click at 3,4");
+        assert_eq!(describe(Event::Key('q')), "key q");
+        assert_eq!(describe(Event::Resize(Size { w: 800, h: 600 })), "resize to 800x600");
+    }
+}
+'''
+hints = [
+  "Start with `let Point { x, y } = p;`, then `match (x, y) { (0, 0) => \"origin\", (_, 0) => ..., (0, _) => ..., ... }`.",
+  "For the quadrants, compare signs: `if x > 0 && y > 0 { \"Q1\" } ...` inside the last arm is fine.",
+  "`Event::Resize(Size { w, h }) => format!(\"resize to {w}x{h}\")`",
+]
+solution = '''
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+struct Size {
+    w: u32,
+    h: u32,
+}
+
+enum Event {
+    Click { x: i32, y: i32 },
+    Key(char),
+    Resize(Size),
+}
+
+fn quadrant(p: Point) -> &'static str {
+    let Point { x, y } = p;
+    match (x, y) {
+        (0, 0) => "origin",
+        (_, 0) => "x axis",
+        (0, _) => "y axis",
+        _ => {
+            if x > 0 && y > 0 {
+                "Q1"
+            } else if x < 0 && y > 0 {
+                "Q2"
+            } else if x < 0 {
+                "Q3"
+            } else {
+                "Q4"
+            }
+        }
+    }
+}
+
+fn describe(e: Event) -> String {
+    match e {
+        Event::Click { x, y } => format!("click at {x},{y}"),
+        Event::Key(c) => format!("key {c}"),
+        Event::Resize(Size { w, h }) => format!("resize to {w}x{h}"),
+    }
+}
+
+fn main() {
+    println!("{}", quadrant(Point { x: -2, y: 5 }));
+    println!("{}", describe(Event::Resize(Size { w: 800, h: 600 })));
+}
+'''

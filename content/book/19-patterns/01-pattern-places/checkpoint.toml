@@ -1,0 +1,88 @@
+id = "book.patterns.pattern-places.checkpoint"
+kind = "checkpoint"
+title = "Patterns everywhere"
+prompt = '''
+Use a pattern in each place:
+
+- `swap((a, b): (i32, i32)) -> (i32, i32)`: unpack the tuple **in the parameter**, and
+  return it swapped.
+- `sum_pairs(pairs: &[(i32, i32)]) -> i32`: add up both numbers of every pair, using a
+  `for (a, b) in ...` loop.
+- `drain_stack(mut stack: Vec<i32>) -> i32`: pop values with `while let Some(top) = ...`
+  and return their sum.
+'''
+starter = '''
+fn swap(pair: (i32, i32)) -> (i32, i32) {
+    todo!()
+}
+
+fn sum_pairs(pairs: &[(i32, i32)]) -> i32 {
+    todo!()
+}
+
+fn drain_stack(mut stack: Vec<i32>) -> i32 {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", swap((1, 2)));
+    println!("{}", sum_pairs(&[(1, 2), (3, 4)]));
+    println!("{}", drain_stack(vec![5, 6, 7]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn swaps() {
+        assert_eq!(swap((1, 2)), (2, 1));
+        assert_eq!(swap((-4, 9)), (9, -4));
+    }
+
+    #[test]
+    fn pairs() {
+        assert_eq!(sum_pairs(&[(1, 2), (3, 4)]), 10);
+        assert_eq!(sum_pairs(&[]), 0);
+    }
+
+    #[test]
+    fn drains() {
+        assert_eq!(drain_stack(vec![5, 6, 7]), 18);
+        assert_eq!(drain_stack(vec![]), 0);
+    }
+}
+'''
+hints = [
+  "`fn swap((a, b): (i32, i32)) -> (i32, i32) { (b, a) }`",
+  "`for (a, b) in pairs { total += a + b; }`: `a` and `b` are `&i32` here, which `+=` accepts.",
+  "`while let Some(top) = stack.pop() { total += top; }`",
+]
+solution = '''
+fn swap((a, b): (i32, i32)) -> (i32, i32) {
+    (b, a)
+}
+
+fn sum_pairs(pairs: &[(i32, i32)]) -> i32 {
+    let mut total = 0;
+    for (a, b) in pairs {
+        total += a + b;
+    }
+    total
+}
+
+fn drain_stack(mut stack: Vec<i32>) -> i32 {
+    let mut total = 0;
+    while let Some(top) = stack.pop() {
+        total += top;
+    }
+    total
+}
+
+fn main() {
+    println!("{:?}", swap((1, 2)));
+    println!("{}", sum_pairs(&[(1, 2), (3, 4)]));
+    println!("{}", drain_stack(vec![5, 6, 7]));
+}
+'''
