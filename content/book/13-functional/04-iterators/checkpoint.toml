@@ -1,0 +1,108 @@
+id = "book.functional.iterators.checkpoint"
+kind = "checkpoint"
+title = "An iterator of your own"
+prompt = '''
+Implement `Iterator` for `Evens`, which produces the even numbers from `start`
+(inclusive) up to `end` (exclusive). If `start` is odd, begin at the next even
+number. `Evens::new(3, 10)` produces 4, 6, 8.
+
+Then write `sum_of_evens(start: u32, end: u32) -> u32` using your iterator and
+`.sum()`.
+'''
+starter = '''
+struct Evens {
+    next: u32,
+    end: u32,
+}
+
+impl Evens {
+    fn new(start: u32, end: u32) -> Evens {
+        let next = if start % 2 == 0 { start } else { start + 1 };
+        Evens { next, end }
+    }
+}
+
+// impl Iterator for Evens { ... }
+
+fn sum_of_evens(start: u32, end: u32) -> u32 {
+    todo!()
+}
+
+fn main() {
+    for n in Evens::new(3, 10) {
+        println!("{n}");
+    }
+    println!("sum: {}", sum_of_evens(1, 11));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn produces_evens() {
+        let mut e = Evens::new(3, 10);
+        assert_eq!(e.next(), Some(4));
+        assert_eq!(e.next(), Some(6));
+        assert_eq!(e.next(), Some(8));
+        assert_eq!(e.next(), None);
+        assert_eq!(e.next(), None);
+    }
+
+    #[test]
+    fn start_is_included_end_is_not() {
+        let v: Vec<u32> = Evens::new(2, 6).collect();
+        assert_eq!(v, vec![2, 4]);
+        assert_eq!(Evens::new(5, 5).next(), None);
+    }
+
+    #[test]
+    fn sums() {
+        assert_eq!(sum_of_evens(1, 11), 30);
+        assert_eq!(sum_of_evens(0, 1), 0);
+    }
+}
+'''
+hints = [
+  "`impl Iterator for Evens { type Item = u32; fn next(&mut self) -> Option<u32> { ... } }`",
+  "In `next`: if `self.next >= self.end` return `None`; otherwise remember the value, add 2 to `self.next`, and return `Some(value)`.",
+  "`Evens::new(start, end).sum()`",
+]
+solution = '''
+struct Evens {
+    next: u32,
+    end: u32,
+}
+
+impl Evens {
+    fn new(start: u32, end: u32) -> Evens {
+        let next = if start % 2 == 0 { start } else { start + 1 };
+        Evens { next, end }
+    }
+}
+
+impl Iterator for Evens {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<u32> {
+        if self.next >= self.end {
+            return None;
+        }
+        let value = self.next;
+        self.next += 2;
+        Some(value)
+    }
+}
+
+fn sum_of_evens(start: u32, end: u32) -> u32 {
+    Evens::new(start, end).sum()
+}
+
+fn main() {
+    for n in Evens::new(3, 10) {
+        println!("{n}");
+    }
+    println!("sum: {}", sum_of_evens(1, 11));
+}
+'''
