@@ -1,0 +1,96 @@
+id = "book.minigrep.run-and-errors.checkpoint"
+kind = "checkpoint"
+title = "Report the results"
+prompt = '''
+Write `run(config: &Config, contents: &str) -> Result<String, String>`, which returns
+the program's whole output as one string:
+
+- If `contents` is empty, return `Err("file is empty")`.
+- Otherwise, return a line `"N match(es) for QUERY"` followed by each matching line
+  (lines that contain `config.query`), each line ending with `\n`.
+
+For example, the query `"nobody"` in `"I'm nobody!\nWho are you?\nAre you nobody, too?"`
+gives `"2 match(es) for nobody\nI'm nobody!\nAre you nobody, too?\n"`.
+'''
+starter = '''
+struct Config {
+    query: String,
+}
+
+fn run(config: &Config, contents: &str) -> Result<String, String> {
+    todo!()
+}
+
+fn main() {
+    let config = Config { query: String::from("nobody") };
+    let poem = "I'm nobody!\nWho are you?\nAre you nobody, too?";
+    match run(&config, poem) {
+        Ok(output) => print!("{output}"),
+        Err(e) => eprintln!("Application error: {e}"),
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cfg(q: &str) -> Config {
+        Config { query: String::from(q) }
+    }
+
+    #[test]
+    fn reports_matches() {
+        assert_eq!(
+            run(&cfg("nobody"), "I'm nobody!\nWho are you?\nAre you nobody, too?"),
+            Ok(String::from("2 match(es) for nobody\nI'm nobody!\nAre you nobody, too?\n"))
+        );
+    }
+
+    #[test]
+    fn no_matches() {
+        assert_eq!(run(&cfg("frog"), "a\nb"), Ok(String::from("0 match(es) for frog\n")));
+    }
+
+    #[test]
+    fn empty_file() {
+        assert_eq!(run(&cfg("x"), ""), Err(String::from("file is empty")));
+    }
+}
+'''
+hints = [
+  "Collect the matching lines into a `Vec` first, so you know how many there are before writing the header.",
+  "`let mut out = format!(\"{} match(es) for {}\\n\", matches.len(), config.query);` then `push_str` each line and a `'\\n'`.",
+]
+solution = '''
+struct Config {
+    query: String,
+}
+
+fn run(config: &Config, contents: &str) -> Result<String, String> {
+    if contents.is_empty() {
+        return Err(String::from("file is empty"));
+    }
+    let mut matches = Vec::new();
+    for line in contents.lines() {
+        if line.contains(&config.query) {
+            matches.push(line);
+        }
+    }
+    let mut out = format!("{} match(es) for {}\n", matches.len(), config.query);
+    for line in matches {
+        out.push_str(line);
+        out.push('\n');
+    }
+    Ok(out)
+}
+
+fn main() {
+    let config = Config { query: String::from("nobody") };
+    let poem = "I'm nobody!\nWho are you?\nAre you nobody, too?";
+    match run(&config, poem) {
+        Ok(output) => print!("{output}"),
+        Err(e) => eprintln!("Application error: {e}"),
+    }
+}
+'''
