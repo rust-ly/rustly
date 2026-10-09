@@ -1,0 +1,76 @@
+id = "book.errors.question-mark-more.checkpoint"
+kind = "checkpoint"
+title = "Initials and the first price"
+prompt = '''
+Use `?` in both functions:
+
+- `initials(full_name: &str) -> Option<String>` returns the first letters of the
+  first two words, like `"Ada Lovelace"` → `"AL"`. Return `None` if there are fewer
+  than two words. (`split_whitespace()` gives the words.)
+- `first_price(line: &str) -> Result<u32, String>` takes a line like
+  `"apples 3"` and returns the number after the first space. If there's no second
+  word, return `Err("missing price")`; if it isn't a number, return
+  `Err("bad price")`. `.ok_or(...)` turns an `Option` into a `Result`, and `.ok()`
+  turns a `Result` into an `Option`.
+'''
+starter = '''
+fn initials(full_name: &str) -> Option<String> {
+    todo!()
+}
+
+fn first_price(line: &str) -> Result<u32, String> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?} {:?}", initials("Ada Lovelace"), initials("Ferris"));
+    println!("{:?} {:?}", first_price("apples 3"), first_price("pears"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_initials() {
+        assert_eq!(initials("Ada Lovelace"), Some(String::from("AL")));
+        assert_eq!(initials("grace brewster hopper"), Some(String::from("gb")));
+        assert_eq!(initials("Ferris"), None);
+        assert_eq!(initials(""), None);
+    }
+
+    #[test]
+    fn prices() {
+        assert_eq!(first_price("apples 3"), Ok(3));
+        assert_eq!(first_price("pears"), Err(String::from("missing price")));
+        assert_eq!(first_price("plums lots"), Err(String::from("bad price")));
+    }
+}
+'''
+hints = [
+  "`let mut words = full_name.split_whitespace();` then `let first = words.next()?.chars().next()?;` and the same for the second word.",
+  "Build the result with `format!(\"{first}{second}\")` and wrap it in `Some`.",
+  "`let price = line.split_whitespace().nth(1).ok_or(String::from(\"missing price\"))?;`",
+]
+solution = '''
+fn initials(full_name: &str) -> Option<String> {
+    let mut words = full_name.split_whitespace();
+    let first = words.next()?.chars().next()?;
+    let second = words.next()?.chars().next()?;
+    Some(format!("{first}{second}"))
+}
+
+fn first_price(line: &str) -> Result<u32, String> {
+    let price = line
+        .split_whitespace()
+        .nth(1)
+        .ok_or(String::from("missing price"))?;
+    price.parse::<u32>().ok().ok_or(String::from("bad price"))
+}
+
+fn main() {
+    println!("{:?} {:?}", initials("Ada Lovelace"), initials("Ferris"));
+    println!("{:?} {:?}", first_price("apples 3"), first_price("pears"));
+}
+'''
