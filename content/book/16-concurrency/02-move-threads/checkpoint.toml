@@ -1,0 +1,62 @@
+id = "book.concurrency.move-threads.checkpoint"
+kind = "checkpoint"
+title = "Shout in parallel"
+prompt = '''
+Write `shout_all(words: Vec<String>) -> Vec<String>`. Spawn **one thread per word**;
+each thread takes ownership of its word (`move`) and returns it in upper case with an
+`"!"` on the end. Join the threads **in the order they were spawned**, so the results
+stay in the same order as the input.
+'''
+starter = '''
+use std::thread;
+
+fn shout_all(words: Vec<String>) -> Vec<String> {
+    let mut handles = Vec::new();
+    for word in &words {
+        handles.push(thread::spawn(|| format!("{}!", word.to_uppercase())));
+    }
+    handles.into_iter().map(|h| h.join().unwrap()).collect()
+}
+
+fn main() {
+    let words = vec![String::from("hello"), String::from("threads")];
+    println!("{:?}", shout_all(words));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shouts_in_order() {
+        let words = vec![String::from("hello"), String::from("threads"), String::from("rust")];
+        assert_eq!(shout_all(words), vec!["HELLO!", "THREADS!", "RUST!"]);
+    }
+
+    #[test]
+    fn no_words() {
+        assert!(shout_all(vec![]).is_empty());
+    }
+}
+'''
+hints = [
+  "The starter borrows `word` from `words`, which the thread might outlive (E0373).",
+  "Loop over `words` itself (not `&words`) so each `word` is owned, and use `move ||`.",
+]
+solution = '''
+use std::thread;
+
+fn shout_all(words: Vec<String>) -> Vec<String> {
+    let mut handles = Vec::new();
+    for word in words {
+        handles.push(thread::spawn(move || format!("{}!", word.to_uppercase())));
+    }
+    handles.into_iter().map(|h| h.join().unwrap()).collect()
+}
+
+fn main() {
+    let words = vec![String::from("hello"), String::from("threads")];
+    println!("{:?}", shout_all(words));
+}
+'''
