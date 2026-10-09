@@ -1,0 +1,127 @@
+id = "book.oop.trait-objects.checkpoint"
+kind = "checkpoint"
+title = "A screen of components"
+prompt = '''
+Implement `Draw` for `Label` (draws as its text) and `Checkbox` (draws as `"[x] TEXT"`
+when checked, `"[ ] TEXT"` when not). Then finish `Screen`:
+
+- `Screen::new()` starts with no components.
+- `add(&mut self, c: Box<dyn Draw>)` adds a component.
+- `render(&self) -> Vec<String>`: every component's `draw()`, in order.
+'''
+starter = '''
+pub trait Draw {
+    fn draw(&self) -> String;
+}
+
+pub struct Label {
+    pub text: String,
+}
+
+pub struct Checkbox {
+    pub text: String,
+    pub checked: bool,
+}
+
+pub struct Screen {
+    components: Vec<Box<dyn Draw>>,
+}
+
+fn main() {
+    let mut screen = Screen::new();
+    screen.add(Box::new(Label { text: String::from("Settings") }));
+    screen.add(Box::new(Checkbox { text: String::from("Dark mode"), checked: true }));
+    for line in screen.render() {
+        println!("{line}");
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Custom;
+    impl Draw for Custom {
+        fn draw(&self) -> String {
+            String::from("~custom~")
+        }
+    }
+
+    #[test]
+    fn draws_each_kind() {
+        assert_eq!(Label { text: String::from("Hi") }.draw(), "Hi");
+        assert_eq!(Checkbox { text: String::from("A"), checked: true }.draw(), "[x] A");
+        assert_eq!(Checkbox { text: String::from("B"), checked: false }.draw(), "[ ] B");
+    }
+
+    #[test]
+    fn renders_mixed_components_in_order() {
+        let mut s = Screen::new();
+        assert!(s.render().is_empty());
+        s.add(Box::new(Label { text: String::from("Title") }));
+        s.add(Box::new(Custom));
+        s.add(Box::new(Checkbox { text: String::from("Opt"), checked: false }));
+        assert_eq!(s.render(), vec!["Title", "~custom~", "[ ] Opt"]);
+    }
+}
+'''
+hints = [
+  "`impl Draw for Label { fn draw(&self) -> String { self.text.clone() } }`",
+  "For the checkbox: `let mark = if self.checked { \"x\" } else { \" \" }; format!(\"[{mark}] {}\", self.text)`",
+  "`render`: `self.components.iter().map(|c| c.draw()).collect()`",
+]
+solution = '''
+pub trait Draw {
+    fn draw(&self) -> String;
+}
+
+pub struct Label {
+    pub text: String,
+}
+
+pub struct Checkbox {
+    pub text: String,
+    pub checked: bool,
+}
+
+impl Draw for Label {
+    fn draw(&self) -> String {
+        self.text.clone()
+    }
+}
+
+impl Draw for Checkbox {
+    fn draw(&self) -> String {
+        let mark = if self.checked { "x" } else { " " };
+        format!("[{mark}] {}", self.text)
+    }
+}
+
+pub struct Screen {
+    components: Vec<Box<dyn Draw>>,
+}
+
+impl Screen {
+    pub fn new() -> Screen {
+        Screen { components: Vec::new() }
+    }
+
+    pub fn add(&mut self, c: Box<dyn Draw>) {
+        self.components.push(c);
+    }
+
+    pub fn render(&self) -> Vec<String> {
+        self.components.iter().map(|c| c.draw()).collect()
+    }
+}
+
+fn main() {
+    let mut screen = Screen::new();
+    screen.add(Box::new(Label { text: String::from("Settings") }));
+    screen.add(Box::new(Checkbox { text: String::from("Dark mode"), checked: true }));
+    for line in screen.render() {
+        println!("{line}");
+    }
+}
+'''
