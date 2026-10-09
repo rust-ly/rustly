@@ -1,0 +1,73 @@
+id = "book.concurrency.channels.checkpoint"
+kind = "checkpoint"
+title = "Workers report back"
+prompt = '''
+Write `squares_from_workers(numbers: Vec<u64>) -> Vec<u64>`:
+
+- Create a channel.
+- For each number, spawn a thread with its **own clone** of the transmitter; the
+  thread sends the number squared.
+- Drop the original transmitter (`drop(tx)`), so the channel closes once every worker
+  is done.
+- Receive everything with a `for` loop over the receiver, then **sort** the results
+  (threads finish in any order) and return them.
+'''
+starter = '''
+use std::sync::mpsc;
+use std::thread;
+
+fn squares_from_workers(numbers: Vec<u64>) -> Vec<u64> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", squares_from_workers(vec![3, 1, 2]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gathers_every_result() {
+        assert_eq!(squares_from_workers(vec![3, 1, 2]), vec![1, 4, 9]);
+        assert_eq!(squares_from_workers(vec![10, 10]), vec![100, 100]);
+    }
+
+    #[test]
+    fn closes_with_no_workers() {
+        assert!(squares_from_workers(vec![]).is_empty());
+    }
+}
+'''
+hints = [
+  "`let (tx, rx) = mpsc::channel();` then in the loop: `let tx = tx.clone(); thread::spawn(move || tx.send(n * n).unwrap());`",
+  "After the loop, `drop(tx);`. Otherwise the original transmitter keeps the channel open and the `for` loop waits forever.",
+  "`let mut results: Vec<u64> = rx.iter().collect(); results.sort(); results`",
+]
+solution = '''
+use std::sync::mpsc;
+use std::thread;
+
+fn squares_from_workers(numbers: Vec<u64>) -> Vec<u64> {
+    let (tx, rx) = mpsc::channel();
+    for n in numbers {
+        let tx = tx.clone();
+        thread::spawn(move || {
+            tx.send(n * n).unwrap();
+        });
+    }
+    drop(tx);
+    let mut results = Vec::new();
+    for value in rx {
+        results.push(value);
+    }
+    results.sort();
+    results
+}
+
+fn main() {
+    println!("{:?}", squares_from_workers(vec![3, 1, 2]));
+}
+'''
