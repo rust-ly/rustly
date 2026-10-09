@@ -1,0 +1,73 @@
+id = "book.modules.files.checkpoint"
+kind = "checkpoint"
+title = "A friendlier library surface"
+prompt = '''
+`geometry` keeps its code in private submodules. Without making `shapes` or
+`maths` public, add re-exports inside `geometry` so outside code can write:
+
+- `geometry::Circle` (the struct from `geometry::shapes`)
+- `geometry::area(...)` (the function from `geometry::maths`)
+'''
+starter = '''
+mod geometry {
+    mod shapes {
+        pub struct Circle {
+            pub radius: f64,
+        }
+    }
+
+    mod maths {
+        use super::shapes::Circle;
+
+        pub fn area(c: &Circle) -> f64 {
+            3.14159 * c.radius * c.radius
+        }
+    }
+}
+
+fn main() {
+    let c = geometry::Circle { radius: 2.0 };
+    println!("{:.2}", geometry::area(&c));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn friendly_paths_work() {
+        let c = geometry::Circle { radius: 1.0 };
+        assert!((geometry::area(&c) - 3.14159).abs() < 1e-9);
+    }
+}
+'''
+hints = [
+  "Inside `mod geometry`, add `pub use self::shapes::Circle;`.",
+  "Re-export the function the same way: `pub use self::maths::area;`.",
+]
+solution = '''
+mod geometry {
+    mod shapes {
+        pub struct Circle {
+            pub radius: f64,
+        }
+    }
+
+    mod maths {
+        use super::shapes::Circle;
+
+        pub fn area(c: &Circle) -> f64 {
+            3.14159 * c.radius * c.radius
+        }
+    }
+
+    pub use self::maths::area;
+    pub use self::shapes::Circle;
+}
+
+fn main() {
+    let c = geometry::Circle { radius: 2.0 };
+    println!("{:.2}", geometry::area(&c));
+}
+'''
