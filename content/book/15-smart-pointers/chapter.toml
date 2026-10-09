@@ -1,0 +1,7 @@
+id = "book.smart-pointers"
+track = "book"
+title = "Smart Pointers"
+order = 15
+source = "https://doc.rust-lang.org/book/ch15-00-smart-pointers.html"
+summary = "Box for heap data and recursive types, Deref and Drop, Rc for shared ownership, RefCell for interior mutability, and Weak to break cycles."
+requires = []
