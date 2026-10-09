@@ -1,0 +1,7 @@
+id = "book.functional"
+track = "book"
+title = "Iterators and Closures"
+order = 13
+source = "https://doc.rust-lang.org/book/ch13-00-functional-features.html"
+summary = "Closures are functions you can store and pass around; iterators process sequences step by step. Together they replace most loops."
+requires = []

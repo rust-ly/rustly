@@ -1,0 +1,67 @@
+id = "book.functional.closures.checkpoint"
+kind = "checkpoint"
+title = "Defaults with closures"
+prompt = '''
+Write two functions using closures:
+
+- `display_name(nickname: Option<String>, first: &str, last: &str) -> String` returns
+  the nickname if there is one, otherwise `"FIRST LAST"`. Use `unwrap_or_else` with a
+  closure, so the full name is only built when it's needed.
+- `apply(n: i32) -> (i32, i32)` stores two closures in variables, `double` (×2) and
+  `square` (n × n), and returns `(double(n), square(n))`.
+'''
+starter = '''
+fn display_name(nickname: Option<String>, first: &str, last: &str) -> String {
+    todo!()
+}
+
+fn apply(n: i32) -> (i32, i32) {
+    todo!()
+}
+
+fn main() {
+    println!("{}", display_name(None, "Ada", "Lovelace"));
+    println!("{}", display_name(Some(String::from("Ferris")), "F", "Crab"));
+    println!("{:?}", apply(7));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names() {
+        assert_eq!(display_name(None, "Ada", "Lovelace"), "Ada Lovelace");
+        assert_eq!(display_name(Some(String::from("Ferris")), "F", "Crab"), "Ferris");
+    }
+
+    #[test]
+    fn applies_closures() {
+        assert_eq!(apply(7), (14, 49));
+        assert_eq!(apply(-3), (-6, 9));
+        assert_eq!(apply(0), (0, 0));
+    }
+}
+'''
+hints = [
+  "`nickname.unwrap_or_else(|| format!(\"{first} {last}\"))`",
+  "`let double = |x: i32| x * 2;` and `let square = |x: i32| x * x;`",
+]
+solution = '''
+fn display_name(nickname: Option<String>, first: &str, last: &str) -> String {
+    nickname.unwrap_or_else(|| format!("{first} {last}"))
+}
+
+fn apply(n: i32) -> (i32, i32) {
+    let double = |x: i32| x * 2;
+    let square = |x: i32| x * x;
+    (double(n), square(n))
+}
+
+fn main() {
+    println!("{}", display_name(None, "Ada", "Lovelace"));
+    println!("{}", display_name(Some(String::from("Ferris")), "F", "Crab"));
+    println!("{:?}", apply(7));
+}
+'''

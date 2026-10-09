@@ -1,0 +1,117 @@
+id = "book.functional.more-adapters.checkpoint"
+kind = "checkpoint"
+title = "Replace the loops"
+prompt = '''
+Each function below is written with a loop. Rewrite each one as an iterator chain
+(the behaviour must stay the same):
+
+- `index_of_max(v)`: the index of the largest value (the first, on a tie), or `None`
+  for an empty slice. Hint: `enumerate` and compare by value.
+- `dot(a, b)`: the dot product, `a[0]*b[0] + a[1]*b[1] + ...` (stop at the shorter).
+- `all_positive(v)`: whether every value is greater than 0 (`true` for empty).
+- `first_negative(v)`: the first negative value, if any.
+
+The grader only checks behaviour, so this is practice in reading and writing chains.
+'''
+starter = '''
+fn index_of_max(v: &[i32]) -> Option<usize> {
+    let mut best: Option<usize> = None;
+    for i in 0..v.len() {
+        let better = match best {
+            None => true,
+            Some(b) => v[i] > v[b],
+        };
+        if better {
+            best = Some(i);
+        }
+    }
+    best
+}
+
+fn dot(a: &[i32], b: &[i32]) -> i32 {
+    todo!()
+}
+
+fn all_positive(v: &[i32]) -> bool {
+    todo!()
+}
+
+fn first_negative(v: &[i32]) -> Option<i32> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", index_of_max(&[3, 9, 2, 9]));
+    println!("{}", dot(&[1, 2, 3], &[4, 5, 6]));
+    println!("{}", all_positive(&[1, 2]));
+    println!("{:?}", first_negative(&[4, -2, -7]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn max_index() {
+        assert_eq!(index_of_max(&[3, 9, 2, 9]), Some(1));
+        assert_eq!(index_of_max(&[-5]), Some(0));
+        assert_eq!(index_of_max(&[]), None);
+    }
+
+    #[test]
+    fn dot_product() {
+        assert_eq!(dot(&[1, 2, 3], &[4, 5, 6]), 32);
+        assert_eq!(dot(&[1, 2, 3], &[10]), 10);
+        assert_eq!(dot(&[], &[1, 2]), 0);
+    }
+
+    #[test]
+    fn positives() {
+        assert!(all_positive(&[1, 2]));
+        assert!(!all_positive(&[1, 0]));
+        assert!(all_positive(&[]));
+    }
+
+    #[test]
+    fn negatives() {
+        assert_eq!(first_negative(&[4, -2, -7]), Some(-2));
+        assert_eq!(first_negative(&[1, 2]), None);
+    }
+}
+'''
+hints = [
+  "`dot`: `a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()`",
+  "`all_positive`: `v.iter().all(|&x| x > 0)`",
+  "`first_negative`: `v.iter().find(|&&x| x < 0).copied()`",
+  "`index_of_max` can use `fold` over `v.iter().enumerate()`, keeping the best `Option<usize>` so far.",
+]
+solution = '''
+fn index_of_max(v: &[i32]) -> Option<usize> {
+    v.iter().enumerate().fold(None, |best, (i, &x)| match best {
+        None => Some(i),
+        Some(b) => {
+            if x > v[b] { Some(i) } else { Some(b) }
+        }
+    })
+}
+
+fn dot(a: &[i32], b: &[i32]) -> i32 {
+    a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
+}
+
+fn all_positive(v: &[i32]) -> bool {
+    v.iter().all(|&x| x > 0)
+}
+
+fn first_negative(v: &[i32]) -> Option<i32> {
+    v.iter().find(|&&x| x < 0).copied()
+}
+
+fn main() {
+    println!("{:?}", index_of_max(&[3, 9, 2, 9]));
+    println!("{}", dot(&[1, 2, 3], &[4, 5, 6]));
+    println!("{}", all_positive(&[1, 2]));
+    println!("{:?}", first_negative(&[4, -2, -7]));
+}
+'''

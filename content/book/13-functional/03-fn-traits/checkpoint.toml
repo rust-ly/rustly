@@ -1,0 +1,117 @@
+id = "book.functional.fn-traits.checkpoint"
+kind = "checkpoint"
+title = "Functions that take closures"
+prompt = '''
+Write two generic functions that accept closures:
+
+- `apply_n<F: Fn(i32) -> i32>(f: F, start: i32, n: usize) -> i32` applies `f` to
+  `start`, `n` times in a row. (`apply_n(|x| x * 2, 1, 3)` is 8.)
+- `count_where<F: Fn(&i32) -> bool>(items: &[i32], pred: F) -> usize` counts the
+  items for which `pred` returns `true`.
+
+Also sort the `Player` list in `rank` by score, **highest first**, using
+`sort_by_key`.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+struct Player {
+    name: &'static str,
+    score: u32,
+}
+
+fn apply_n<F: Fn(i32) -> i32>(f: F, start: i32, n: usize) -> i32 {
+    todo!()
+}
+
+fn count_where<F: Fn(&i32) -> bool>(items: &[i32], pred: F) -> usize {
+    todo!()
+}
+
+fn rank(players: &mut Vec<Player>) {
+    todo!()
+}
+
+fn main() {
+    println!("{}", apply_n(|x| x * 2, 1, 3));
+    println!("{}", count_where(&[1, 5, 8, 3], |&n| n > 2));
+    let mut players = vec![Player { name: "a", score: 3 }, Player { name: "b", score: 9 }];
+    rank(&mut players);
+    println!("{players:?}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn applies_repeatedly() {
+        assert_eq!(apply_n(|x| x * 2, 1, 3), 8);
+        assert_eq!(apply_n(|x| x + 5, 0, 4), 20);
+        assert_eq!(apply_n(|x| x - 1, 7, 0), 7);
+    }
+
+    #[test]
+    fn counts_matching() {
+        assert_eq!(count_where(&[1, 5, 8, 3], |&n| n > 2), 3);
+        assert_eq!(count_where(&[2, 4, 6], |&n| n % 2 == 1), 0);
+        let limit = 4;
+        assert_eq!(count_where(&[1, 4, 9], |&n| n >= limit), 2);
+    }
+
+    #[test]
+    fn ranks_highest_first() {
+        let mut p = vec![
+            Player { name: "a", score: 3 },
+            Player { name: "b", score: 9 },
+            Player { name: "c", score: 5 },
+        ];
+        rank(&mut p);
+        let names: Vec<&str> = p.iter().map(|x| x.name).collect();
+        assert_eq!(names, vec!["b", "c", "a"]);
+    }
+}
+'''
+hints = [
+  "`let mut value = start; for _ in 0..n { value = f(value); } value`",
+  "In `count_where`, loop over `items` and add one when `pred(item)` is true.",
+  "For highest first, sort by the score and then call `players.reverse()`, or sort by `std::cmp::Reverse(p.score)`.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+struct Player {
+    name: &'static str,
+    score: u32,
+}
+
+fn apply_n<F: Fn(i32) -> i32>(f: F, start: i32, n: usize) -> i32 {
+    let mut value = start;
+    for _ in 0..n {
+        value = f(value);
+    }
+    value
+}
+
+fn count_where<F: Fn(&i32) -> bool>(items: &[i32], pred: F) -> usize {
+    let mut count = 0;
+    for item in items {
+        if pred(item) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn rank(players: &mut Vec<Player>) {
+    players.sort_by_key(|p| p.score);
+    players.reverse();
+}
+
+fn main() {
+    println!("{}", apply_n(|x| x * 2, 1, 3));
+    println!("{}", count_where(&[1, 5, 8, 3], |&n| n > 2));
+    let mut players = vec![Player { name: "a", score: 3 }, Player { name: "b", score: 9 }];
+    rank(&mut players);
+    println!("{players:?}");
+}
+'''
