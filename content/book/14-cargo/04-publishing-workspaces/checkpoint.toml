@@ -1,0 +1,91 @@
+id = "book.cargo.publishing-workspaces.checkpoint"
+kind = "checkpoint"
+title = "Does this update break me?"
+prompt = '''
+Versions are given as `(major, minor, patch)` tuples. Write:
+
+- `bump(v: (u32, u32, u32), kind: &str) -> (u32, u32, u32)` for `"major"`, `"minor"`
+  or `"patch"`. Bumping a part resets the parts after it to 0:
+  `bump((1, 4, 2), "minor")` is `(1, 5, 0)`. Any other `kind` returns `v` unchanged.
+- `caret_allows(req: (u32, u32, u32), v: (u32, u32, u32)) -> bool`: whether Cargo's
+  `^req` accepts `v`. `v` must be at least `req`, and:
+  - if `req.0 > 0`: same major version;
+  - if `req.0 == 0`: same major **and** minor version.
+
+(Tuples compare part by part, so `v >= req` works directly.)
+'''
+starter = '''
+fn bump(v: (u32, u32, u32), kind: &str) -> (u32, u32, u32) {
+    todo!()
+}
+
+fn caret_allows(req: (u32, u32, u32), v: (u32, u32, u32)) -> bool {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", bump((1, 4, 2), "minor"));
+    println!("{}", caret_allows((1, 4, 2), (1, 9, 0)));
+    println!("{}", caret_allows((0, 8, 5), (0, 9, 0)));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bumps() {
+        assert_eq!(bump((1, 4, 2), "patch"), (1, 4, 3));
+        assert_eq!(bump((1, 4, 2), "minor"), (1, 5, 0));
+        assert_eq!(bump((1, 4, 2), "major"), (2, 0, 0));
+        assert_eq!(bump((1, 4, 2), "huge"), (1, 4, 2));
+    }
+
+    #[test]
+    fn caret_after_1_0() {
+        assert!(caret_allows((1, 4, 2), (1, 4, 2)));
+        assert!(caret_allows((1, 4, 2), (1, 9, 0)));
+        assert!(!caret_allows((1, 4, 2), (2, 0, 0)));
+        assert!(!caret_allows((1, 4, 2), (1, 4, 1)));
+    }
+
+    #[test]
+    fn caret_before_1_0() {
+        assert!(caret_allows((0, 8, 5), (0, 8, 9)));
+        assert!(!caret_allows((0, 8, 5), (0, 9, 0)));
+        assert!(!caret_allows((0, 8, 5), (0, 8, 4)));
+    }
+}
+'''
+hints = [
+  "`match kind { \"major\" => (v.0 + 1, 0, 0), \"minor\" => (v.0, v.1 + 1, 0), \"patch\" => (v.0, v.1, v.2 + 1), _ => v }`",
+  "`if v < req { return false; }` then compare the major (and, for 0.x, the minor) parts.",
+]
+solution = '''
+fn bump(v: (u32, u32, u32), kind: &str) -> (u32, u32, u32) {
+    match kind {
+        "major" => (v.0 + 1, 0, 0),
+        "minor" => (v.0, v.1 + 1, 0),
+        "patch" => (v.0, v.1, v.2 + 1),
+        _ => v,
+    }
+}
+
+fn caret_allows(req: (u32, u32, u32), v: (u32, u32, u32)) -> bool {
+    if v < req {
+        return false;
+    }
+    if req.0 > 0 {
+        v.0 == req.0
+    } else {
+        v.0 == 0 && v.1 == req.1
+    }
+}
+
+fn main() {
+    println!("{:?}", bump((1, 4, 2), "minor"));
+    println!("{}", caret_allows((1, 4, 2), (1, 9, 0)));
+    println!("{}", caret_allows((0, 8, 5), (0, 9, 0)));
+}
+'''
