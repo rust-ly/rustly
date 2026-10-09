@@ -1,0 +1,85 @@
+id = "book.enums.catch-all.checkpoint"
+kind = "checkpoint"
+title = "Name the HTTP status"
+prompt = '''
+Write `status_text(code: u16) -> &'static str` with a `match`:
+
+- `200` is `"OK"`
+- `404` is `"Not Found"`
+- `500` is `"Internal Server Error"`
+- anything else is `"Unknown"`
+
+Then write `moves(roll: u8) -> u8` for a board game: a roll of `6` moves you
+`12` spaces (double!), a `1` moves you `0`, and any other roll moves you that
+many spaces. Use a named catch-all for the last case.
+'''
+starter = '''
+fn status_text(code: u16) -> &'static str {
+    match code {
+        200 => "OK",
+    }
+}
+
+fn moves(roll: u8) -> u8 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", status_text(404));
+    println!("{}", moves(6));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn known_codes() {
+        assert_eq!(status_text(200), "OK");
+        assert_eq!(status_text(404), "Not Found");
+        assert_eq!(status_text(500), "Internal Server Error");
+    }
+
+    #[test]
+    fn unknown_codes() {
+        assert_eq!(status_text(418), "Unknown");
+        assert_eq!(status_text(0), "Unknown");
+    }
+
+    #[test]
+    fn board_moves() {
+        assert_eq!(moves(6), 12);
+        assert_eq!(moves(1), 0);
+        assert_eq!(moves(4), 4);
+        assert_eq!(moves(2), 2);
+    }
+}
+'''
+hints = [
+  "The starter's `match` doesn't compile because it isn't exhaustive. Add arms, and finish with `_ => \"Unknown\"`.",
+  "In `moves`, the last arm can be `other => other`.",
+]
+solution = '''
+fn status_text(code: u16) -> &'static str {
+    match code {
+        200 => "OK",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        _ => "Unknown",
+    }
+}
+
+fn moves(roll: u8) -> u8 {
+    match roll {
+        6 => 12,
+        1 => 0,
+        other => other,
+    }
+}
+
+fn main() {
+    println!("{}", status_text(404));
+    println!("{}", moves(6));
+}
+'''
