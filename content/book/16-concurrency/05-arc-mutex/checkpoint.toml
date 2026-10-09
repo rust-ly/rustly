@@ -1,0 +1,91 @@
+id = "book.concurrency.arc-mutex.checkpoint"
+kind = "checkpoint"
+title = "Threads fill a shared list"
+prompt = '''
+Write `collect_in_threads(items: Vec<String>) -> Vec<String>`:
+
+- Create a shared `Arc<Mutex<Vec<String>>>`.
+- Spawn one thread per item. Each thread gets its own `Arc::clone` and pushes the item
+  in upper case into the shared vector.
+- Join every thread, then take the vector out (`lock().unwrap().clone()`), **sort** it
+  and return it.
+'''
+starter = '''
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::thread;
+
+fn collect_in_threads(items: Vec<String>) -> Vec<String> {
+    let shared = Rc::new(RefCell::new(Vec::new()));
+    let mut handles = Vec::new();
+    for item in items {
+        let shared = Rc::clone(&shared);
+        handles.push(thread::spawn(move || {
+            shared.borrow_mut().push(item.to_uppercase());
+        }));
+    }
+    for h in handles {
+        h.join().unwrap();
+    }
+    let mut out = shared.borrow().clone();
+    out.sort();
+    out
+}
+
+fn main() {
+    let items = vec![String::from("b"), String::from("a"), String::from("c")];
+    println!("{:?}", collect_in_threads(items));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_thread_contributes() {
+        let items = vec![String::from("b"), String::from("a"), String::from("c")];
+        assert_eq!(collect_in_threads(items), vec!["A", "B", "C"]);
+    }
+
+    #[test]
+    fn many_threads() {
+        let items: Vec<String> = (0..50).map(|i| format!("x{i:02}")).collect();
+        let out = collect_in_threads(items);
+        assert_eq!(out.len(), 50);
+        assert_eq!(out[0], "X00");
+        assert_eq!(out[49], "X49");
+    }
+}
+'''
+hints = [
+  "The starter uses `Rc<RefCell<...>>`, which can't cross threads. Swap in `Arc` and `Mutex` from `std::sync`.",
+  "`shared.lock().unwrap().push(item.to_uppercase());` inside each thread.",
+  "After joining: `let mut out = shared.lock().unwrap().clone(); out.sort(); out`",
+]
+solution = '''
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn collect_in_threads(items: Vec<String>) -> Vec<String> {
+    let shared = Arc::new(Mutex::new(Vec::new()));
+    let mut handles = Vec::new();
+    for item in items {
+        let shared = Arc::clone(&shared);
+        handles.push(thread::spawn(move || {
+            shared.lock().unwrap().push(item.to_uppercase());
+        }));
+    }
+    for h in handles {
+        h.join().unwrap();
+    }
+    let mut out = shared.lock().unwrap().clone();
+    out.sort();
+    out
+}
+
+fn main() {
+    let items = vec![String::from("b"), String::from("a"), String::from("c")];
+    println!("{:?}", collect_in_threads(items));
+}
+'''

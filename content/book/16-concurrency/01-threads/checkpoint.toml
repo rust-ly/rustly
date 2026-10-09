@@ -1,0 +1,61 @@
+id = "book.concurrency.threads.checkpoint"
+kind = "checkpoint"
+title = "Sum in parallel"
+prompt = '''
+Write `parallel_sum(ranges: Vec<(u64, u64)>) -> u64`. For each `(start, end)` pair,
+spawn a thread that sums the numbers from `start` to `end` **inclusive**. Collect the
+`JoinHandle`s, then join them all and add up their results.
+
+Each closure needs its own copy of `start` and `end`: write `move ||` (the next
+concept explains why).
+'''
+starter = '''
+use std::thread;
+
+fn parallel_sum(ranges: Vec<(u64, u64)>) -> u64 {
+    todo!()
+}
+
+fn main() {
+    let total = parallel_sum(vec![(1, 50), (51, 100)]);
+    println!("total = {total}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sums_all_ranges() {
+        assert_eq!(parallel_sum(vec![(1, 50), (51, 100)]), 5050);
+        assert_eq!(parallel_sum(vec![(1, 10), (1, 10), (1, 10)]), 165);
+        assert_eq!(parallel_sum(vec![(7, 7)]), 7);
+    }
+
+    #[test]
+    fn no_ranges() {
+        assert_eq!(parallel_sum(vec![]), 0);
+    }
+}
+'''
+hints = [
+  "`let mut handles = Vec::new();` then for each `(start, end)`, push `thread::spawn(move || (start..=end).sum::<u64>())`.",
+  "Join them: `handles.into_iter().map(|h| h.join().unwrap()).sum()`.",
+]
+solution = '''
+use std::thread;
+
+fn parallel_sum(ranges: Vec<(u64, u64)>) -> u64 {
+    let mut handles = Vec::new();
+    for (start, end) in ranges {
+        handles.push(thread::spawn(move || (start..=end).sum::<u64>()));
+    }
+    handles.into_iter().map(|h| h.join().unwrap()).sum()
+}
+
+fn main() {
+    let total = parallel_sum(vec![(1, 50), (51, 100)]);
+    println!("total = {total}");
+}
+'''

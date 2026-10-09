@@ -1,0 +1,98 @@
+id = "book.concurrency.mutex.checkpoint"
+kind = "checkpoint"
+title = "A thread-safe tally"
+prompt = '''
+`Tally` wraps a `Mutex<HashMap<String, u32>>`. Every method takes `&self` (not
+`&mut self`), as it would if several threads shared it, and locks the mutex inside:
+
+- `Tally::new() -> Tally`
+- `record(&self, name: &str)`: adds one to `name`'s count.
+- `count(&self, name: &str) -> u32`: the count, or 0 if never recorded.
+- `total(&self) -> u32`: the sum of all counts.
+
+Keep each lock short: don't call one method from another while holding the lock.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+struct Tally {
+    counts: Mutex<HashMap<String, u32>>,
+}
+
+impl Tally {
+    fn new() -> Tally {
+        todo!()
+    }
+}
+
+fn main() {
+    let t = Tally::new();
+    t.record("rust");
+    t.record("rust");
+    t.record("go");
+    println!("rust {}, total {}", t.count("rust"), t.total());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts() {
+        let t = Tally::new();
+        t.record("rust");
+        t.record("rust");
+        t.record("go");
+        assert_eq!(t.count("rust"), 2);
+        assert_eq!(t.count("go"), 1);
+        assert_eq!(t.count("zig"), 0);
+        assert_eq!(t.total(), 3);
+    }
+
+    #[test]
+    fn empty() {
+        assert_eq!(Tally::new().total(), 0);
+    }
+}
+'''
+hints = [
+  "`Tally { counts: Mutex::new(HashMap::new()) }`",
+  "`*self.counts.lock().unwrap().entry(name.to_string()).or_insert(0) += 1;`",
+  "`self.counts.lock().unwrap().get(name).copied().unwrap_or(0)` and `.values().sum()` for the total.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+struct Tally {
+    counts: Mutex<HashMap<String, u32>>,
+}
+
+impl Tally {
+    fn new() -> Tally {
+        Tally { counts: Mutex::new(HashMap::new()) }
+    }
+
+    fn record(&self, name: &str) {
+        *self.counts.lock().unwrap().entry(name.to_string()).or_insert(0) += 1;
+    }
+
+    fn count(&self, name: &str) -> u32 {
+        self.counts.lock().unwrap().get(name).copied().unwrap_or(0)
+    }
+
+    fn total(&self) -> u32 {
+        self.counts.lock().unwrap().values().sum()
+    }
+}
+
+fn main() {
+    let t = Tally::new();
+    t.record("rust");
+    t.record("rust");
+    t.record("go");
+    println!("rust {}, total {}", t.count("rust"), t.total());
+}
+'''

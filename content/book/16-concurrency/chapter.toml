@@ -1,0 +1,7 @@
+id = "book.concurrency"
+track = "book"
+title = "Fearless Concurrency"
+order = 16
+source = "https://doc.rust-lang.org/book/ch16-00-concurrency.html"
+summary = "Run code at the same time with threads, pass messages through channels, and share state safely with Arc and Mutex."
+requires = []

@@ -1,0 +1,121 @@
+id = "book.concurrency.send-sync.checkpoint"
+kind = "checkpoint"
+title = "Make it Send"
+prompt = '''
+`Library` is meant to be shared by worker threads, but it doesn't compile: it uses
+`Rc` and `RefCell`, which aren't `Send`/`Sync`. Change its field types (and the
+methods to match) to their thread-safe counterparts so that `search_in_threads`
+compiles and works. Don't change `search_in_threads`.
+
+- `Library::new(titles: &[&str]) -> Library`
+- `add(&self, title: &str)`
+- `contains(&self, word: &str) -> bool`: whether any title contains `word`.
+'''
+starter = '''
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::thread;
+
+#[derive(Clone)]
+struct Library {
+    titles: Rc<RefCell<Vec<String>>>,
+}
+
+impl Library {
+    fn new(titles: &[&str]) -> Library {
+        let v = titles.iter().map(|t| t.to_string()).collect();
+        Library { titles: Rc::new(RefCell::new(v)) }
+    }
+
+    fn add(&self, title: &str) {
+        self.titles.borrow_mut().push(title.to_string());
+    }
+
+    fn contains(&self, word: &str) -> bool {
+        self.titles.borrow().iter().any(|t| t.contains(word))
+    }
+}
+
+fn search_in_threads(lib: &Library, words: Vec<&'static str>) -> Vec<bool> {
+    let handles: Vec<_> = words
+        .into_iter()
+        .map(|w| {
+            let lib = lib.clone();
+            thread::spawn(move || lib.contains(w))
+        })
+        .collect();
+    handles.into_iter().map(|h| h.join().unwrap()).collect()
+}
+
+fn main() {
+    let lib = Library::new(&["The Rust Book", "Dune"]);
+    lib.add("Rust in Action");
+    println!("{:?}", search_in_threads(&lib, vec!["Rust", "Emma", "Dune"]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn searches_from_threads() {
+        let lib = Library::new(&["The Rust Book", "Dune"]);
+        lib.add("Rust in Action");
+        assert_eq!(search_in_threads(&lib, vec!["Rust", "Emma", "Dune"]), vec![true, false, true]);
+    }
+
+    #[test]
+    fn clones_share_the_titles() {
+        let lib = Library::new(&[]);
+        let other = lib.clone();
+        other.add("Shared");
+        assert!(lib.contains("Shared"));
+    }
+}
+'''
+hints = [
+  "`Rc` → `Arc` and `RefCell` → `Mutex`, both from `std::sync`.",
+  "`borrow_mut()` and `borrow()` both become `lock().unwrap()`.",
+]
+solution = '''
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+#[derive(Clone)]
+struct Library {
+    titles: Arc<Mutex<Vec<String>>>,
+}
+
+impl Library {
+    fn new(titles: &[&str]) -> Library {
+        let v = titles.iter().map(|t| t.to_string()).collect();
+        Library { titles: Arc::new(Mutex::new(v)) }
+    }
+
+    fn add(&self, title: &str) {
+        self.titles.lock().unwrap().push(title.to_string());
+    }
+
+    fn contains(&self, word: &str) -> bool {
+        self.titles.lock().unwrap().iter().any(|t| t.contains(word))
+    }
+}
+
+fn search_in_threads(lib: &Library, words: Vec<&'static str>) -> Vec<bool> {
+    let handles: Vec<_> = words
+        .into_iter()
+        .map(|w| {
+            let lib = lib.clone();
+            thread::spawn(move || lib.contains(w))
+        })
+        .collect();
+    handles.into_iter().map(|h| h.join().unwrap()).collect()
+}
+
+fn main() {
+    let lib = Library::new(&["The Rust Book", "Dune"]);
+    lib.add("Rust in Action");
+    println!("{:?}", search_in_threads(&lib, vec!["Rust", "Emma", "Dune"]));
+}
+'''
