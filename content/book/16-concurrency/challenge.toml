@@ -1,0 +1,116 @@
+id = "book.concurrency.challenge"
+kind = "challenge"
+title = "A worker pool with progress"
+prompt = '''
+Process jobs with a fixed number of worker threads:
+
+`run_jobs(jobs: Vec<u64>, workers: usize) -> (Vec<u64>, usize)`
+
+- Put every job into a channel (the **job queue**), then drop the sender so the queue
+  closes when it's empty.
+- Share the receiver between `workers` threads with `Arc<Mutex<Receiver<u64>>>`. Each
+  worker loops: lock the receiver, take one job with `recv()`, **release the lock**,
+  and stop when `recv()` returns `Err` (the queue is empty and closed).
+- For each job `n`, the result is `n * n`. Send results back to the main thread on a
+  second channel.
+- Count how many jobs were done in a shared `Arc<Mutex<usize>>`.
+- Return the results **sorted**, and the count.
+
+`workers` is at least 1.
+'''
+starter = '''
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn run_jobs(jobs: Vec<u64>, workers: usize) -> (Vec<u64>, usize) {
+    todo!()
+}
+
+fn main() {
+    let (results, done) = run_jobs(vec![4, 1, 3, 2], 2);
+    println!("{results:?} ({done} jobs)");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn processes_every_job() {
+        assert_eq!(run_jobs(vec![4, 1, 3, 2], 2), (vec![1, 4, 9, 16], 4));
+    }
+
+    #[test]
+    fn more_workers_than_jobs() {
+        assert_eq!(run_jobs(vec![5], 8), (vec![25], 1));
+    }
+
+    #[test]
+    fn many_jobs_one_worker() {
+        let jobs: Vec<u64> = (1..=100).collect();
+        let (results, done) = run_jobs(jobs, 1);
+        assert_eq!(done, 100);
+        assert_eq!(results.len(), 100);
+        assert_eq!(results[99], 10_000);
+    }
+
+    #[test]
+    fn no_jobs() {
+        assert_eq!(run_jobs(vec![], 3), (vec![], 0));
+    }
+}
+'''
+hints = [
+  "Fill the queue first: `let (job_tx, job_rx) = mpsc::channel(); for j in jobs { job_tx.send(j).unwrap(); } drop(job_tx);`",
+  "`let job_rx = Arc::new(Mutex::new(job_rx));` then clone it into each worker.",
+  "In a worker: `loop { let job = job_rx.lock().unwrap().recv(); let Ok(n) = job else { break; }; ... }`. The lock is released at the end of the `let job = ...` statement.",
+  "Drop the main thread's result sender after spawning, then collect with `for r in result_rx`, and join the workers.",
+]
+solution = '''
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn run_jobs(jobs: Vec<u64>, workers: usize) -> (Vec<u64>, usize) {
+    let (job_tx, job_rx) = mpsc::channel();
+    for j in jobs {
+        job_tx.send(j).unwrap();
+    }
+    drop(job_tx);
+
+    let job_rx = Arc::new(Mutex::new(job_rx));
+    let done = Arc::new(Mutex::new(0usize));
+    let (result_tx, result_rx) = mpsc::channel();
+
+    let mut handles = Vec::new();
+    for _ in 0..workers {
+        let job_rx = Arc::clone(&job_rx);
+        let done = Arc::clone(&done);
+        let result_tx = result_tx.clone();
+        handles.push(thread::spawn(move || loop {
+            let job = job_rx.lock().unwrap().recv();
+            let Ok(n) = job else {
+                break;
+            };
+            result_tx.send(n * n).unwrap();
+            *done.lock().unwrap() += 1;
+        }));
+    }
+    drop(result_tx);
+
+    let mut results: Vec<u64> = result_rx.iter().collect();
+    for h in handles {
+        h.join().unwrap();
+    }
+    results.sort();
+    let count = *done.lock().unwrap();
+    (results, count)
+}
+
+fn main() {
+    let (results, done) = run_jobs(vec![4, 1, 3, 2], 2);
+    println!("{results:?} ({done} jobs)");
+}
+'''
