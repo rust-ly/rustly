@@ -1,0 +1,109 @@
+id = "book.testing.challenge"
+kind = "challenge"
+title = "Catch every planted bug"
+prompt = '''
+Write a full test suite as one checker, `check_password(is_strong: fn(&str) -> bool)`.
+
+`is_strong` decides whether a password is strong. The rules are:
+
+- at least **8 characters** (count characters, not bytes),
+- at least one **digit**,
+- at least one **uppercase** letter,
+- and **no spaces**.
+
+The grader runs your checker against a correct version and against six versions,
+each with one planted bug. Your checker must pass for the correct version and
+panic for every buggy one.
+
+Think about each rule on its own: a password that breaks **only** that rule, and
+passwords right at the boundary (exactly 7 and exactly 8 characters). Use messages
+in your assertions so a failure tells you which rule broke.
+'''
+starter = '''
+fn check_password(is_strong: fn(&str) -> bool) {
+    assert!(is_strong("Rustacean1"));
+}
+
+fn my_is_strong(p: &str) -> bool {
+    let mut digit = false;
+    let mut upper = false;
+    for c in p.chars() {
+        if c.is_ascii_digit() {
+            digit = true;
+        }
+        if c.is_uppercase() {
+            upper = true;
+        }
+    }
+    p.chars().count() >= 8 && digit && upper && !p.contains(' ')
+}
+
+fn main() {
+    check_password(my_is_strong);
+    println!("my_is_strong passed every check");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn digit(p: &str) -> bool { p.chars().any(|c| c.is_ascii_digit()) }
+    fn upper(p: &str) -> bool { p.chars().any(|c| c.is_uppercase()) }
+    fn len(p: &str) -> usize { p.chars().count() }
+
+    fn correct(p: &str) -> bool { len(p) >= 8 && digit(p) && upper(p) && !p.contains(' ') }
+    fn off_by_one(p: &str) -> bool { len(p) > 8 && digit(p) && upper(p) && !p.contains(' ') }
+    fn too_lenient_length(p: &str) -> bool { len(p) >= 7 && digit(p) && upper(p) && !p.contains(' ') }
+    fn no_digit_rule(p: &str) -> bool { len(p) >= 8 && upper(p) && !p.contains(' ') }
+    fn no_upper_rule(p: &str) -> bool { len(p) >= 8 && digit(p) && !p.contains(' ') }
+    fn spaces_allowed(p: &str) -> bool { len(p) >= 8 && digit(p) && upper(p) }
+    fn counts_bytes(p: &str) -> bool { p.len() >= 8 && digit(p) && upper(p) && !p.contains(' ') }
+
+    #[test]
+    fn correct_version_passes() { check_password(correct); }
+
+    #[test] #[should_panic] fn catches_off_by_one() { check_password(off_by_one); }
+    #[test] #[should_panic] fn catches_seven_allowed() { check_password(too_lenient_length); }
+    #[test] #[should_panic] fn catches_missing_digit_rule() { check_password(no_digit_rule); }
+    #[test] #[should_panic] fn catches_missing_upper_rule() { check_password(no_upper_rule); }
+    #[test] #[should_panic] fn catches_spaces_allowed() { check_password(spaces_allowed); }
+    #[test] #[should_panic] fn catches_counting_bytes() { check_password(counts_bytes); }
+}
+'''
+hints = [
+  "Boundaries: `\"Abcdef1g\"` is exactly 8 characters (strong); `\"Abcde1g\"` is 7 (not strong).",
+  "One rule at a time: `\"abcdefg1\"` has no uppercase; `\"Abcdefgh\"` has no digit; `\"Abcd 123\"` has a space.",
+  "Characters vs bytes: a short password made of accented letters, like `\"Äöü1é\"`, has only 5 characters but more than 8 bytes.",
+]
+solution = '''
+fn check_password(is_strong: fn(&str) -> bool) {
+    assert!(is_strong("Rustacean1"), "a normal strong password");
+    assert!(is_strong("Abcdef1g"), "exactly 8 characters is enough");
+    assert!(!is_strong("Abcde1g"), "7 characters is too short");
+    assert!(!is_strong("Abcdefgh"), "needs a digit");
+    assert!(!is_strong("abcdefg1"), "needs an uppercase letter");
+    assert!(!is_strong("Abcd 1234"), "spaces aren't allowed");
+    assert!(!is_strong("Äöü1é"), "5 characters, even though it's more than 8 bytes");
+    assert!(!is_strong(""), "empty");
+}
+
+fn my_is_strong(p: &str) -> bool {
+    let mut digit = false;
+    let mut upper = false;
+    for c in p.chars() {
+        if c.is_ascii_digit() {
+            digit = true;
+        }
+        if c.is_uppercase() {
+            upper = true;
+        }
+    }
+    p.chars().count() >= 8 && digit && upper && !p.contains(' ')
+}
+
+fn main() {
+    check_password(my_is_strong);
+    println!("my_is_strong passed every check");
+}
+'''

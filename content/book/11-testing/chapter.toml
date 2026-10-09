@@ -1,0 +1,7 @@
+id = "book.testing"
+track = "book"
+title = "Writing Automated Tests"
+order = 11
+source = "https://doc.rust-lang.org/book/ch11-00-testing.html"
+summary = "Prove your code does what you meant with tests: assertions, expected panics, and organising unit and integration tests."
+requires = []

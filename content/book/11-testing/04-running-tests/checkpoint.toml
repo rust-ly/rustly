@@ -1,0 +1,141 @@
+id = "book.testing.running-tests.checkpoint"
+kind = "checkpoint"
+title = "Test the edge cases of a sort"
+prompt = '''
+Write `check_sort(sort: fn(&mut Vec<i32>))`. `sort` sorts a vector into ascending
+order, in place.
+
+Your checks must pass for a correct sort and panic for each buggy one. Use the edge
+case list from the lesson: empty, one item, already sorted, reversed, duplicates and
+negative numbers.
+
+(To check a case: make a vector, call `sort(&mut v)`, then `assert_eq!` it with the
+sorted version.)
+'''
+starter = '''
+fn check_sort(sort: fn(&mut Vec<i32>)) {
+    let mut v = vec![3, 1, 2];
+    sort(&mut v);
+    assert_eq!(v, vec![1, 2, 3]);
+}
+
+fn my_sort(v: &mut Vec<i32>) {
+    v.sort();
+}
+
+fn main() {
+    check_sort(my_sort);
+    println!("my_sort passed every check");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn correct(v: &mut Vec<i32>) {
+        v.sort();
+    }
+    fn drops_duplicates(v: &mut Vec<i32>) {
+        v.sort();
+        v.dedup();
+    }
+    fn descending(v: &mut Vec<i32>) {
+        v.sort();
+        if v.len() != 3 {
+            v.reverse();
+        }
+    }
+    fn ignores_sign(v: &mut Vec<i32>) {
+        v.sort_by_key(|x| x.abs());
+    }
+    fn misses_last(v: &mut Vec<i32>) {
+        let n = v.len();
+        if n > 1 {
+            v[..n - 1].sort();
+        }
+    }
+    fn crashes_on_empty(v: &mut Vec<i32>) {
+        let first = v[0];
+        v.sort();
+        let _ = first;
+    }
+
+    #[test]
+    fn correct_version_passes() {
+        check_sort(correct);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_dropped_duplicates() {
+        check_sort(drops_duplicates);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_wrong_direction() {
+        check_sort(descending);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_ignoring_sign() {
+        check_sort(ignores_sign);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_missing_last_item() {
+        check_sort(misses_last);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_crash_on_empty() {
+        check_sort(crashes_on_empty);
+    }
+}
+'''
+hints = [
+  "An empty vector: `let mut v: Vec<i32> = vec![]; sort(&mut v); assert!(v.is_empty());`",
+  "Duplicates: `vec![2, 1, 2]` should become `vec![1, 2, 2]`.",
+  "Negative numbers: `vec![3, -5, 0]` should become `vec![-5, 0, 3]`.",
+  "A reversed list with more than three items, like `vec![5, 4, 3, 2, 1]`, catches sorts that mishandle the last item or the direction.",
+]
+solution = '''
+fn check_sort(sort: fn(&mut Vec<i32>)) {
+    let mut empty: Vec<i32> = vec![];
+    sort(&mut empty);
+    assert!(empty.is_empty(), "sorting nothing gives nothing");
+
+    let mut one = vec![7];
+    sort(&mut one);
+    assert_eq!(one, vec![7]);
+
+    let mut sorted = vec![1, 2, 3, 4];
+    sort(&mut sorted);
+    assert_eq!(sorted, vec![1, 2, 3, 4], "already sorted");
+
+    let mut reversed = vec![5, 4, 3, 2, 1];
+    sort(&mut reversed);
+    assert_eq!(reversed, vec![1, 2, 3, 4, 5], "reversed");
+
+    let mut dupes = vec![2, 1, 2];
+    sort(&mut dupes);
+    assert_eq!(dupes, vec![1, 2, 2], "duplicates are kept");
+
+    let mut negatives = vec![3, -5, 0];
+    sort(&mut negatives);
+    assert_eq!(negatives, vec![-5, 0, 3], "negative numbers");
+}
+
+fn my_sort(v: &mut Vec<i32>) {
+    v.sort();
+}
+
+fn main() {
+    check_sort(my_sort);
+    println!("my_sort passed every check");
+}
+'''

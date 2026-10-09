@@ -1,0 +1,100 @@
+id = "book.testing.writing-tests.checkpoint"
+kind = "checkpoint"
+title = "Catch the broken is_even"
+prompt = '''
+Write `check_is_even(is_even: fn(u32) -> bool)`, using `assert!` to check that
+`is_even` gives the right answers.
+
+The grader passes in a correct `is_even` (your checks must all pass) and several
+buggy ones (your checks must panic for each). Think about what could go wrong:
+always `true`, always `false`, getting odd and even the wrong way round, and
+mishandling `0`.
+'''
+starter = '''
+fn check_is_even(is_even: fn(u32) -> bool) {
+    // Add assert! checks here.
+}
+
+fn my_is_even(n: u32) -> bool {
+    n % 2 == 0
+}
+
+fn main() {
+    check_is_even(my_is_even);
+    println!("my_is_even passed every check");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn correct(n: u32) -> bool {
+        n % 2 == 0
+    }
+    fn always_true(_: u32) -> bool {
+        true
+    }
+    fn always_false(_: u32) -> bool {
+        false
+    }
+    fn backwards(n: u32) -> bool {
+        n % 2 == 1
+    }
+    fn zero_is_odd(n: u32) -> bool {
+        n != 0 && n % 2 == 0
+    }
+
+    #[test]
+    fn correct_version_passes() {
+        check_is_even(correct);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_always_true() {
+        check_is_even(always_true);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_always_false() {
+        check_is_even(always_false);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_backwards() {
+        check_is_even(backwards);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_zero_bug() {
+        check_is_even(zero_is_odd);
+    }
+}
+'''
+hints = [
+  "Check some even numbers are even: `assert!(is_even(4));`",
+  "Check some odd numbers are not: `assert!(!is_even(7));`",
+  "Don't forget the edge case: is 0 even?",
+]
+solution = '''
+fn check_is_even(is_even: fn(u32) -> bool) {
+    assert!(is_even(0));
+    assert!(is_even(2));
+    assert!(is_even(100));
+    assert!(!is_even(1));
+    assert!(!is_even(7));
+}
+
+fn my_is_even(n: u32) -> bool {
+    n % 2 == 0
+}
+
+fn main() {
+    check_is_even(my_is_even);
+    println!("my_is_even passed every check");
+}
+'''

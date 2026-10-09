@@ -1,0 +1,102 @@
+id = "book.testing.assert-eq.checkpoint"
+kind = "checkpoint"
+title = "Catch the broken word counter"
+prompt = '''
+Write `check_word_count(count: fn(&str) -> usize)` using `assert_eq!`.
+
+`count` should return the number of words in a string, where words are separated by
+any amount of whitespace. The grader passes in a correct version and several buggy
+ones. Your checks must pass for the correct one and panic for every buggy one.
+
+Think about: an empty string, a single word, spaces at the start or end, several
+spaces in a row, and tabs or newlines.
+'''
+starter = '''
+fn check_word_count(count: fn(&str) -> usize) {
+    assert_eq!(count("hello world"), 2);
+}
+
+fn my_count(s: &str) -> usize {
+    s.split_whitespace().count()
+}
+
+fn main() {
+    check_word_count(my_count);
+    println!("my_count passed every check");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn correct(s: &str) -> usize {
+        s.split_whitespace().count()
+    }
+    fn counts_spaces(s: &str) -> usize {
+        s.matches(' ').count() + 1
+    }
+    fn ignores_tabs(s: &str) -> usize {
+        s.split(' ').filter(|w| !w.is_empty()).count()
+    }
+    fn empty_is_one(s: &str) -> usize {
+        s.split_whitespace().count().max(1)
+    }
+    fn split_on_single_space(s: &str) -> usize {
+        if s.is_empty() { 0 } else { s.split(' ').count() }
+    }
+
+    #[test]
+    fn correct_version_passes() {
+        check_word_count(correct);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_counting_spaces() {
+        check_word_count(counts_spaces);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_ignoring_tabs_and_newlines() {
+        check_word_count(ignores_tabs);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_empty_is_one() {
+        check_word_count(empty_is_one);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_double_spaces() {
+        check_word_count(split_on_single_space);
+    }
+}
+'''
+hints = [
+  "`assert_eq!(count(\"\"), 0);` catches one bug straight away.",
+  "Try `\"  padded  \"` (spaces at both ends) and `\"a   b\"` (several spaces in a row).",
+  "Whitespace isn't only spaces: `\"one\\ttwo\\nthree\"` has three words.",
+]
+solution = '''
+fn check_word_count(count: fn(&str) -> usize) {
+    assert_eq!(count("hello world"), 2);
+    assert_eq!(count(""), 0, "an empty string has no words");
+    assert_eq!(count("rust"), 1);
+    assert_eq!(count("  padded  "), 1, "spaces at the ends aren't words");
+    assert_eq!(count("a   b"), 2, "several spaces in a row");
+    assert_eq!(count("one\ttwo\nthree"), 3, "tabs and newlines separate words");
+}
+
+fn my_count(s: &str) -> usize {
+    s.split_whitespace().count()
+}
+
+fn main() {
+    check_word_count(my_count);
+    println!("my_count passed every check");
+}
+'''
