@@ -1,0 +1,123 @@
+id = "book.smart-pointers.rc.checkpoint"
+kind = "checkpoint"
+title = "Shared playlists"
+prompt = '''
+Songs are shared between playlists with `Rc<Song>`, so a song isn't copied for every
+playlist it's in. Write:
+
+- `Playlist::add(&mut self, song: &Rc<Song>)`: adds a **shared** reference to the
+  song (use `Rc::clone`), not a copy.
+- `Playlist::total_seconds(&self) -> u32`: the sum of the songs' lengths.
+- `owners(song: &Rc<Song>) -> usize`: how many `Rc`s currently point at the song
+  (`Rc::strong_count`).
+'''
+starter = '''
+use std::rc::Rc;
+
+struct Song {
+    title: String,
+    seconds: u32,
+}
+
+struct Playlist {
+    songs: Vec<Rc<Song>>,
+}
+
+impl Playlist {
+    fn add(&mut self, song: &Rc<Song>) {
+        todo!()
+    }
+
+    fn total_seconds(&self) -> u32 {
+        todo!()
+    }
+}
+
+fn owners(song: &Rc<Song>) -> usize {
+    todo!()
+}
+
+fn main() {
+    let song = Rc::new(Song { title: String::from("Crab Rave"), seconds: 180 });
+    let mut morning = Playlist { songs: vec![] };
+    let mut gym = Playlist { songs: vec![] };
+    morning.add(&song);
+    gym.add(&song);
+    println!("{} has {} owners", song.title, owners(&song));
+    println!("gym lasts {}s", gym.total_seconds());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn song(t: &str, s: u32) -> Rc<Song> {
+        Rc::new(Song { title: String::from(t), seconds: s })
+    }
+
+    #[test]
+    fn sharing_bumps_the_count() {
+        let s = song("a", 100);
+        assert_eq!(owners(&s), 1);
+        let mut p1 = Playlist { songs: vec![] };
+        let mut p2 = Playlist { songs: vec![] };
+        p1.add(&s);
+        p2.add(&s);
+        assert_eq!(owners(&s), 3);
+        assert!(Rc::ptr_eq(&p1.songs[0], &s));
+        drop(p1);
+        assert_eq!(owners(&s), 2);
+    }
+
+    #[test]
+    fn totals() {
+        let mut p = Playlist { songs: vec![] };
+        p.add(&song("a", 100));
+        p.add(&song("b", 50));
+        assert_eq!(p.total_seconds(), 150);
+        assert_eq!(p.songs[1].title, "b");
+    }
+}
+'''
+hints = [
+  "`self.songs.push(Rc::clone(song));`",
+  "`self.songs.iter().map(|s| s.seconds).sum()`: `s.seconds` works through the `Rc` thanks to `Deref`.",
+  "`Rc::strong_count(song)`",
+]
+solution = '''
+use std::rc::Rc;
+
+struct Song {
+    title: String,
+    seconds: u32,
+}
+
+struct Playlist {
+    songs: Vec<Rc<Song>>,
+}
+
+impl Playlist {
+    fn add(&mut self, song: &Rc<Song>) {
+        self.songs.push(Rc::clone(song));
+    }
+
+    fn total_seconds(&self) -> u32 {
+        self.songs.iter().map(|s| s.seconds).sum()
+    }
+}
+
+fn owners(song: &Rc<Song>) -> usize {
+    Rc::strong_count(song)
+}
+
+fn main() {
+    let song = Rc::new(Song { title: String::from("Crab Rave"), seconds: 180 });
+    let mut morning = Playlist { songs: vec![] };
+    let mut gym = Playlist { songs: vec![] };
+    morning.add(&song);
+    gym.add(&song);
+    println!("{} has {} owners", song.title, owners(&song));
+    println!("gym lasts {}s", gym.total_seconds());
+}
+'''
