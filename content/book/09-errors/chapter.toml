@@ -1,0 +1,7 @@
+id = "book.errors"
+track = "book"
+title = "Error Handling"
+order = 9
+source = "https://doc.rust-lang.org/book/ch09-00-error-handling.html"
+summary = "panic! for bugs, Result for things that can go wrong, and the ? operator to pass errors along."
+requires = []
