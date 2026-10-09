@@ -1,0 +1,208 @@
+id = "book.oop.state-pattern.checkpoint"
+kind = "checkpoint"
+title = "Add reject"
+prompt = '''
+Extend the blog post with a `reject` step, as the Book suggests:
+
+- `Post::reject(&mut self)`: a post **in review** goes back to **draft**. Rejecting a
+  draft or a published post does nothing.
+- Add `fn reject(self: Box<Self>) -> Box<dyn State>;` to the `State` trait and
+  implement it for every state.
+- Add `Post::status(&self) -> &'static str` returning `"draft"`, `"review"` or
+  `"published"`, via a new `State` method `fn name(&self) -> &'static str`.
+'''
+starter = '''
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post { state: Some(Box::new(Draft {})), content: String::new() }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    pub fn content(&self) -> &str {
+        self.state.as_ref().unwrap().content(self)
+    }
+
+    pub fn request_review(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review())
+        }
+    }
+
+    pub fn approve(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.approve())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+    fn approve(self: Box<Self>) -> Box<dyn State>;
+    fn content<'a>(&self, _post: &'a Post) -> &'a str {
+        ""
+    }
+}
+
+struct Draft {}
+struct PendingReview {}
+struct Published {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { Box::new(PendingReview {}) }
+    fn approve(self: Box<Self>) -> Box<dyn State> { self }
+}
+
+impl State for PendingReview {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { self }
+    fn approve(self: Box<Self>) -> Box<dyn State> { Box::new(Published {}) }
+}
+
+impl State for Published {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { self }
+    fn approve(self: Box<Self>) -> Box<dyn State> { self }
+    fn content<'a>(&self, post: &'a Post) -> &'a str {
+        &post.content
+    }
+}
+
+fn main() {
+    let mut post = Post::new();
+    post.add_text("Hello");
+    post.request_review();
+    post.reject();
+    println!("{}", post.status());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reject_sends_back_to_draft() {
+        let mut p = Post::new();
+        p.add_text("hi");
+        assert_eq!(p.status(), "draft");
+        p.request_review();
+        assert_eq!(p.status(), "review");
+        p.reject();
+        assert_eq!(p.status(), "draft");
+        p.approve();
+        assert_eq!(p.status(), "draft");
+        assert_eq!(p.content(), "");
+    }
+
+    #[test]
+    fn publishing_still_works() {
+        let mut p = Post::new();
+        p.add_text("done");
+        p.request_review();
+        p.approve();
+        assert_eq!(p.status(), "published");
+        p.reject();
+        assert_eq!(p.status(), "published");
+        assert_eq!(p.content(), "done");
+    }
+}
+'''
+hints = [
+  "`pub fn reject(&mut self) { if let Some(s) = self.state.take() { self.state = Some(s.reject()) } }`",
+  "`PendingReview::reject` returns `Box::new(Draft {})`; the other states return `self`.",
+  "`pub fn status(&self) -> &'static str { self.state.as_ref().unwrap().name() }`",
+]
+solution = '''
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post { state: Some(Box::new(Draft {})), content: String::new() }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    pub fn content(&self) -> &str {
+        self.state.as_ref().unwrap().content(self)
+    }
+
+    pub fn status(&self) -> &'static str {
+        self.state.as_ref().unwrap().name()
+    }
+
+    pub fn request_review(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review())
+        }
+    }
+
+    pub fn approve(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.approve())
+        }
+    }
+
+    pub fn reject(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.reject())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+    fn approve(self: Box<Self>) -> Box<dyn State>;
+    fn reject(self: Box<Self>) -> Box<dyn State>;
+    fn name(&self) -> &'static str;
+    fn content<'a>(&self, _post: &'a Post) -> &'a str {
+        ""
+    }
+}
+
+struct Draft {}
+struct PendingReview {}
+struct Published {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { Box::new(PendingReview {}) }
+    fn approve(self: Box<Self>) -> Box<dyn State> { self }
+    fn reject(self: Box<Self>) -> Box<dyn State> { self }
+    fn name(&self) -> &'static str { "draft" }
+}
+
+impl State for PendingReview {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { self }
+    fn approve(self: Box<Self>) -> Box<dyn State> { Box::new(Published {}) }
+    fn reject(self: Box<Self>) -> Box<dyn State> { Box::new(Draft {}) }
+    fn name(&self) -> &'static str { "review" }
+}
+
+impl State for Published {
+    fn request_review(self: Box<Self>) -> Box<dyn State> { self }
+    fn approve(self: Box<Self>) -> Box<dyn State> { self }
+    fn reject(self: Box<Self>) -> Box<dyn State> { self }
+    fn name(&self) -> &'static str { "published" }
+    fn content<'a>(&self, post: &'a Post) -> &'a str {
+        &post.content
+    }
+}
+
+fn main() {
+    let mut post = Post::new();
+    post.add_text("Hello");
+    post.request_review();
+    post.reject();
+    println!("{}", post.status());
+}
+'''
