@@ -1,0 +1,80 @@
+id = "book.generics.lifetimes-in-structs.checkpoint"
+kind = "checkpoint"
+title = "A word finder that borrows"
+prompt = '''
+Write a struct `Words<'a>` that borrows some text, in a field named `text`, with:
+
+- `Words::new(text: &'a str) -> Words<'a>`
+- `first(&self) -> Option<&'a str>`: the first word (split on whitespace), or `None`
+  if there are no words.
+- `count(&self) -> usize`: how many words there are.
+
+`first` returns `&'a str`, not plain `&str`, so a word can outlive the `Words`
+value itself (it borrows from the original text, not from the struct).
+'''
+starter = '''
+// Define Words<'a> and its impl block here.
+
+fn main() {
+    let text = String::from("borrow checker friends");
+    let w = Words::new(&text);
+    println!("{:?} of {}", w.first(), w.count());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn words() {
+        let w = Words::new("borrow checker friends");
+        assert_eq!(w.first(), Some("borrow"));
+        assert_eq!(w.count(), 3);
+        let empty = Words::new("   ");
+        assert_eq!(empty.first(), None);
+        assert_eq!(empty.count(), 0);
+    }
+
+    #[test]
+    fn word_outlives_the_struct() {
+        let text = String::from("lifetimes rock");
+        let word;
+        {
+            let w = Words::new(&text);
+            word = w.first();
+        }
+        assert_eq!(word, Some("lifetimes"));
+    }
+}
+'''
+hints = [
+  "`struct Words<'a> { text: &'a str }` and `impl<'a> Words<'a> { ... }`.",
+  "`fn first(&self) -> Option<&'a str> { self.text.split_whitespace().next() }`",
+  "Count words with a loop over `self.text.split_whitespace()`, or `.count()` on it.",
+]
+solution = '''
+struct Words<'a> {
+    text: &'a str,
+}
+
+impl<'a> Words<'a> {
+    fn new(text: &'a str) -> Words<'a> {
+        Words { text }
+    }
+
+    fn first(&self) -> Option<&'a str> {
+        self.text.split_whitespace().next()
+    }
+
+    fn count(&self) -> usize {
+        self.text.split_whitespace().count()
+    }
+}
+
+fn main() {
+    let text = String::from("borrow checker friends");
+    let w = Words::new(&text);
+    println!("{:?} of {}", w.first(), w.count());
+}
+'''
