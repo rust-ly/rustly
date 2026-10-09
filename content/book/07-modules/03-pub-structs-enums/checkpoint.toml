@@ -1,0 +1,86 @@
+id = "book.modules.pub-structs-enums.checkpoint"
+kind = "checkpoint"
+title = "A bank account that protects its balance"
+prompt = '''
+Inside `mod bank`, finish the `Account` struct so that:
+
+- `owner` is a public field.
+- `balance` is a **private** field, so outside code can't set it directly.
+- `Account::open(owner: &str) -> Account` starts the balance at 0.
+- `deposit(&mut self, amount: u64)` adds to the balance.
+- `balance(&self) -> u64` returns it (a public getter for the private field).
+'''
+starter = '''
+mod bank {
+    pub struct Account {
+        // Add the fields here.
+    }
+
+    impl Account {
+        // Add open, deposit and balance here.
+    }
+}
+
+fn main() {
+    let mut acct = bank::Account::open("Ferris");
+    acct.deposit(50);
+    println!("{} has {}", acct.owner, acct.balance());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starts_empty() {
+        let acct = bank::Account::open("Ada");
+        assert_eq!(acct.owner, "Ada");
+        assert_eq!(acct.balance(), 0);
+    }
+
+    #[test]
+    fn deposits_add_up() {
+        let mut acct = bank::Account::open("Ada");
+        acct.deposit(30);
+        acct.deposit(12);
+        assert_eq!(acct.balance(), 42);
+    }
+}
+'''
+hints = [
+  "Fields: `pub owner: String,` and `balance: u64,` (no `pub`).",
+  "Every method needs `pub` too, or `main` can't call it.",
+  "A method can share a field's name: `pub fn balance(&self) -> u64 { self.balance }`.",
+]
+solution = '''
+mod bank {
+    pub struct Account {
+        pub owner: String,
+        balance: u64,
+    }
+
+    impl Account {
+        pub fn open(owner: &str) -> Account {
+            Account {
+                owner: String::from(owner),
+                balance: 0,
+            }
+        }
+
+        pub fn deposit(&mut self, amount: u64) {
+            self.balance += amount;
+        }
+
+        pub fn balance(&self) -> u64 {
+            self.balance
+        }
+    }
+}
+
+fn main() {
+    let mut acct = bank::Account::open("Ferris");
+    acct.deposit(50);
+    println!("{} has {}", acct.owner, acct.balance());
+}
+'''
