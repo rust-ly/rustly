@@ -1,0 +1,86 @@
+id = "book.collections.string-indexing.checkpoint"
+kind = "checkpoint"
+title = "Count letters, not bytes"
+prompt = '''
+These functions must work for any language, including emoji. Write:
+
+- `char_count(s: &str) -> usize`: the number of characters (not bytes).
+- `first_char(s: &str) -> Option<char>`: the first character, or `None` for `""`.
+- `reverse(s: &str) -> String`: the characters in reverse order.
+  `.chars().rev()` goes backwards, and you can `push` each one onto a new String.
+'''
+starter = '''
+fn char_count(s: &str) -> usize {
+    s.len()
+}
+
+fn first_char(s: &str) -> Option<char> {
+    todo!()
+}
+
+fn reverse(s: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", char_count("Здравствуйте"));
+    println!("{:?}", first_char("🦀 rust"));
+    println!("{}", reverse("stressed"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_characters() {
+        assert_eq!(char_count("hello"), 5);
+        assert_eq!(char_count("Здравствуйте"), 12);
+        assert_eq!(char_count("🦀🦀"), 2);
+        assert_eq!(char_count(""), 0);
+    }
+
+    #[test]
+    fn first_character() {
+        assert_eq!(first_char("🦀 rust"), Some('🦀'));
+        assert_eq!(first_char("Зд"), Some('З'));
+        assert_eq!(first_char(""), None);
+    }
+
+    #[test]
+    fn reverses() {
+        assert_eq!(reverse("stressed"), "desserts");
+        assert_eq!(reverse("añb"), "bña");
+        assert_eq!(reverse(""), "");
+    }
+}
+'''
+hints = [
+  "`s.len()` counts bytes. `s.chars().count()` counts characters.",
+  "`s.chars().next()` already returns an `Option<char>`.",
+  "`let mut out = String::new(); for c in s.chars().rev() { out.push(c); } out`",
+]
+solution = '''
+fn char_count(s: &str) -> usize {
+    s.chars().count()
+}
+
+fn first_char(s: &str) -> Option<char> {
+    s.chars().next()
+}
+
+fn reverse(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.chars().rev() {
+        out.push(c);
+    }
+    out
+}
+
+fn main() {
+    println!("{}", char_count("Здравствуйте"));
+    println!("{:?}", first_char("🦀 rust"));
+    println!("{}", reverse("stressed"));
+}
+'''
