@@ -1,0 +1,112 @@
+id = "book.smart-pointers.rc-refcell.checkpoint"
+kind = "checkpoint"
+title = "A shared shopping basket"
+prompt = '''
+Several family members share one basket: `Basket` is a `Rc<RefCell<Vec<String>>>`.
+(`type Basket = ...;` just gives that long type a short name; chapter 20 covers it.)
+
+- `Person::new(name: &str, basket: &Basket) -> Person` keeps a **shared** handle to
+  the basket.
+- `Person::add(&self, item: &str)` adds `"ITEM (NAME)"` to the shared basket.
+- `items(basket: &Basket) -> Vec<String>` returns a copy of everything in it.
+
+Note that `add` takes `&self`, not `&mut self`.
+'''
+starter = '''
+use std::cell::RefCell;
+use std::rc::Rc;
+
+type Basket = Rc<RefCell<Vec<String>>>;
+
+struct Person {
+    name: String,
+    basket: Basket,
+}
+
+impl Person {
+    fn new(name: &str, basket: &Basket) -> Person {
+        todo!()
+    }
+
+    fn add(&self, item: &str) {
+        todo!()
+    }
+}
+
+fn items(basket: &Basket) -> Vec<String> {
+    todo!()
+}
+
+fn main() {
+    let basket: Basket = Rc::new(RefCell::new(Vec::new()));
+    let ada = Person::new("Ada", &basket);
+    let grace = Person::new("Grace", &basket);
+    ada.add("bread");
+    grace.add("milk");
+    println!("{:?}", items(&basket));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn everyone_shares_one_basket() {
+        let basket: Basket = Rc::new(RefCell::new(Vec::new()));
+        let ada = Person::new("Ada", &basket);
+        let grace = Person::new("Grace", &basket);
+        assert_eq!(Rc::strong_count(&basket), 3);
+        ada.add("bread");
+        grace.add("milk");
+        ada.add("eggs");
+        assert_eq!(items(&basket), vec!["bread (Ada)", "milk (Grace)", "eggs (Ada)"]);
+        assert_eq!(ada.name, "Ada");
+    }
+
+    #[test]
+    fn empty_basket() {
+        let basket: Basket = Rc::new(RefCell::new(Vec::new()));
+        assert!(items(&basket).is_empty());
+    }
+}
+'''
+hints = [
+  "`Person { name: name.to_string(), basket: Rc::clone(basket) }`",
+  "`self.basket.borrow_mut().push(format!(\"{item} ({})\", self.name));`",
+  "`basket.borrow().clone()` copies the vector out.",
+]
+solution = '''
+use std::cell::RefCell;
+use std::rc::Rc;
+
+type Basket = Rc<RefCell<Vec<String>>>;
+
+struct Person {
+    name: String,
+    basket: Basket,
+}
+
+impl Person {
+    fn new(name: &str, basket: &Basket) -> Person {
+        Person { name: name.to_string(), basket: Rc::clone(basket) }
+    }
+
+    fn add(&self, item: &str) {
+        self.basket.borrow_mut().push(format!("{item} ({})", self.name));
+    }
+}
+
+fn items(basket: &Basket) -> Vec<String> {
+    basket.borrow().clone()
+}
+
+fn main() {
+    let basket: Basket = Rc::new(RefCell::new(Vec::new()));
+    let ada = Person::new("Ada", &basket);
+    let grace = Person::new("Grace", &basket);
+    ada.add("bread");
+    grace.add("milk");
+    println!("{:?}", items(&basket));
+}
+'''
