@@ -1,0 +1,81 @@
+id = "book.patterns.refutability.checkpoint"
+kind = "checkpoint"
+title = "Fix the refutable lets"
+prompt = '''
+Both functions use refutable patterns in a plain `let`, so they don't compile. Fix
+them with `let...else` or `if let`, keeping the behaviour described:
+
+- `first_word_len(text: &str) -> usize`: the length of the first word, or `0` if there
+  are no words.
+- `parse_pair(text: &str) -> Option<(i32, i32)>`: splits `"3,4"` at the comma and parses
+  both numbers. Return `None` if there's no comma or either number is invalid.
+'''
+starter = '''
+fn first_word_len(text: &str) -> usize {
+    let Some(word) = text.split_whitespace().next();
+    word.len()
+}
+
+fn parse_pair(text: &str) -> Option<(i32, i32)> {
+    let Some((a, b)) = text.split_once(',');
+    let Ok(x) = a.parse::<i32>();
+    let Ok(y) = b.parse::<i32>();
+    Some((x, y))
+}
+
+fn main() {
+    println!("{} {}", first_word_len("hello world"), first_word_len("   "));
+    println!("{:?} {:?}", parse_pair("3,4"), parse_pair("3;4"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn words() {
+        assert_eq!(first_word_len("hello world"), 5);
+        assert_eq!(first_word_len("   "), 0);
+    }
+
+    #[test]
+    fn pairs() {
+        assert_eq!(parse_pair("3,4"), Some((3, 4)));
+        assert_eq!(parse_pair("-1,10"), Some((-1, 10)));
+        assert_eq!(parse_pair("3;4"), None);
+        assert_eq!(parse_pair("x,4"), None);
+        assert_eq!(parse_pair("3,y"), None);
+    }
+}
+'''
+hints = [
+  "`let Some(word) = text.split_whitespace().next() else { return 0; };`",
+  "Each `let` in `parse_pair` needs an `else { return None; }`.",
+]
+solution = '''
+fn first_word_len(text: &str) -> usize {
+    let Some(word) = text.split_whitespace().next() else {
+        return 0;
+    };
+    word.len()
+}
+
+fn parse_pair(text: &str) -> Option<(i32, i32)> {
+    let Some((a, b)) = text.split_once(',') else {
+        return None;
+    };
+    let Ok(x) = a.parse::<i32>() else {
+        return None;
+    };
+    let Ok(y) = b.parse::<i32>() else {
+        return None;
+    };
+    Some((x, y))
+}
+
+fn main() {
+    println!("{} {}", first_word_len("hello world"), first_word_len("   "));
+    println!("{:?} {:?}", parse_pair("3,4"), parse_pair("3;4"));
+}
+'''
