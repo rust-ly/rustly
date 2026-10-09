@@ -1,0 +1,90 @@
+id = "book.generics.lifetimes.checkpoint"
+kind = "checkpoint"
+title = "Pick a string"
+prompt = '''
+These functions don't compile because their signatures are missing lifetimes.
+Add lifetime annotations (don't change the bodies):
+
+- `longer(a, b)` returns whichever string slice is longer, preferring `a` on a tie.
+- `pick(flag, yes, no)` returns `yes` when `flag` is true, otherwise `no`.
+- `before_comma(text, _sep)` returns the part of `text` before the first comma.
+  The result only ever borrows from `text`, so only `text` needs the lifetime.
+'''
+starter = '''
+fn longer(a: &str, b: &str) -> &str {
+    if b.len() > a.len() { b } else { a }
+}
+
+fn pick(flag: bool, yes: &str, no: &str) -> &str {
+    if flag { yes } else { no }
+}
+
+fn before_comma(text: &str, _sep: &str) -> &str {
+    match text.find(',') {
+        Some(i) => &text[..i],
+        None => text,
+    }
+}
+
+fn main() {
+    println!("{}", longer("pear", "banana"));
+    println!("{}", pick(true, "yes", "no"));
+    println!("{}", before_comma("Nairobi, Kenya", ","));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn longer_slice() {
+        assert_eq!(longer("pear", "banana"), "banana");
+        assert_eq!(longer("same", "size"), "same");
+    }
+
+    #[test]
+    fn picks() {
+        assert_eq!(pick(true, "yes", "no"), "yes");
+        assert_eq!(pick(false, "yes", "no"), "no");
+    }
+
+    #[test]
+    fn result_outlives_the_separator() {
+        let text = String::from("Nairobi, Kenya");
+        let city;
+        {
+            let sep = String::from(",");
+            city = before_comma(&text, &sep);
+        }
+        assert_eq!(city, "Nairobi");
+    }
+}
+'''
+hints = [
+  "`fn longer<'a>(a: &'a str, b: &'a str) -> &'a str`",
+  "In `pick`, `flag` is a `bool`, not a reference, so it needs no lifetime.",
+  "`fn before_comma<'a>(text: &'a str, _sep: &str) -> &'a str`. The hidden test drops `_sep` before using the result, so tying `_sep` to `'a` won't compile.",
+]
+solution = '''
+fn longer<'a>(a: &'a str, b: &'a str) -> &'a str {
+    if b.len() > a.len() { b } else { a }
+}
+
+fn pick<'a>(flag: bool, yes: &'a str, no: &'a str) -> &'a str {
+    if flag { yes } else { no }
+}
+
+fn before_comma<'a>(text: &'a str, _sep: &str) -> &'a str {
+    match text.find(',') {
+        Some(i) => &text[..i],
+        None => text,
+    }
+}
+
+fn main() {
+    println!("{}", longer("pear", "banana"));
+    println!("{}", pick(true, "yes", "no"));
+    println!("{}", before_comma("Nairobi, Kenya", ","));
+}
+'''
