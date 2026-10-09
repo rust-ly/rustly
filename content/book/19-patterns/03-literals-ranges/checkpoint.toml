@@ -1,0 +1,101 @@
+id = "book.patterns.literals-ranges.checkpoint"
+kind = "checkpoint"
+title = "Grades and characters"
+prompt = '''
+Write each function as a single `match` using literals, `|` and ranges:
+
+- `grade(score: u8) -> char`: 90–100 is `'A'`, 80–89 `'B'`, 70–79 `'C'`, 60–69 `'D'`,
+  0–59 `'F'`. Anything over 100 is `'?'`.
+- `is_vowel(c: char) -> bool`: true for a, e, i, o, u in either case.
+- `season(month: u8) -> &'static str`: 12, 1, 2 → `"summer"`; 3–5 → `"autumn"`;
+  6–8 → `"winter"`; 9–11 → `"spring"` (southern hemisphere); anything else → `"invalid"`.
+'''
+starter = '''
+fn grade(score: u8) -> char {
+    todo!()
+}
+
+fn is_vowel(c: char) -> bool {
+    todo!()
+}
+
+fn season(month: u8) -> &'static str {
+    todo!()
+}
+
+fn main() {
+    println!("{} {} {}", grade(95), is_vowel('E'), season(7));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grades() {
+        assert_eq!(grade(100), 'A');
+        assert_eq!(grade(90), 'A');
+        assert_eq!(grade(89), 'B');
+        assert_eq!(grade(70), 'C');
+        assert_eq!(grade(65), 'D');
+        assert_eq!(grade(0), 'F');
+        assert_eq!(grade(101), '?');
+    }
+
+    #[test]
+    fn vowels() {
+        assert!(is_vowel('a') && is_vowel('U'));
+        assert!(!is_vowel('y') && !is_vowel('B'));
+    }
+
+    #[test]
+    fn seasons() {
+        assert_eq!(season(1), "summer");
+        assert_eq!(season(12), "summer");
+        assert_eq!(season(4), "autumn");
+        assert_eq!(season(8), "winter");
+        assert_eq!(season(10), "spring");
+        assert_eq!(season(13), "invalid");
+        assert_eq!(season(0), "invalid");
+    }
+}
+'''
+hints = [
+  "`match score { 90..=100 => 'A', 80..=89 => 'B', ... , _ => '?' }`",
+  "`match c { 'a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U' => true, _ => false }`",
+  "`12 | 1 | 2 => \"summer\"`",
+]
+solution = '''
+fn grade(score: u8) -> char {
+    match score {
+        90..=100 => 'A',
+        80..=89 => 'B',
+        70..=79 => 'C',
+        60..=69 => 'D',
+        0..=59 => 'F',
+        _ => '?',
+    }
+}
+
+fn is_vowel(c: char) -> bool {
+    match c {
+        'a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U' => true,
+        _ => false,
+    }
+}
+
+fn season(month: u8) -> &'static str {
+    match month {
+        12 | 1 | 2 => "summer",
+        3..=5 => "autumn",
+        6..=8 => "winter",
+        9..=11 => "spring",
+        _ => "invalid",
+    }
+}
+
+fn main() {
+    println!("{} {} {}", grade(95), is_vowel('E'), season(7));
+}
+'''
