@@ -1,0 +1,103 @@
+id = "book.patterns.ignoring.checkpoint"
+kind = "checkpoint"
+title = "Take only what you need"
+prompt = '''
+Use `_` and `..` to pick out just the parts you need:
+
+- `ends(t: (i32, i32, i32, i32, i32)) -> (i32, i32)`: the first and last items (`..`).
+- `name_of(user: &User) -> &str`: the user's name, via a struct pattern with `..`.
+- `count_with_email(users: &[User]) -> usize`: how many users have `email: Some(_)`.
+'''
+starter = '''
+struct User {
+    name: String,
+    age: u32,
+    email: Option<String>,
+    admin: bool,
+}
+
+fn ends(t: (i32, i32, i32, i32, i32)) -> (i32, i32) {
+    todo!()
+}
+
+fn name_of(user: &User) -> &str {
+    todo!()
+}
+
+fn count_with_email(users: &[User]) -> usize {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", ends((1, 2, 3, 4, 5)));
+    let users = [User { name: String::from("Ada"), age: 36, email: None, admin: true }];
+    println!("{} {}", name_of(&users[0]), count_with_email(&users));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn user(name: &str, email: Option<&str>) -> User {
+        User { name: name.to_string(), age: 30, email: email.map(String::from), admin: false }
+    }
+
+    #[test]
+    fn first_and_last() {
+        assert_eq!(ends((1, 2, 3, 4, 5)), (1, 5));
+        assert_eq!(ends((9, 0, 0, 0, -9)), (9, -9));
+    }
+
+    #[test]
+    fn names() {
+        assert_eq!(name_of(&user("Grace", None)), "Grace");
+    }
+
+    #[test]
+    fn emails() {
+        let users = [user("a", Some("a@x")), user("b", None), user("c", Some("c@x"))];
+        assert_eq!(count_with_email(&users), 2);
+        assert_eq!(count_with_email(&[]), 0);
+    }
+}
+'''
+hints = [
+  "`let (first, .., last) = t; (first, last)`",
+  "`let User { name, .. } = user; name`",
+  "`users.iter().filter(|u| matches!(u, User { email: Some(_), .. })).count()`, or a loop with `if let User { email: Some(_), .. } = u`.",
+]
+solution = '''
+struct User {
+    name: String,
+    age: u32,
+    email: Option<String>,
+    admin: bool,
+}
+
+fn ends(t: (i32, i32, i32, i32, i32)) -> (i32, i32) {
+    let (first, .., last) = t;
+    (first, last)
+}
+
+fn name_of(user: &User) -> &str {
+    let User { name, .. } = user;
+    name
+}
+
+fn count_with_email(users: &[User]) -> usize {
+    let mut count = 0;
+    for u in users {
+        if let User { email: Some(_), .. } = u {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn main() {
+    println!("{:?}", ends((1, 2, 3, 4, 5)));
+    let users = [User { name: String::from("Ada"), age: 36, email: None, admin: true }];
+    println!("{} {}", name_of(&users[0]), count_with_email(&users));
+}
+'''
