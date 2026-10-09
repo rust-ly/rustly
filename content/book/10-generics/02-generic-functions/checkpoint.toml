@@ -1,0 +1,68 @@
+id = "book.generics.generic-functions.checkpoint"
+kind = "checkpoint"
+title = "Generic helpers"
+prompt = '''
+Write two generic functions that work for **any** type `T` (no trait bounds needed):
+
+- `last<T>(list: &[T]) -> Option<&T>` returns a reference to the last element,
+  or `None` for an empty slice.
+- `swap<T, U>(pair: (T, U)) -> (U, T)` returns the pair with its parts swapped.
+  It has **two** type parameters, because the parts can be different types.
+'''
+starter = '''
+fn last<T>(list: &[T]) -> Option<&T> {
+    todo!()
+}
+
+fn swap(pair: (i32, i32)) -> (i32, i32) {
+    (pair.1, pair.0)
+}
+
+fn main() {
+    println!("{:?}", last(&[1, 2, 3]));
+    println!("{:?}", swap((1, "one")));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn last_of_anything() {
+        assert_eq!(last(&[1, 2, 3]), Some(&3));
+        assert_eq!(last(&["a", "b"]), Some(&"b"));
+        let empty: [char; 0] = [];
+        assert_eq!(last(&empty), None);
+    }
+
+    #[test]
+    fn swaps_mixed_pairs() {
+        assert_eq!(swap((1, "one")), ("one", 1));
+        assert_eq!(swap(('x', 2.5)), (2.5, 'x'));
+        assert_eq!(swap((String::from("a"), true)), (true, String::from("a")));
+    }
+}
+'''
+hints = [
+  "`if list.is_empty() { None } else { Some(&list[list.len() - 1]) }`, or just `list.last()`.",
+  "Change the signature to `fn swap<T, U>(pair: (T, U)) -> (U, T)`; the body can stay the same.",
+]
+solution = '''
+fn last<T>(list: &[T]) -> Option<&T> {
+    if list.is_empty() {
+        None
+    } else {
+        Some(&list[list.len() - 1])
+    }
+}
+
+fn swap<T, U>(pair: (T, U)) -> (U, T) {
+    (pair.1, pair.0)
+}
+
+fn main() {
+    println!("{:?}", last(&[1, 2, 3]));
+    println!("{:?}", swap((1, "one")));
+}
+'''
