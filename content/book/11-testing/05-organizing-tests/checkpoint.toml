@@ -1,0 +1,118 @@
+id = "book.testing.organizing-tests.checkpoint"
+kind = "checkpoint"
+title = "A checker with a helper"
+prompt = '''
+Write `check_initials(initials: fn(&str) -> String)`. `initials` takes a full name
+and returns the first letter of each word, in capitals: `"ada lovelace"` → `"AL"`.
+
+Write a small helper, `expect(initials: fn(&str) -> String, name: &str, want: &str)`,
+that calls `initials(name)` and uses `assert_eq!` with a message naming the input.
+Then call it for enough cases to catch every buggy version: lowercase input, a single
+name, three names, extra spaces, and an empty string (which gives `""`).
+'''
+starter = '''
+fn check_initials(initials: fn(&str) -> String) {
+    assert_eq!(initials("Ada Lovelace"), "AL");
+}
+
+fn my_initials(name: &str) -> String {
+    let mut out = String::new();
+    for word in name.split_whitespace() {
+        out.push(word.chars().next().unwrap().to_ascii_uppercase());
+    }
+    out
+}
+
+fn main() {
+    check_initials(my_initials);
+    println!("my_initials passed every check");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn correct(name: &str) -> String {
+        let mut out = String::new();
+        for word in name.split_whitespace() {
+            out.push(word.chars().next().unwrap().to_ascii_uppercase());
+        }
+        out
+    }
+    fn no_uppercase(name: &str) -> String {
+        name.split_whitespace().map(|w| w.chars().next().unwrap()).collect()
+    }
+    fn only_two(name: &str) -> String {
+        correct(name).chars().take(2).collect()
+    }
+    fn single_spaces_only(name: &str) -> String {
+        name.split(' ')
+            .map(|w| w.chars().next().map(|c| c.to_ascii_uppercase()).unwrap_or('_'))
+            .collect()
+    }
+    fn first_name_only(name: &str) -> String {
+        correct(name).chars().take(1).collect()
+    }
+
+    #[test]
+    fn correct_version_passes() {
+        check_initials(correct);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_missing_uppercase() {
+        check_initials(no_uppercase);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_only_two_names() {
+        check_initials(only_two);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_extra_spaces_bug() {
+        check_initials(single_spaces_only);
+    }
+
+    #[test]
+    #[should_panic]
+    fn catches_first_name_only() {
+        check_initials(first_name_only);
+    }
+}
+'''
+hints = [
+  "`fn expect(initials: fn(&str) -> String, name: &str, want: &str) { assert_eq!(initials(name), want, \"initials of {name:?}\"); }`",
+  "Cases to cover: `\"ada lovelace\"`, `\"Cher\"`, `\"Grace Brewster Hopper\"`, `\"  Linus   Torvalds \"` and `\"\"`.",
+]
+solution = '''
+fn expect(initials: fn(&str) -> String, name: &str, want: &str) {
+    assert_eq!(initials(name), want, "initials of {name:?}");
+}
+
+fn check_initials(initials: fn(&str) -> String) {
+    expect(initials, "Ada Lovelace", "AL");
+    expect(initials, "ada lovelace", "AL");
+    expect(initials, "Cher", "C");
+    expect(initials, "Grace Brewster Hopper", "GBH");
+    expect(initials, "  Linus   Torvalds ", "LT");
+    expect(initials, "", "");
+}
+
+fn my_initials(name: &str) -> String {
+    let mut out = String::new();
+    for word in name.split_whitespace() {
+        out.push(word.chars().next().unwrap().to_ascii_uppercase());
+    }
+    out
+}
+
+fn main() {
+    check_initials(my_initials);
+    println!("my_initials passed every check");
+}
+'''
