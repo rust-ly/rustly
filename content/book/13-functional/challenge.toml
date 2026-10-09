@@ -1,0 +1,154 @@
+id = "book.functional.challenge"
+kind = "challenge"
+title = "An inventory report"
+prompt = '''
+A shop's inventory is a list of `Item`s. Write each function with closures and
+iterator chains:
+
+1. `in_stock(items: &[Item]) -> Vec<&str>`: names of items with `qty > 0`, in order.
+2. `total_value(items: &[Item]) -> u32`: the sum of `price * qty` over all items.
+3. `cheaper_than(items: &[Item], limit: u32) -> Vec<String>`: names of items whose
+   price is below `limit`, sorted alphabetically.
+4. `most_valuable(items: &[Item]) -> Option<&Item>`: the item with the largest
+   `price * qty` (`max_by_key` exists!). `None` for an empty list.
+5. `restock(items: &mut [Item], min: u32)`: raise every item's `qty` to at least
+   `min`, in place (`iter_mut`).
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+struct Item {
+    name: String,
+    price: u32,
+    qty: u32,
+}
+
+fn in_stock(items: &[Item]) -> Vec<&str> {
+    todo!()
+}
+
+fn total_value(items: &[Item]) -> u32 {
+    todo!()
+}
+
+fn cheaper_than(items: &[Item], limit: u32) -> Vec<String> {
+    todo!()
+}
+
+fn most_valuable(items: &[Item]) -> Option<&Item> {
+    todo!()
+}
+
+fn restock(items: &mut [Item], min: u32) {
+    todo!()
+}
+
+fn main() {
+    let mut items = vec![
+        Item { name: String::from("pen"), price: 2, qty: 10 },
+        Item { name: String::from("book"), price: 15, qty: 0 },
+        Item { name: String::from("lamp"), price: 30, qty: 2 },
+    ];
+    println!("{:?}", in_stock(&items));
+    println!("{}", total_value(&items));
+    println!("{:?}", cheaper_than(&items, 20));
+    println!("{:?}", most_valuable(&items).map(|i| &i.name));
+    restock(&mut items, 3);
+    println!("{items:?}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(name: &str, price: u32, qty: u32) -> Item {
+        Item { name: String::from(name), price, qty }
+    }
+
+    fn shop() -> Vec<Item> {
+        vec![item("pen", 2, 10), item("book", 15, 0), item("lamp", 30, 2), item("cup", 5, 1)]
+    }
+
+    #[test]
+    fn stock_and_value() {
+        assert_eq!(in_stock(&shop()), vec!["pen", "lamp", "cup"]);
+        assert_eq!(total_value(&shop()), 20 + 0 + 60 + 5);
+        assert_eq!(total_value(&[]), 0);
+    }
+
+    #[test]
+    fn cheap_sorted() {
+        assert_eq!(cheaper_than(&shop(), 20), vec!["book", "cup", "pen"]);
+        assert!(cheaper_than(&shop(), 1).is_empty());
+    }
+
+    #[test]
+    fn most_valuable_item() {
+        let s = shop();
+        assert_eq!(most_valuable(&s).unwrap().name, "lamp");
+        assert!(most_valuable(&[]).is_none());
+    }
+
+    #[test]
+    fn restocks_in_place() {
+        let mut s = shop();
+        restock(&mut s, 3);
+        let qtys: Vec<u32> = s.iter().map(|i| i.qty).collect();
+        assert_eq!(qtys, vec![10, 3, 3, 3]);
+    }
+}
+'''
+hints = [
+  "`items.iter().filter(|i| i.qty > 0).map(|i| i.name.as_str()).collect()`",
+  "`items.iter().map(|i| i.price * i.qty).sum()`",
+  "Collect the cheap names into a `Vec<String>`, then call `.sort()` on it before returning.",
+  "`items.iter().max_by_key(|i| i.price * i.qty)`, and for restocking: `for i in items.iter_mut() { if i.qty < min { i.qty = min; } }` (or `.for_each`).",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+struct Item {
+    name: String,
+    price: u32,
+    qty: u32,
+}
+
+fn in_stock(items: &[Item]) -> Vec<&str> {
+    items.iter().filter(|i| i.qty > 0).map(|i| i.name.as_str()).collect()
+}
+
+fn total_value(items: &[Item]) -> u32 {
+    items.iter().map(|i| i.price * i.qty).sum()
+}
+
+fn cheaper_than(items: &[Item], limit: u32) -> Vec<String> {
+    let mut names: Vec<String> = items
+        .iter()
+        .filter(|i| i.price < limit)
+        .map(|i| i.name.clone())
+        .collect();
+    names.sort();
+    names
+}
+
+fn most_valuable(items: &[Item]) -> Option<&Item> {
+    items.iter().max_by_key(|i| i.price * i.qty)
+}
+
+fn restock(items: &mut [Item], min: u32) {
+    items.iter_mut().filter(|i| i.qty < min).for_each(|i| i.qty = min);
+}
+
+fn main() {
+    let mut items = vec![
+        Item { name: String::from("pen"), price: 2, qty: 10 },
+        Item { name: String::from("book"), price: 15, qty: 0 },
+        Item { name: String::from("lamp"), price: 30, qty: 2 },
+    ];
+    println!("{:?}", in_stock(&items));
+    println!("{}", total_value(&items));
+    println!("{:?}", cheaper_than(&items, 20));
+    println!("{:?}", most_valuable(&items).map(|i| &i.name));
+    restock(&mut items, 3);
+    println!("{items:?}");
+}
+'''
