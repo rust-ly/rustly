@@ -1,0 +1,87 @@
+id = "book.smart-pointers.drop.checkpoint"
+kind = "checkpoint"
+title = "Log the clean-up"
+prompt = '''
+`Tracker` borrows a shared log, a `&RefCell<Vec<String>>`. (A `RefCell` lets the log be
+changed through a shared reference; it's explained two concepts from now. For now,
+`self.log.borrow_mut().push(...)` adds a line.)
+
+Implement `Drop` for `Tracker` so that, when a tracker is dropped, it pushes
+`"dropped NAME"` onto the log. The grader checks that trackers are logged in the
+right order, including one dropped early with `drop`.
+'''
+starter = '''
+use std::cell::RefCell;
+
+struct Tracker<'a> {
+    name: &'static str,
+    log: &'a RefCell<Vec<String>>,
+}
+
+// impl Drop for Tracker<'_> { ... }
+
+fn main() {
+    let log = RefCell::new(Vec::new());
+    {
+        let _first = Tracker { name: "first", log: &log };
+        let _second = Tracker { name: "second", log: &log };
+    }
+    println!("{:?}", log.borrow());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reverse_order_at_end_of_scope() {
+        let log = RefCell::new(Vec::new());
+        {
+            let _a = Tracker { name: "a", log: &log };
+            let _b = Tracker { name: "b", log: &log };
+            assert!(log.borrow().is_empty());
+        }
+        assert_eq!(*log.borrow(), vec!["dropped b", "dropped a"]);
+    }
+
+    #[test]
+    fn dropped_early() {
+        let log = RefCell::new(Vec::new());
+        {
+            let a = Tracker { name: "a", log: &log };
+            let _b = Tracker { name: "b", log: &log };
+            drop(a);
+            assert_eq!(*log.borrow(), vec!["dropped a"]);
+        }
+        assert_eq!(*log.borrow(), vec!["dropped a", "dropped b"]);
+    }
+}
+'''
+hints = [
+  "`impl Drop for Tracker<'_> { fn drop(&mut self) { ... } }`",
+  "`self.log.borrow_mut().push(format!(\"dropped {}\", self.name));`",
+]
+solution = '''
+use std::cell::RefCell;
+
+struct Tracker<'a> {
+    name: &'static str,
+    log: &'a RefCell<Vec<String>>,
+}
+
+impl Drop for Tracker<'_> {
+    fn drop(&mut self) {
+        self.log.borrow_mut().push(format!("dropped {}", self.name));
+    }
+}
+
+fn main() {
+    let log = RefCell::new(Vec::new());
+    {
+        let _first = Tracker { name: "first", log: &log };
+        let _second = Tracker { name: "second", log: &log };
+    }
+    println!("{:?}", log.borrow());
+}
+'''
