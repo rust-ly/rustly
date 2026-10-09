@@ -1,0 +1,63 @@
+id = "book.async.futures.checkpoint"
+kind = "checkpoint"
+title = "Your first async functions"
+prompt = '''
+Write two async functions:
+
+- `async fn word_count(text: &str) -> usize`: the number of whitespace-separated words.
+- `async fn report(title: &str, body: &str) -> String`: **awaits** `word_count(body)` and
+  returns `"TITLE: N words"`.
+
+The grader awaits them inside `#[tokio::test]` functions.
+'''
+starter = '''
+async fn word_count(text: &str) -> usize {
+    todo!()
+}
+
+async fn report(title: &str, body: &str) -> String {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", report("Ferris", "a very friendly crab").await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn counts_words() {
+        assert_eq!(word_count("a very friendly crab").await, 4);
+        assert_eq!(word_count("").await, 0);
+    }
+
+    #[tokio::test]
+    async fn reports() {
+        assert_eq!(report("Ferris", "a very friendly crab").await, "Ferris: 4 words");
+        assert_eq!(report("Empty", "  ").await, "Empty: 0 words");
+    }
+}
+'''
+hints = [
+  "`text.split_whitespace().count()` works the same inside an `async fn`.",
+  "`let n = word_count(body).await; format!(\"{title}: {n} words\")`",
+]
+solution = '''
+async fn word_count(text: &str) -> usize {
+    text.split_whitespace().count()
+}
+
+async fn report(title: &str, body: &str) -> String {
+    let n = word_count(body).await;
+    format!("{title}: {n} words")
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", report("Ferris", "a very friendly crab").await);
+}
+'''

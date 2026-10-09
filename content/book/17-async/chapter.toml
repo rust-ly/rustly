@@ -1,0 +1,7 @@
+id = "book.async"
+track = "book"
+title = "Async and Await"
+order = 17
+source = "https://doc.rust-lang.org/book/ch17-00-async-await.html"
+summary = "Futures, async and await, running many tasks at once, async channels and streams, and how it all compares to threads."
+requires = []
