@@ -1,0 +1,92 @@
+id = "book.enums.binding.checkpoint"
+kind = "checkpoint"
+title = "Measure the shapes"
+prompt = '''
+Write `area(shape: &Shape) -> f64` using `match`, binding each variant's data:
+
+- a circle's area is π × radius² (use `std::f64::consts::PI`)
+- a rectangle's area is width × height
+- a triangle's area is base × height ÷ 2
+
+Then write `double(x: Option<f64>) -> Option<f64>`, which doubles the number
+inside a `Some` and leaves `None` as `None`.
+'''
+starter = '''
+use std::f64::consts::PI;
+
+enum Shape {
+    Circle(f64),
+    Rectangle(f64, f64),
+    Triangle { base: f64, height: f64 },
+}
+
+fn area(shape: &Shape) -> f64 {
+    todo!()
+}
+
+fn double(x: Option<f64>) -> Option<f64> {
+    todo!()
+}
+
+fn main() {
+    println!("{:.2}", area(&Shape::Circle(1.0)));
+    println!("{:?}", double(Some(2.5)));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn close(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-9
+    }
+
+    #[test]
+    fn areas() {
+        assert!(close(area(&Shape::Circle(2.0)), PI * 4.0));
+        assert!(close(area(&Shape::Rectangle(2.0, 3.5)), 7.0));
+        assert!(close(area(&Shape::Triangle { base: 4.0, height: 5.0 }), 10.0));
+    }
+
+    #[test]
+    fn doubling() {
+        assert_eq!(double(Some(2.5)), Some(5.0));
+        assert_eq!(double(None), None);
+    }
+}
+'''
+hints = [
+  "`Shape::Circle(r) => PI * r * r` binds the radius to `r`.",
+  "For the triangle: `Shape::Triangle { base, height } => base * height / 2.0`.",
+  "`double` is just like `plus_one`: `Some(v) => Some(v * 2.0)`.",
+]
+solution = '''
+use std::f64::consts::PI;
+
+enum Shape {
+    Circle(f64),
+    Rectangle(f64, f64),
+    Triangle { base: f64, height: f64 },
+}
+
+fn area(shape: &Shape) -> f64 {
+    match shape {
+        Shape::Circle(r) => PI * r * r,
+        Shape::Rectangle(w, h) => w * h,
+        Shape::Triangle { base, height } => base * height / 2.0,
+    }
+}
+
+fn double(x: Option<f64>) -> Option<f64> {
+    match x {
+        None => None,
+        Some(v) => Some(v * 2.0),
+    }
+}
+
+fn main() {
+    println!("{:.2}", area(&Shape::Circle(1.0)));
+    println!("{:?}", double(Some(2.5)));
+}
+'''
