@@ -1,0 +1,116 @@
+id = "book.async.many-futures.checkpoint"
+kind = "checkpoint"
+title = "Fastest mirror, with a deadline"
+prompt = '''
+`fetch(name, ms)` pretends to download from a mirror that takes `ms` milliseconds.
+Write:
+
+- `async fn fastest(a: (&'static str, u64), b: (&'static str, u64)) -> &'static str`:
+  races the two mirrors with `tokio::select!` and returns the winner's name.
+- `async fn fetch_within(name: &'static str, ms: u64, limit_ms: u64) -> Result<&'static str, String>`:
+  uses `tokio::time::timeout`, returning `Err("timed out")` if the mirror takes longer
+  than `limit_ms`.
+- `async fn fetch_all(mirrors: Vec<(&'static str, u64)>) -> Vec<&'static str>`: fetches
+  every mirror concurrently with a `JoinSet` and returns the names **in the order they
+  finished**.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::task::JoinSet;
+use tokio::time::{sleep, timeout};
+
+async fn fetch(name: &'static str, ms: u64) -> &'static str {
+    sleep(Duration::from_millis(ms)).await;
+    name
+}
+
+async fn fastest(a: (&'static str, u64), b: (&'static str, u64)) -> &'static str {
+    todo!()
+}
+
+async fn fetch_within(name: &'static str, ms: u64, limit_ms: u64) -> Result<&'static str, String> {
+    todo!()
+}
+
+async fn fetch_all(mirrors: Vec<(&'static str, u64)>) -> Vec<&'static str> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", fastest(("eu", 50), ("us", 20)).await);
+    println!("{:?}", fetch_within("slow", 300, 100).await);
+    println!("{:?}", fetch_all(vec![("a", 30), ("b", 10), ("c", 20)]).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(start_paused = true)]
+    async fn picks_the_faster() {
+        assert_eq!(fastest(("eu", 50), ("us", 20)).await, "us");
+        assert_eq!(fastest(("eu", 5), ("us", 20)).await, "eu");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn deadlines() {
+        assert_eq!(fetch_within("quick", 50, 100).await, Ok("quick"));
+        assert_eq!(fetch_within("slow", 300, 100).await, Err(String::from("timed out")));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn finish_order() {
+        assert_eq!(fetch_all(vec![("a", 30), ("b", 10), ("c", 20)]).await, vec!["b", "c", "a"]);
+        assert!(fetch_all(vec![]).await.is_empty());
+    }
+}
+'''
+hints = [
+  "`tokio::select! { x = fetch(a.0, a.1) => x, y = fetch(b.0, b.1) => y }`",
+  "`timeout(Duration::from_millis(limit_ms), fetch(name, ms)).await.map_err(|_| String::from(\"timed out\"))`",
+  "`let mut set = JoinSet::new(); for (n, ms) in mirrors { set.spawn(fetch(n, ms)); }` then `while let Some(r) = set.join_next().await { out.push(r.unwrap()); }`",
+]
+solution = '''
+use std::time::Duration;
+use tokio::task::JoinSet;
+use tokio::time::{sleep, timeout};
+
+async fn fetch(name: &'static str, ms: u64) -> &'static str {
+    sleep(Duration::from_millis(ms)).await;
+    name
+}
+
+async fn fastest(a: (&'static str, u64), b: (&'static str, u64)) -> &'static str {
+    tokio::select! {
+        x = fetch(a.0, a.1) => x,
+        y = fetch(b.0, b.1) => y,
+    }
+}
+
+async fn fetch_within(name: &'static str, ms: u64, limit_ms: u64) -> Result<&'static str, String> {
+    timeout(Duration::from_millis(limit_ms), fetch(name, ms))
+        .await
+        .map_err(|_| String::from("timed out"))
+}
+
+async fn fetch_all(mirrors: Vec<(&'static str, u64)>) -> Vec<&'static str> {
+    let mut set = JoinSet::new();
+    for (name, ms) in mirrors {
+        set.spawn(fetch(name, ms));
+    }
+    let mut out = Vec::new();
+    while let Some(result) = set.join_next().await {
+        out.push(result.unwrap());
+    }
+    out
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", fastest(("eu", 50), ("us", 20)).await);
+    println!("{:?}", fetch_within("slow", 300, 100).await);
+    println!("{:?}", fetch_all(vec![("a", 30), ("b", 10), ("c", 20)]).await);
+}
+'''
