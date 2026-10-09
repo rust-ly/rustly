@@ -1,0 +1,65 @@
+id = "book.collections.creating-vectors.checkpoint"
+kind = "checkpoint"
+title = "Count up and count down"
+prompt = '''
+Write two functions that build vectors:
+
+- `count_up(n: u32) -> Vec<u32>` returns `[1, 2, ..., n]`, using `Vec::new()`
+  and `push` in a loop. `count_up(0)` is an empty vector.
+- `countdown() -> Vec<&'static str>` returns `["three", "two", "one", "liftoff"]`,
+  using the `vec!` macro.
+'''
+starter = '''
+fn count_up(n: u32) -> Vec<u32> {
+    todo!()
+}
+
+fn countdown() -> Vec<&'static str> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", count_up(5));
+    println!("{:?}", countdown());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_up() {
+        assert_eq!(count_up(5), vec![1, 2, 3, 4, 5]);
+        assert_eq!(count_up(1), vec![1]);
+        assert!(count_up(0).is_empty());
+    }
+
+    #[test]
+    fn counts_down() {
+        assert_eq!(countdown(), vec!["three", "two", "one", "liftoff"]);
+    }
+}
+'''
+hints = [
+  "`let mut v = Vec::new();` then `for i in 1..=n { v.push(i); }` and return `v`.",
+  "`vec![\"three\", \"two\", \"one\", \"liftoff\"]`",
+]
+solution = '''
+fn count_up(n: u32) -> Vec<u32> {
+    let mut v = Vec::new();
+    for i in 1..=n {
+        v.push(i);
+    }
+    v
+}
+
+fn countdown() -> Vec<&'static str> {
+    vec!["three", "two", "one", "liftoff"]
+}
+
+fn main() {
+    println!("{:?}", count_up(5));
+    println!("{:?}", countdown());
+}
+'''
