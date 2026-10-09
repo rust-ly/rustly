@@ -1,0 +1,127 @@
+id = "book.cargo.documentation.checkpoint"
+kind = "checkpoint"
+title = "Make the code match its docs"
+prompt = '''
+`initials` and `truncate` have documentation but no code. Read the docs, including
+the **Examples** and **Panics** sections, and implement them to match exactly. The
+grader tests the documented behaviour.
+'''
+starter = '''
+/// Returns the first letter of each word in `name`, in upper case.
+///
+/// Words are separated by whitespace. An empty name gives an empty string.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(initials("ada lovelace"), "AL");
+/// assert_eq!(initials("  Grace  Hopper "), "GH");
+/// assert_eq!(initials(""), "");
+/// ```
+pub fn initials(name: &str) -> String {
+    todo!()
+}
+
+/// Shortens `text` to at most `max` characters, ending with `...` when it was cut.
+///
+/// The `...` counts towards `max`. Text that already fits is returned unchanged.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(truncate("Hello, world", 8), "Hello...");
+/// assert_eq!(truncate("short", 10), "short");
+/// ```
+///
+/// # Panics
+///
+/// Panics if `max` is less than 3, because there's no room for the `...`.
+pub fn truncate(text: &str, max: usize) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", initials("ada lovelace"));
+    println!("{}", truncate("Hello, world", 8));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn documented_initials() {
+        assert_eq!(initials("ada lovelace"), "AL");
+        assert_eq!(initials("  Grace  Hopper "), "GH");
+        assert_eq!(initials(""), "");
+    }
+
+    #[test]
+    fn documented_truncate() {
+        assert_eq!(truncate("Hello, world", 8), "Hello...");
+        assert_eq!(truncate("short", 10), "short");
+        assert_eq!(truncate("exactly8", 8), "exactly8");
+        assert_eq!(truncate("héllo wörld", 6), "hél...");
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_as_documented() {
+        truncate("abc", 2);
+    }
+}
+'''
+hints = [
+  "`initials`: `name.split_whitespace().map(|w| w.chars().next().unwrap().to_ascii_uppercase()).collect()`",
+  "`truncate`: check `max < 3` first and panic. If `text.chars().count() <= max`, return it unchanged.",
+  "Otherwise take `max - 3` characters with `text.chars().take(max - 3).collect::<String>()` and add `...`.",
+]
+solution = '''
+/// Returns the first letter of each word in `name`, in upper case.
+///
+/// Words are separated by whitespace. An empty name gives an empty string.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(initials("ada lovelace"), "AL");
+/// assert_eq!(initials("  Grace  Hopper "), "GH");
+/// assert_eq!(initials(""), "");
+/// ```
+pub fn initials(name: &str) -> String {
+    name.split_whitespace()
+        .map(|w| w.chars().next().unwrap().to_ascii_uppercase())
+        .collect()
+}
+
+/// Shortens `text` to at most `max` characters, ending with `...` when it was cut.
+///
+/// The `...` counts towards `max`. Text that already fits is returned unchanged.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(truncate("Hello, world", 8), "Hello...");
+/// assert_eq!(truncate("short", 10), "short");
+/// ```
+///
+/// # Panics
+///
+/// Panics if `max` is less than 3, because there's no room for the `...`.
+pub fn truncate(text: &str, max: usize) -> String {
+    if max < 3 {
+        panic!("max must be at least 3, got {max}");
+    }
+    if text.chars().count() <= max {
+        return text.to_string();
+    }
+    let kept: String = text.chars().take(max - 3).collect();
+    format!("{kept}...")
+}
+
+fn main() {
+    println!("{}", initials("ada lovelace"));
+    println!("{}", truncate("Hello, world", 8));
+}
+'''
