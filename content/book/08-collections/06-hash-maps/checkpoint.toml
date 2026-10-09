@@ -1,0 +1,77 @@
+id = "book.collections.hash-maps.checkpoint"
+kind = "checkpoint"
+title = "A phone book"
+prompt = '''
+Write two functions:
+
+- `phone_book(entries: &[(&str, &str)]) -> HashMap<String, String>` builds a map
+  from each name to its number.
+- `lookup(book: &HashMap<String, String>, name: &str) -> String` returns the number,
+  or `"unknown"` if the name isn't in the book.
+'''
+starter = '''
+use std::collections::HashMap;
+
+fn phone_book(entries: &[(&str, &str)]) -> HashMap<String, String> {
+    todo!()
+}
+
+fn lookup(book: &HashMap<String, String>, name: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    let book = phone_book(&[("Ada", "555-0100"), ("Grace", "555-0199")]);
+    println!("{}", lookup(&book, "Grace"));
+    println!("{}", lookup(&book, "Linus"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_the_map() {
+        let book = phone_book(&[("Ada", "1"), ("Grace", "2")]);
+        assert_eq!(book.len(), 2);
+        assert_eq!(book.get("Ada"), Some(&String::from("1")));
+    }
+
+    #[test]
+    fn looks_up_names() {
+        let book = phone_book(&[("Ada", "555-0100"), ("Grace", "555-0199")]);
+        assert_eq!(lookup(&book, "Grace"), "555-0199");
+        assert_eq!(lookup(&book, "Linus"), "unknown");
+        assert_eq!(lookup(&HashMap::new(), "Ada"), "unknown");
+    }
+}
+'''
+hints = [
+  "Start with `let mut book = HashMap::new();`, loop with `for (name, number) in entries`, and insert `name.to_string()` and `number.to_string()`.",
+  "`match book.get(name) { Some(n) => n.clone(), None => String::from(\"unknown\") }`",
+]
+solution = '''
+use std::collections::HashMap;
+
+fn phone_book(entries: &[(&str, &str)]) -> HashMap<String, String> {
+    let mut book = HashMap::new();
+    for (name, number) in entries {
+        book.insert(name.to_string(), number.to_string());
+    }
+    book
+}
+
+fn lookup(book: &HashMap<String, String>, name: &str) -> String {
+    match book.get(name) {
+        Some(number) => number.clone(),
+        None => String::from("unknown"),
+    }
+}
+
+fn main() {
+    let book = phone_book(&[("Ada", "555-0100"), ("Grace", "555-0199")]);
+    println!("{}", lookup(&book, "Grace"));
+    println!("{}", lookup(&book, "Linus"));
+}
+'''
