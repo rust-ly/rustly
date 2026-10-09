@@ -1,0 +1,81 @@
+id = "book.async.channels.checkpoint"
+kind = "checkpoint"
+title = "Producers and a consumer"
+prompt = '''
+Write `async fn gather(names: Vec<String>) -> Vec<String>`:
+
+- Create a `tokio::sync::mpsc` channel with capacity 4.
+- Spawn one task per name, each with its own clone of the sender, sending
+  `"hello, NAME"`.
+- Drop the original sender, then receive with `while let Some(msg) = rx.recv().await`.
+- Return the messages **sorted**.
+'''
+starter = '''
+use tokio::sync::mpsc;
+
+async fn gather(names: Vec<String>) -> Vec<String> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let names = vec![String::from("Grace"), String::from("Ada")];
+    println!("{:?}", gather(names).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn gathers_all() {
+        let names = vec![String::from("Grace"), String::from("Ada"), String::from("Linus")];
+        assert_eq!(gather(names).await, vec!["hello, Ada", "hello, Grace", "hello, Linus"]);
+    }
+
+    #[tokio::test]
+    async fn many_producers_small_buffer() {
+        let names: Vec<String> = (0..20).map(|i| format!("n{i:02}")).collect();
+        let out = gather(names).await;
+        assert_eq!(out.len(), 20);
+        assert_eq!(out[0], "hello, n00");
+    }
+
+    #[tokio::test]
+    async fn nobody() {
+        assert!(gather(vec![]).await.is_empty());
+    }
+}
+'''
+hints = [
+  "`let (tx, mut rx) = mpsc::channel(4);`",
+  "For each name: `let tx = tx.clone(); tokio::spawn(async move { tx.send(format!(\"hello, {name}\")).await.unwrap(); });`",
+  "`drop(tx);` before the `while let` loop, or it never ends.",
+]
+solution = '''
+use tokio::sync::mpsc;
+
+async fn gather(names: Vec<String>) -> Vec<String> {
+    let (tx, mut rx) = mpsc::channel(4);
+    for name in names {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            tx.send(format!("hello, {name}")).await.unwrap();
+        });
+    }
+    drop(tx);
+    let mut out = Vec::new();
+    while let Some(msg) = rx.recv().await {
+        out.push(msg);
+    }
+    out.sort();
+    out
+}
+
+#[tokio::main]
+async fn main() {
+    let names = vec![String::from("Grace"), String::from("Ada")];
+    println!("{:?}", gather(names).await);
+}
+'''

@@ -1,0 +1,114 @@
+id = "book.async.concurrency.checkpoint"
+kind = "checkpoint"
+title = "Cook dinner concurrently"
+prompt = '''
+Three dishes each take a while: `rice()` 3 seconds, `curry()` 2 seconds and
+`salad()` 1 second. Write:
+
+- `async fn dinner() -> Vec<&'static str>`: cooks all three **concurrently** with
+  `tokio::join!` and returns them in the order `[rice, curry, salad]`.
+- `async fn spawn_and_wait(n: u64) -> u64`: spawns a task with `tokio::spawn` that
+  sleeps `n` milliseconds and returns `n * 2`, then awaits and returns its result.
+
+The grader uses Tokio's paused clock, so time passes instantly, but it checks that
+dinner takes **3** seconds in total, not 6.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+async fn rice() -> &'static str {
+    sleep(Duration::from_secs(3)).await;
+    "rice"
+}
+
+async fn curry() -> &'static str {
+    sleep(Duration::from_secs(2)).await;
+    "curry"
+}
+
+async fn salad() -> &'static str {
+    sleep(Duration::from_secs(1)).await;
+    "salad"
+}
+
+async fn dinner() -> Vec<&'static str> {
+    let a = rice().await;
+    let b = curry().await;
+    let c = salad().await;
+    vec![a, b, c]
+}
+
+async fn spawn_and_wait(n: u64) -> u64 {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{:?}", dinner().await);
+    println!("{}", spawn_and_wait(10).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    #[tokio::test(start_paused = true)]
+    async fn dishes_cook_together() {
+        let start = Instant::now();
+        assert_eq!(dinner().await, vec!["rice", "curry", "salad"]);
+        let secs = start.elapsed().as_secs();
+        assert_eq!(secs, 3, "dinner took {secs}s; the dishes should cook at the same time");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn spawned_task_result() {
+        assert_eq!(spawn_and_wait(21).await, 42);
+        assert_eq!(spawn_and_wait(0).await, 0);
+    }
+}
+'''
+hints = [
+  "`let (a, b, c) = tokio::join!(rice(), curry(), salad()); vec![a, b, c]`",
+  "`let handle = tokio::spawn(async move { sleep(Duration::from_millis(n)).await; n * 2 }); handle.await.unwrap()`",
+]
+solution = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+async fn rice() -> &'static str {
+    sleep(Duration::from_secs(3)).await;
+    "rice"
+}
+
+async fn curry() -> &'static str {
+    sleep(Duration::from_secs(2)).await;
+    "curry"
+}
+
+async fn salad() -> &'static str {
+    sleep(Duration::from_secs(1)).await;
+    "salad"
+}
+
+async fn dinner() -> Vec<&'static str> {
+    let (a, b, c) = tokio::join!(rice(), curry(), salad());
+    vec![a, b, c]
+}
+
+async fn spawn_and_wait(n: u64) -> u64 {
+    let handle = tokio::spawn(async move {
+        sleep(Duration::from_millis(n)).await;
+        n * 2
+    });
+    handle.await.unwrap()
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{:?}", dinner().await);
+    println!("{}", spawn_and_wait(10).await);
+}
+'''

@@ -105,7 +105,9 @@ mod tests {
     #[test]
     fn server_keeps_answers() {
         for ex in course().exercises() {
-            assert!(ex.hidden_tests.contains("#[test]"), "{}", ex.id);
+            let has_test =
+                ex.hidden_tests.contains("#[test]") || ex.hidden_tests.contains("#[tokio::test");
+            assert!(has_test, "{}", ex.id);
             assert!(!ex.solution.is_empty(), "{}", ex.id);
         }
     }

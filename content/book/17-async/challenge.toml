@@ -1,0 +1,109 @@
+id = "book.async.challenge"
+kind = "challenge"
+title = "Collect results before the deadline"
+prompt = '''
+Several sensors report readings, each after its own delay. Gather what arrives in time:
+
+`async fn collect_readings(sensors: Vec<(String, u64, i32)>, deadline_ms: u64) -> Vec<(String, i32)>`
+
+- Each sensor is `(name, delay_ms, value)`. Spawn one **task** per sensor that sleeps
+  `delay_ms` and then sends `(name, value)` on a `tokio::sync::mpsc` channel.
+- Receive readings until **either** every sensor has reported **or** `deadline_ms` has
+  passed since the start, whichever comes first. (`tokio::time::timeout` around the
+  whole receiving loop works; so does `tokio::select!` against a `sleep`.)
+- Return the readings that arrived in time, **sorted by name**.
+
+A sensor that reports exactly at the deadline may or may not count, so the tests
+avoid that case.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::{sleep, timeout};
+
+async fn collect_readings(sensors: Vec<(String, u64, i32)>, deadline_ms: u64) -> Vec<(String, i32)> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let sensors = vec![
+        (String::from("kitchen"), 50, 21),
+        (String::from("garden"), 500, 14),
+        (String::from("attic"), 20, 27),
+    ];
+    println!("{:?}", collect_readings(sensors, 100).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn s(name: &str, ms: u64, v: i32) -> (String, u64, i32) {
+        (name.to_string(), ms, v)
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn drops_late_sensors() {
+        let out = collect_readings(vec![s("kitchen", 50, 21), s("garden", 500, 14), s("attic", 20, 27)], 100).await;
+        assert_eq!(out, vec![(String::from("attic"), 27), (String::from("kitchen"), 21)]);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn returns_early_when_everyone_reported() {
+        let start = tokio::time::Instant::now();
+        let out = collect_readings(vec![s("b", 10, 2), s("a", 30, 1)], 10_000).await;
+        assert_eq!(out, vec![(String::from("a"), 1), (String::from("b"), 2)]);
+        assert!(start.elapsed().as_millis() < 1_000, "should not wait for the deadline");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn nothing_in_time() {
+        assert!(collect_readings(vec![s("slow", 900, 0)], 100).await.is_empty());
+        assert!(collect_readings(vec![], 100).await.is_empty());
+    }
+}
+'''
+hints = [
+  "Create the channel, spawn a task per sensor with its own `tx.clone()`, then `drop(tx)` so the channel closes when every sensor has sent.",
+  "Wrap the loop: `let _ = timeout(Duration::from_millis(deadline_ms), async { while let Some(r) = rx.recv().await { out.push(r); } }).await;`",
+  "Sort at the end with `out.sort();`: tuples sort by their first element first.",
+]
+solution = '''
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::{sleep, timeout};
+
+async fn collect_readings(sensors: Vec<(String, u64, i32)>, deadline_ms: u64) -> Vec<(String, i32)> {
+    let (tx, mut rx) = mpsc::channel(16);
+    for (name, delay_ms, value) in sensors {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            sleep(Duration::from_millis(delay_ms)).await;
+            let _ = tx.send((name, value)).await;
+        });
+    }
+    drop(tx);
+
+    let mut out = Vec::new();
+    let _ = timeout(Duration::from_millis(deadline_ms), async {
+        while let Some(reading) = rx.recv().await {
+            out.push(reading);
+        }
+    })
+    .await;
+    out.sort();
+    out
+}
+
+#[tokio::main]
+async fn main() {
+    let sensors = vec![
+        (String::from("kitchen"), 50, 21),
+        (String::from("garden"), 500, 14),
+        (String::from("attic"), 20, 27),
+    ];
+    println!("{:?}", collect_readings(sensors, 100).await);
+}
+'''

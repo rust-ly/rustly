@@ -1,0 +1,95 @@
+id = "book.async.future-trait.checkpoint"
+kind = "checkpoint"
+title = "A future that's ready on the second poll"
+prompt = '''
+Implement `Future` for `Countdown`, a future that returns `Poll::Pending` the first
+`remaining` times it's polled, then `Poll::Ready("done")`.
+
+Before returning `Pending`, it must call `cx.waker().wake_by_ref()`, which tells the
+runtime to poll it again (otherwise it would wait forever).
+
+The grader awaits it and also checks how many times it was polled.
+'''
+starter = '''
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+struct Countdown {
+    remaining: u32,
+    polls: u32,
+}
+
+impl Future for Countdown {
+    type Output = &'static str;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<&'static str> {
+        todo!()
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let result = Countdown { remaining: 2, polls: 0 }.await;
+    println!("{result}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn eventually_ready() {
+        assert_eq!(Countdown { remaining: 3, polls: 0 }.await, "done");
+        assert_eq!(Countdown { remaining: 0, polls: 0 }.await, "done");
+    }
+
+    #[test]
+    fn counts_polls() {
+        let waker = std::task::Waker::noop();
+        let mut cx = Context::from_waker(&waker);
+        let mut fut = Countdown { remaining: 2, polls: 0 };
+        let mut pinned = Pin::new(&mut fut);
+        assert_eq!(pinned.as_mut().poll(&mut cx), Poll::Pending);
+        assert_eq!(pinned.as_mut().poll(&mut cx), Poll::Pending);
+        assert_eq!(pinned.as_mut().poll(&mut cx), Poll::Ready("done"));
+        assert_eq!(fut.polls, 3);
+    }
+}
+'''
+hints = [
+  "Start `poll` with `self.polls += 1;` (the `mut self` lets you change fields; `Countdown` is `Unpin`).",
+  "`if self.remaining == 0 { return Poll::Ready(\"done\"); }`",
+  "Otherwise: `self.remaining -= 1; cx.waker().wake_by_ref(); Poll::Pending`",
+]
+solution = '''
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+struct Countdown {
+    remaining: u32,
+    polls: u32,
+}
+
+impl Future for Countdown {
+    type Output = &'static str;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<&'static str> {
+        self.polls += 1;
+        if self.remaining == 0 {
+            return Poll::Ready("done");
+        }
+        self.remaining -= 1;
+        cx.waker().wake_by_ref();
+        Poll::Pending
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let result = Countdown { remaining: 2, polls: 0 }.await;
+    println!("{result}");
+}
+'''
