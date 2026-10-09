@@ -1,0 +1,84 @@
+id = "book.functional.map-filter.checkpoint"
+kind = "checkpoint"
+title = "Transform and filter"
+prompt = '''
+Write each function as a single iterator chain (no `for` loops):
+
+- `squares(nums: &[i32]) -> Vec<i32>`: every number squared.
+- `long_words(words: &[&str], min: usize) -> Vec<String>`: the words with at least
+  `min` characters, as owned `String`s.
+- `shouted(words: &[&str]) -> String`: all the words upper-cased and joined with no
+  separator. (`collect::<String>()` can join `String`s.)
+'''
+starter = '''
+fn squares(nums: &[i32]) -> Vec<i32> {
+    todo!()
+}
+
+fn long_words(words: &[&str], min: usize) -> Vec<String> {
+    todo!()
+}
+
+fn shouted(words: &[&str]) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", squares(&[1, 2, 3]));
+    println!("{:?}", long_words(&["a", "rust", "is", "great"], 4));
+    println!("{}", shouted(&["hey", "you"]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn squared() {
+        assert_eq!(squares(&[1, 2, 3]), vec![1, 4, 9]);
+        assert_eq!(squares(&[-4]), vec![16]);
+        assert!(squares(&[]).is_empty());
+    }
+
+    #[test]
+    fn long() {
+        assert_eq!(long_words(&["a", "rust", "is", "great"], 4), vec!["rust", "great"]);
+        assert!(long_words(&["hi"], 3).is_empty());
+    }
+
+    #[test]
+    fn shout() {
+        assert_eq!(shouted(&["hey", "you"]), "HEYYOU");
+        assert_eq!(shouted(&[]), "");
+    }
+}
+'''
+hints = [
+  "`nums.iter().map(|n| n * n).collect()`",
+  "`words.iter().filter(|w| w.len() >= min).map(|w| w.to_string()).collect()`",
+  "`words.iter().map(|w| w.to_uppercase()).collect()` with the return type `String`.",
+]
+solution = '''
+fn squares(nums: &[i32]) -> Vec<i32> {
+    nums.iter().map(|n| n * n).collect()
+}
+
+fn long_words(words: &[&str], min: usize) -> Vec<String> {
+    words
+        .iter()
+        .filter(|w| w.chars().count() >= min)
+        .map(|w| w.to_string())
+        .collect()
+}
+
+fn shouted(words: &[&str]) -> String {
+    words.iter().map(|w| w.to_uppercase()).collect()
+}
+
+fn main() {
+    println!("{:?}", squares(&[1, 2, 3]));
+    println!("{:?}", long_words(&["a", "rust", "is", "great"], 4));
+    println!("{}", shouted(&["hey", "you"]));
+}
+'''
