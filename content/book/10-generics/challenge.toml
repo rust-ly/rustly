@@ -1,0 +1,150 @@
+id = "book.generics.challenge"
+kind = "challenge"
+title = "A generic leaderboard"
+prompt = '''
+Put generics, traits and lifetimes together:
+
+1. A trait `Scored` with a required method `score(&self) -> u32` and a default
+   method `rank(&self) -> &'static str` that returns `"gold"` for a score of 90 or
+   more, `"silver"` for 70 or more, and `"bronze"` otherwise.
+2. Implement `Scored` for `Player` (score is its `points` field) and for `Team`
+   (score is the **sum** of its `members`' scores, where `members` is a `Vec<u32>`).
+3. A generic function `best<T: Scored>(entries: &[T]) -> Option<&T>` that returns
+   the entry with the highest score (the first one if there's a tie), or `None` if
+   the slice is empty.
+4. `longest_name<'a>(a: &'a Player, b: &'a Player) -> &'a str`, which returns the
+   longer of the two players' names (the first one on a tie).
+'''
+starter = '''
+struct Player {
+    name: String,
+    points: u32,
+}
+
+struct Team {
+    members: Vec<u32>,
+}
+
+fn main() {
+    let players = [
+        Player { name: String::from("Ada"), points: 95 },
+        Player { name: String::from("Grace"), points: 72 },
+    ];
+    let top = best(&players).unwrap();
+    println!("{} wins {}", top.name, top.rank());
+    println!("{}", longest_name(&players[0], &players[1]));
+    println!("team: {}", Team { members: vec![30, 25] }.rank());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn p(name: &str, points: u32) -> Player {
+        Player { name: String::from(name), points }
+    }
+
+    #[test]
+    fn ranks() {
+        assert_eq!(p("a", 90).rank(), "gold");
+        assert_eq!(p("a", 89).rank(), "silver");
+        assert_eq!(p("a", 70).rank(), "silver");
+        assert_eq!(p("a", 69).rank(), "bronze");
+        assert_eq!(Team { members: vec![50, 45] }.rank(), "gold");
+        assert_eq!(Team { members: vec![] }.score(), 0);
+    }
+
+    #[test]
+    fn best_entry() {
+        let players = [p("a", 10), p("b", 80), p("c", 80)];
+        assert_eq!(best(&players).unwrap().name, "b");
+        let teams = [Team { members: vec![1, 2] }, Team { members: vec![10] }];
+        assert_eq!(best(&teams).unwrap().score(), 10);
+        let none: [Player; 0] = [];
+        assert!(best(&none).is_none());
+    }
+
+    #[test]
+    fn longest_names() {
+        assert_eq!(longest_name(&p("Ada", 1), &p("Grace", 1)), "Grace");
+        assert_eq!(longest_name(&p("Ann", 1), &p("Bob", 1)), "Ann");
+    }
+}
+'''
+hints = [
+  "The default method can call the required one: `let s = self.score(); if s >= 90 { \"gold\" } else if ...`.",
+  "For `Team`, add up `self.members` in a loop.",
+  "In `best`, keep `let mut top: Option<&T> = None;` and replace it when an entry scores strictly higher.",
+  "`longest_name` returns `&a.name` or `&b.name`; both live for `'a`.",
+]
+solution = '''
+trait Scored {
+    fn score(&self) -> u32;
+
+    fn rank(&self) -> &'static str {
+        let s = self.score();
+        if s >= 90 {
+            "gold"
+        } else if s >= 70 {
+            "silver"
+        } else {
+            "bronze"
+        }
+    }
+}
+
+struct Player {
+    name: String,
+    points: u32,
+}
+
+struct Team {
+    members: Vec<u32>,
+}
+
+impl Scored for Player {
+    fn score(&self) -> u32 {
+        self.points
+    }
+}
+
+impl Scored for Team {
+    fn score(&self) -> u32 {
+        let mut total = 0;
+        for m in &self.members {
+            total += m;
+        }
+        total
+    }
+}
+
+fn best<T: Scored>(entries: &[T]) -> Option<&T> {
+    let mut top: Option<&T> = None;
+    for entry in entries {
+        let better = match top {
+            None => true,
+            Some(current) => entry.score() > current.score(),
+        };
+        if better {
+            top = Some(entry);
+        }
+    }
+    top
+}
+
+fn longest_name<'a>(a: &'a Player, b: &'a Player) -> &'a str {
+    if b.name.len() > a.name.len() { &b.name } else { &a.name }
+}
+
+fn main() {
+    let players = [
+        Player { name: String::from("Ada"), points: 95 },
+        Player { name: String::from("Grace"), points: 72 },
+    ];
+    let top = best(&players).unwrap();
+    println!("{} wins {}", top.name, top.rank());
+    println!("{}", longest_name(&players[0], &players[1]));
+    println!("team: {}", Team { members: vec![30, 25] }.rank());
+}
+'''

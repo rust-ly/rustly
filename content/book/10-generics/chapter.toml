@@ -1,0 +1,7 @@
+id = "book.generics"
+track = "book"
+title = "Generic Types, Traits, and Lifetimes"
+order = 10
+source = "https://doc.rust-lang.org/book/ch10-00-generics.html"
+summary = "Write code once for many types with generics, describe shared behaviour with traits, and tell the compiler how long references live."
+requires = []
