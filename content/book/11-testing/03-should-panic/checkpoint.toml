@@ -1,0 +1,89 @@
+id = "book.testing.should-panic.checkpoint"
+kind = "checkpoint"
+title = "Reject bad withdrawals"
+prompt = '''
+The grader's tests use `#[should_panic(expected = "...")]`, so your panics need the
+right messages. Write `Account::withdraw(&mut self, amount: u32)`:
+
+- An `amount` of 0 panics with a message containing `"amount must be positive"`.
+- An `amount` larger than the balance panics with a message containing
+  `"insufficient funds"`.
+- Otherwise it subtracts `amount` from `balance`.
+'''
+starter = '''
+pub struct Account {
+    pub balance: u32,
+}
+
+impl Account {
+    pub fn withdraw(&mut self, amount: u32) {
+        self.balance -= amount;
+    }
+}
+
+fn main() {
+    let mut acct = Account { balance: 100 };
+    acct.withdraw(30);
+    println!("balance: {}", acct.balance);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    #[test]
+    fn withdraws() {
+        let mut a = Account { balance: 100 };
+        a.withdraw(30);
+        a.withdraw(70);
+        assert_eq!(a.balance, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "amount must be positive")]
+    fn zero_is_rejected() {
+        Account { balance: 100 }.withdraw(0);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient funds")]
+    fn overdraft_is_rejected() {
+        Account { balance: 10 }.withdraw(11);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient funds")]
+    fn empty_account_is_rejected() {
+        Account { balance: 0 }.withdraw(1);
+    }
+}
+'''
+hints = [
+  "Check `amount == 0` first, then `amount > self.balance`.",
+  "Include the values in the messages for easier debugging: `panic!(\"insufficient funds: balance {}, asked for {amount}\", self.balance);`",
+  "The starter already panics for an overdraft, but with Rust's own overflow message, not `insufficient funds`.",
+]
+solution = '''
+pub struct Account {
+    pub balance: u32,
+}
+
+impl Account {
+    pub fn withdraw(&mut self, amount: u32) {
+        if amount == 0 {
+            panic!("amount must be positive");
+        }
+        if amount > self.balance {
+            panic!("insufficient funds: balance {}, asked for {amount}", self.balance);
+        }
+        self.balance -= amount;
+    }
+}
+
+fn main() {
+    let mut acct = Account { balance: 100 };
+    acct.withdraw(30);
+    println!("balance: {}", acct.balance);
+}
+'''
