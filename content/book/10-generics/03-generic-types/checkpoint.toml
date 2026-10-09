@@ -1,0 +1,89 @@
+id = "book.generics.generic-types.checkpoint"
+kind = "checkpoint"
+title = "A generic Pair"
+prompt = '''
+Write a generic struct `Pair<T>` holding two values of the same type, in fields
+`first` and `second`, with these methods for every `T`:
+
+- `Pair::new(first: T, second: T) -> Pair<T>`
+- `first(&self) -> &T` and `second(&self) -> &T`
+- `swap(self) -> Pair<T>`, returning a new pair with the values swapped
+
+And one method only for `Pair<i32>`:
+
+- `sum(&self) -> i32`
+'''
+starter = '''
+// Define Pair<T> and its impl blocks here.
+
+fn main() {
+    let p = Pair::new(3, 4);
+    println!("{} + {} = {}", p.first(), p.second(), p.sum());
+    let words = Pair::new("left", "right").swap();
+    println!("{} {}", words.first(), words.second());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn works_for_any_type() {
+        let p = Pair::new('a', 'b');
+        assert_eq!(*p.first(), 'a');
+        assert_eq!(*p.second(), 'b');
+        let s = Pair::new(String::from("x"), String::from("y")).swap();
+        assert_eq!(s.first(), "y");
+        assert_eq!(s.second(), "x");
+    }
+
+    #[test]
+    fn sums_integers() {
+        assert_eq!(Pair::new(3, 4).sum(), 7);
+        assert_eq!(Pair::new(-2, 2).swap().sum(), 0);
+    }
+}
+'''
+hints = [
+  "`struct Pair<T> { first: T, second: T }` and `impl<T> Pair<T> { ... }`.",
+  "`swap` takes `self` by value, so it can move the fields: `Pair { first: self.second, second: self.first }`.",
+  "Add a separate `impl Pair<i32> { fn sum(&self) -> i32 { self.first + self.second } }`.",
+]
+solution = '''
+struct Pair<T> {
+    first: T,
+    second: T,
+}
+
+impl<T> Pair<T> {
+    fn new(first: T, second: T) -> Pair<T> {
+        Pair { first, second }
+    }
+
+    fn first(&self) -> &T {
+        &self.first
+    }
+
+    fn second(&self) -> &T {
+        &self.second
+    }
+
+    fn swap(self) -> Pair<T> {
+        Pair { first: self.second, second: self.first }
+    }
+}
+
+impl Pair<i32> {
+    fn sum(&self) -> i32 {
+        self.first + self.second
+    }
+}
+
+fn main() {
+    let p = Pair::new(3, 4);
+    println!("{} + {} = {}", p.first(), p.second(), p.sum());
+    let words = Pair::new("left", "right").swap();
+    println!("{} {}", words.first(), words.second());
+}
+'''
