@@ -1,0 +1,123 @@
+id = "book.oop.oop-in-rust.checkpoint"
+kind = "checkpoint"
+title = "A collection that can't get out of sync"
+prompt = '''
+Finish `AveragedCollection`. Its fields stay **private**; the public methods keep
+`average` correct at all times:
+
+- `new()`, `add(value)` and `average()` as in the lesson. The average of an empty
+  collection is `0.0`.
+- `remove(&mut self) -> Option<i32>`: removes and returns the last value, updating the
+  average.
+- `len(&self) -> usize`.
+
+Make sure removing the last value doesn't divide by zero.
+'''
+starter = '''
+pub struct AveragedCollection {
+    list: Vec<i32>,
+    average: f64,
+}
+
+impl AveragedCollection {
+    pub fn new() -> AveragedCollection {
+        AveragedCollection { list: vec![], average: 0.0 }
+    }
+
+    pub fn add(&mut self, value: i32) {
+        self.list.push(value);
+    }
+
+    pub fn average(&self) -> f64 {
+        self.average
+    }
+}
+
+fn main() {
+    let mut c = AveragedCollection::new();
+    c.add(3);
+    c.add(5);
+    println!("average {}, removed {:?}, now {}", c.average(), c.remove(), c.average());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_the_average() {
+        let mut c = AveragedCollection::new();
+        assert_eq!(c.average(), 0.0);
+        c.add(3);
+        c.add(5);
+        assert_eq!(c.average(), 4.0);
+        assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn removing_updates_it() {
+        let mut c = AveragedCollection::new();
+        c.add(2);
+        c.add(10);
+        assert_eq!(c.remove(), Some(10));
+        assert_eq!(c.average(), 2.0);
+        assert_eq!(c.remove(), Some(2));
+        assert_eq!(c.average(), 0.0);
+        assert_eq!(c.remove(), None);
+        assert_eq!(c.len(), 0);
+    }
+}
+'''
+hints = [
+  "Add a private `fn update_average(&mut self)` and call it from both `add` and `remove`.",
+  "In `update_average`, set the average to `0.0` when the list is empty instead of dividing.",
+  "`remove`: `let value = self.list.pop(); self.update_average(); value`",
+]
+solution = '''
+pub struct AveragedCollection {
+    list: Vec<i32>,
+    average: f64,
+}
+
+impl AveragedCollection {
+    pub fn new() -> AveragedCollection {
+        AveragedCollection { list: vec![], average: 0.0 }
+    }
+
+    pub fn add(&mut self, value: i32) {
+        self.list.push(value);
+        self.update_average();
+    }
+
+    pub fn remove(&mut self) -> Option<i32> {
+        let value = self.list.pop();
+        self.update_average();
+        value
+    }
+
+    pub fn average(&self) -> f64 {
+        self.average
+    }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
+
+    fn update_average(&mut self) {
+        if self.list.is_empty() {
+            self.average = 0.0;
+        } else {
+            let total: i32 = self.list.iter().sum();
+            self.average = total as f64 / self.list.len() as f64;
+        }
+    }
+}
+
+fn main() {
+    let mut c = AveragedCollection::new();
+    c.add(3);
+    c.add(5);
+    println!("average {}, removed {:?}, now {}", c.average(), c.remove(), c.average());
+}
+'''

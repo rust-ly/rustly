@@ -1,0 +1,7 @@
+id = "book.oop"
+track = "book"
+title = "Object-Oriented Programming Features"
+order = 18
+source = "https://doc.rust-lang.org/book/ch18-00-oop.html"
+summary = "How Rust handles objects, encapsulation and polymorphism: trait objects, dynamic dispatch, and the state pattern done two ways."
+requires = []
