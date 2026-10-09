@@ -1,0 +1,73 @@
+id = "book.functional.capturing.checkpoint"
+kind = "checkpoint"
+title = "A tally and a greeter"
+prompt = '''
+Write two functions:
+
+- `tally(words: &[&str]) -> usize` counts the words longer than 3 characters. Use a
+  `mut` closure called `count_if_long` that captures a `count` variable mutably and
+  adds one when its argument is long enough; call it for every word.
+- `make_greeting(name: String) -> String` creates a `move` closure that captures
+  `name` and returns `"Welcome, NAME!"`, then calls it and returns the result.
+'''
+starter = '''
+fn tally(words: &[&str]) -> usize {
+    todo!()
+}
+
+fn make_greeting(name: String) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", tally(&["a", "rust", "is", "great"]));
+    println!("{}", make_greeting(String::from("Ferris")));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_long_words() {
+        assert_eq!(tally(&["a", "rust", "is", "great"]), 2);
+        assert_eq!(tally(&["abc", "abcd"]), 1);
+        assert_eq!(tally(&[]), 0);
+    }
+
+    #[test]
+    fn greets() {
+        assert_eq!(make_greeting(String::from("Ferris")), "Welcome, Ferris!");
+    }
+}
+'''
+hints = [
+  "`let mut count = 0; let mut count_if_long = |w: &str| if w.len() > 3 { count += 1; };`",
+  "Call it in a loop, then return `count` after the loop (when the closure's borrow has ended).",
+  "`let greet = move || format!(\"Welcome, {name}!\"); greet()`",
+]
+solution = '''
+fn tally(words: &[&str]) -> usize {
+    let mut count = 0;
+    let mut count_if_long = |w: &str| {
+        if w.len() > 3 {
+            count += 1;
+        }
+    };
+    for w in words {
+        count_if_long(w);
+    }
+    count
+}
+
+fn make_greeting(name: String) -> String {
+    let greet = move || format!("Welcome, {name}!");
+    greet()
+}
+
+fn main() {
+    println!("{}", tally(&["a", "rust", "is", "great"]));
+    println!("{}", make_greeting(String::from("Ferris")));
+}
+'''
