@@ -1,0 +1,79 @@
+id = "book.cargo.release-profiles.checkpoint"
+kind = "checkpoint"
+title = "Overflow on purpose"
+prompt = '''
+These functions must behave the same in dev and release builds. Write them with the
+explicit overflow methods:
+
+- `add_items(stock: u8, more: u8) -> Option<u8>`: `None` if the total doesn't fit in
+  a `u8` (`checked_add`).
+- `volume_up(level: u8, step: u8) -> u8`: never goes past 255 (`saturating_add`).
+- `next_ticket(n: u8) -> u8`: ticket numbers go 0 to 255, then start again at 0
+  (`wrapping_add`).
+'''
+starter = '''
+fn add_items(stock: u8, more: u8) -> Option<u8> {
+    Some(stock + more)
+}
+
+fn volume_up(level: u8, step: u8) -> u8 {
+    level + step
+}
+
+fn next_ticket(n: u8) -> u8 {
+    n + 1
+}
+
+fn main() {
+    println!("{:?}", add_items(200, 100));
+    println!("{}", volume_up(250, 10));
+    println!("{}", next_ticket(255));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn checked() {
+        assert_eq!(add_items(200, 55), Some(255));
+        assert_eq!(add_items(200, 100), None);
+    }
+
+    #[test]
+    fn saturating() {
+        assert_eq!(volume_up(250, 10), 255);
+        assert_eq!(volume_up(10, 5), 15);
+    }
+
+    #[test]
+    fn wrapping() {
+        assert_eq!(next_ticket(255), 0);
+        assert_eq!(next_ticket(41), 42);
+    }
+}
+'''
+hints = [
+  "`stock.checked_add(more)` already returns an `Option<u8>`.",
+  "`level.saturating_add(step)` and `n.wrapping_add(1)`.",
+]
+solution = '''
+fn add_items(stock: u8, more: u8) -> Option<u8> {
+    stock.checked_add(more)
+}
+
+fn volume_up(level: u8, step: u8) -> u8 {
+    level.saturating_add(step)
+}
+
+fn next_ticket(n: u8) -> u8 {
+    n.wrapping_add(1)
+}
+
+fn main() {
+    println!("{:?}", add_items(200, 100));
+    println!("{}", volume_up(250, 10));
+    println!("{}", next_ticket(255));
+}
+'''
