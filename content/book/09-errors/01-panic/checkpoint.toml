@@ -1,0 +1,60 @@
+id = "book.errors.panic.checkpoint"
+kind = "checkpoint"
+title = "A volume knob with limits"
+prompt = '''
+`set_volume(level: u8) -> u8` returns the new volume. Volumes go from 0 to 100,
+and asking for more is a bug in the caller.
+
+Make it panic with a message that **contains** `"volume must be 0-100"` when
+`level` is over 100, and return `level` otherwise.
+'''
+starter = '''
+fn set_volume(level: u8) -> u8 {
+    level
+}
+
+fn main() {
+    println!("volume: {}", set_volume(40));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_valid_levels() {
+        assert_eq!(set_volume(0), 0);
+        assert_eq!(set_volume(40), 40);
+        assert_eq!(set_volume(100), 100);
+    }
+
+    #[test]
+    #[should_panic(expected = "volume must be 0-100")]
+    fn rejects_too_loud() {
+        set_volume(101);
+    }
+
+    #[test]
+    #[should_panic(expected = "volume must be 0-100")]
+    fn rejects_way_too_loud() {
+        set_volume(255);
+    }
+}
+'''
+hints = [
+  "Check `if level > 100 { ... }` before returning.",
+  "`panic!(\"volume must be 0-100, got {level}\");` includes the required text and the bad value.",
+]
+solution = '''
+fn set_volume(level: u8) -> u8 {
+    if level > 100 {
+        panic!("volume must be 0-100, got {level}");
+    }
+    level
+}
+
+fn main() {
+    println!("volume: {}", set_volume(40));
+}
+'''

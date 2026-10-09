@@ -1,0 +1,170 @@
+id = "book.errors.challenge"
+kind = "challenge"
+title = "Read a settings file"
+prompt = '''
+A settings file has one `key = value` setting per line. Parse it into a `Settings`
+struct, reporting a precise error when something is wrong.
+
+```text
+name = Rustly
+port = 8080
+debug = true
+```
+
+1. `parse_line(line: &str) -> Result<(String, String), ConfigError>` splits a line
+   at the first `=` and trims spaces from both sides. A line with no `=` is
+   `ConfigError::MissingEquals(line)` (the original line). (`line.split_once('=')`
+   returns an `Option<(&str, &str)>`.)
+2. `parse_settings(text: &str) -> Result<Settings, ConfigError>` reads every line,
+   skipping blank ones. Use `?` to pass errors up.
+   - `port` must parse as a `u16`, otherwise `ConfigError::BadPort(value)`.
+   - `debug` must be `true` or `false`, otherwise `ConfigError::BadDebug(value)`.
+   - `name` is any text.
+   - Any other key is `ConfigError::UnknownKey(key)`.
+   - If `name` or `port` never appears, return `ConfigError::Missing("name")` or
+     `ConfigError::Missing("port")`. `debug` is optional and defaults to `false`.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum ConfigError {
+    MissingEquals(String),
+    UnknownKey(String),
+    BadPort(String),
+    BadDebug(String),
+    Missing(&'static str),
+}
+
+#[derive(Debug, PartialEq)]
+struct Settings {
+    name: String,
+    port: u16,
+    debug: bool,
+}
+
+fn parse_line(line: &str) -> Result<(String, String), ConfigError> {
+    todo!()
+}
+
+fn parse_settings(text: &str) -> Result<Settings, ConfigError> {
+    todo!()
+}
+
+fn main() {
+    let text = "name = Rustly\nport = 8080\n\ndebug = true";
+    println!("{:?}", parse_settings(text));
+    println!("{:?}", parse_settings("port = eighty"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lines() {
+        assert_eq!(
+            parse_line("  name =  Rustly "),
+            Ok((String::from("name"), String::from("Rustly")))
+        );
+        assert_eq!(
+            parse_line("a=b=c"),
+            Ok((String::from("a"), String::from("b=c")))
+        );
+        assert_eq!(
+            parse_line("oops"),
+            Err(ConfigError::MissingEquals(String::from("oops")))
+        );
+    }
+
+    #[test]
+    fn full_settings() {
+        let text = "name = Rustly\nport = 8080\n\ndebug = true\n";
+        assert_eq!(
+            parse_settings(text),
+            Ok(Settings { name: String::from("Rustly"), port: 8080, debug: true })
+        );
+    }
+
+    #[test]
+    fn debug_defaults_to_false() {
+        let s = parse_settings("port=1\nname=x").unwrap();
+        assert!(!s.debug);
+    }
+
+    #[test]
+    fn precise_errors() {
+        assert_eq!(parse_settings("port = eighty"), Err(ConfigError::BadPort(String::from("eighty"))));
+        assert_eq!(parse_settings("name=a\nport=1\ndebug=yes"), Err(ConfigError::BadDebug(String::from("yes"))));
+        assert_eq!(parse_settings("colour = red"), Err(ConfigError::UnknownKey(String::from("colour"))));
+        assert_eq!(parse_settings("name=a\nbroken"), Err(ConfigError::MissingEquals(String::from("broken"))));
+        assert_eq!(parse_settings("port=1"), Err(ConfigError::Missing("name")));
+        assert_eq!(parse_settings("name=a"), Err(ConfigError::Missing("port")));
+    }
+}
+'''
+hints = [
+  "`let (key, value) = line.split_once('=').ok_or(ConfigError::MissingEquals(line.to_string()))?;` then return the trimmed parts.",
+  "Keep `let mut name: Option<String> = None;`, `let mut port: Option<u16> = None;` and `let mut debug = false;`, then `match key.as_str() { ... }` for each line.",
+  "`value.parse::<u16>().ok().ok_or(ConfigError::BadPort(value.clone()))?` turns a bad port into your own error.",
+  "At the end, `name.ok_or(ConfigError::Missing(\"name\"))?` checks a required setting appeared.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum ConfigError {
+    MissingEquals(String),
+    UnknownKey(String),
+    BadPort(String),
+    BadDebug(String),
+    Missing(&'static str),
+}
+
+#[derive(Debug, PartialEq)]
+struct Settings {
+    name: String,
+    port: u16,
+    debug: bool,
+}
+
+fn parse_line(line: &str) -> Result<(String, String), ConfigError> {
+    let (key, value) = line
+        .split_once('=')
+        .ok_or(ConfigError::MissingEquals(line.to_string()))?;
+    Ok((key.trim().to_string(), value.trim().to_string()))
+}
+
+fn parse_settings(text: &str) -> Result<Settings, ConfigError> {
+    let mut name: Option<String> = None;
+    let mut port: Option<u16> = None;
+    let mut debug = false;
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let (key, value) = parse_line(line)?;
+        match key.as_str() {
+            "name" => name = Some(value),
+            "port" => {
+                let p = value.parse::<u16>().ok().ok_or(ConfigError::BadPort(value.clone()))?;
+                port = Some(p);
+            }
+            "debug" => {
+                debug = match value.as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(ConfigError::BadDebug(value)),
+                };
+            }
+            _ => return Err(ConfigError::UnknownKey(key)),
+        }
+    }
+    let name = name.ok_or(ConfigError::Missing("name"))?;
+    let port = port.ok_or(ConfigError::Missing("port"))?;
+    Ok(Settings { name, port, debug })
+}
+
+fn main() {
+    let text = "name = Rustly\nport = 8080\n\ndebug = true";
+    println!("{:?}", parse_settings(text));
+    println!("{:?}", parse_settings("port = eighty"));
+}
+'''

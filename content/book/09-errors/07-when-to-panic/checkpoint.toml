@@ -1,0 +1,84 @@
+id = "book.errors.when-to-panic.checkpoint"
+kind = "checkpoint"
+title = "A percentage that's always valid"
+prompt = '''
+Make `Percentage` a type that can only hold 0 to 100:
+
+- Keep the `value` field private.
+- `Percentage::new(value: u8) -> Result<Percentage, String>` returns
+  `Err("percentage must be 0-100, got N")` for values over 100, and `Ok` otherwise.
+- `value(&self) -> u8` returns the value.
+- `of(&self, amount: u32) -> u32` returns that percentage of `amount`, using
+  integer maths: `amount * value / 100`.
+'''
+starter = '''
+pub struct Percentage {
+    value: u8,
+}
+
+impl Percentage {
+    // Add new, value and of here.
+}
+
+fn main() {
+    let tip = Percentage::new(15).unwrap();
+    println!("{}% of 2000 is {}", tip.value(), tip.of(2000));
+    println!("{:?}", Percentage::new(150).err());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_percentages() {
+        let p = Percentage::new(15).unwrap();
+        assert_eq!(p.value(), 15);
+        assert_eq!(p.of(2000), 300);
+        assert_eq!(Percentage::new(0).unwrap().of(999), 0);
+        assert_eq!(Percentage::new(100).unwrap().of(42), 42);
+    }
+
+    #[test]
+    fn rejects_over_100() {
+        assert_eq!(
+            Percentage::new(150).err(),
+            Some(String::from("percentage must be 0-100, got 150"))
+        );
+        assert!(Percentage::new(101).is_err());
+    }
+}
+'''
+hints = [
+  "`pub fn new(value: u8) -> Result<Percentage, String> { if value > 100 { return Err(format!(...)); } Ok(Percentage { value }) }`",
+  "In `of`, convert the `u8` first: `amount * self.value as u32 / 100`.",
+]
+solution = '''
+pub struct Percentage {
+    value: u8,
+}
+
+impl Percentage {
+    pub fn new(value: u8) -> Result<Percentage, String> {
+        if value > 100 {
+            return Err(format!("percentage must be 0-100, got {value}"));
+        }
+        Ok(Percentage { value })
+    }
+
+    pub fn value(&self) -> u8 {
+        self.value
+    }
+
+    pub fn of(&self, amount: u32) -> u32 {
+        amount * self.value as u32 / 100
+    }
+}
+
+fn main() {
+    let tip = Percentage::new(15).unwrap();
+    println!("{}% of 2000 is {}", tip.value(), tip.of(2000));
+    println!("{:?}", Percentage::new(150).err());
+}
+'''

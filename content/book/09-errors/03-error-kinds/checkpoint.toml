@@ -1,0 +1,77 @@
+id = "book.errors.error-kinds.checkpoint"
+kind = "checkpoint"
+title = "Friendly messages for each failure"
+prompt = '''
+Write `explain(input: &str) -> String`, which parses `input` as an `i8`
+(a number from -128 to 127) and explains the result:
+
+- success: `"got N"`
+- empty input: `"please type a number"`
+- not a number: `"that's not a number"`
+- too big: `"too big (max 127)"`
+- too small: `"too small (min -128)"`
+
+Match on `e.kind()` with `std::num::IntErrorKind`. Remember the catch-all.
+'''
+starter = '''
+use std::num::IntErrorKind;
+
+fn explain(input: &str) -> String {
+    match input.parse::<i8>() {
+        Ok(n) => format!("got {n}"),
+        Err(_) => String::from("error"),
+    }
+}
+
+fn main() {
+    for input in ["42", "", "4x", "999", "-999"] {
+        println!("{input:?}: {}", explain(input));
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn success() {
+        assert_eq!(explain("42"), "got 42");
+        assert_eq!(explain("-128"), "got -128");
+    }
+
+    #[test]
+    fn each_failure_kind() {
+        assert_eq!(explain(""), "please type a number");
+        assert_eq!(explain("4x"), "that's not a number");
+        assert_eq!(explain("999"), "too big (max 127)");
+        assert_eq!(explain("-999"), "too small (min -128)");
+    }
+}
+'''
+hints = [
+  "Replace `Err(_)` with `Err(e) => match e.kind() { ... }`.",
+  "The variants are `IntErrorKind::Empty`, `InvalidDigit`, `PosOverflow` and `NegOverflow`; finish with `_ =>`.",
+]
+solution = '''
+use std::num::IntErrorKind;
+
+fn explain(input: &str) -> String {
+    match input.parse::<i8>() {
+        Ok(n) => format!("got {n}"),
+        Err(e) => match e.kind() {
+            IntErrorKind::Empty => String::from("please type a number"),
+            IntErrorKind::InvalidDigit => String::from("that's not a number"),
+            IntErrorKind::PosOverflow => String::from("too big (max 127)"),
+            IntErrorKind::NegOverflow => String::from("too small (min -128)"),
+            _ => format!("unexpected error: {e}"),
+        },
+    }
+}
+
+fn main() {
+    for input in ["42", "", "4x", "999", "-999"] {
+        println!("{input:?}: {}", explain(input));
+    }
+}
+'''

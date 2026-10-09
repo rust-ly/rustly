@@ -1,0 +1,73 @@
+id = "book.errors.result.checkpoint"
+kind = "checkpoint"
+title = "Read an age"
+prompt = '''
+Write `parse_age(input: &str) -> Result<u8, String>`:
+
+- Parse `input` as a `u8` with `.parse::<u8>()` and `match` on the result.
+- If parsing fails, return `Err("not a number: INPUT")`, with the original input.
+- If it's a number over 130, return `Err("too old: N")`.
+- Otherwise return `Ok(age)`.
+'''
+starter = '''
+fn parse_age(input: &str) -> Result<u8, String> {
+    todo!()
+}
+
+fn main() {
+    for input in ["30", "abc", "200"] {
+        println!("{input}: {:?}", parse_age(input));
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_ages() {
+        assert_eq!(parse_age("30"), Ok(30));
+        assert_eq!(parse_age("0"), Ok(0));
+        assert_eq!(parse_age("130"), Ok(130));
+    }
+
+    #[test]
+    fn not_numbers() {
+        assert_eq!(parse_age("abc"), Err(String::from("not a number: abc")));
+        assert_eq!(parse_age(""), Err(String::from("not a number: ")));
+        assert_eq!(parse_age("300"), Err(String::from("not a number: 300")));
+    }
+
+    #[test]
+    fn too_old() {
+        assert_eq!(parse_age("131"), Err(String::from("too old: 131")));
+        assert_eq!(parse_age("200"), Err(String::from("too old: 200")));
+    }
+}
+'''
+hints = [
+  "`match input.parse::<u8>() { Ok(age) => ..., Err(_) => Err(format!(\"not a number: {input}\")) }`",
+  "Inside the `Ok(age)` arm, check `if age > 130` before returning `Ok(age)`.",
+  "\"300\" doesn't fit in a `u8` (0-255), so parsing it fails. That's why it's \"not a number\".",
+]
+solution = '''
+fn parse_age(input: &str) -> Result<u8, String> {
+    match input.parse::<u8>() {
+        Ok(age) => {
+            if age > 130 {
+                Err(format!("too old: {age}"))
+            } else {
+                Ok(age)
+            }
+        }
+        Err(_) => Err(format!("not a number: {input}")),
+    }
+}
+
+fn main() {
+    for input in ["30", "abc", "200"] {
+        println!("{input}: {:?}", parse_age(input));
+    }
+}
+'''
