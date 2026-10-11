@@ -1,9 +1,11 @@
 use leptos::prelude::*;
 use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::path;
+use wasm_bindgen::JsCast;
 
 use crate::chapter::ChapterPage;
 use crate::course_map::LearnPage;
+use crate::credits::CreditsPage;
 use crate::home::Home;
 use crate::learner::Learner;
 use crate::lesson::ConceptPage;
@@ -15,12 +17,14 @@ pub fn App() -> impl IntoView {
     Learner::provide();
     view! {
         <Router>
+            <SkipLink />
             <TopBar />
-            <main>
+            <main id="main" tabindex="-1">
                 <Routes fallback=NotFound>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/learn") view=|| view! { <div class="container"><LearnPage /></div> } />
                     <Route path=path!("/learn/:track/:chapter") view=|| view! { <div class="container"><ChapterPage /></div> } />
+                    <Route path=path!("/credits") view=|| view! { <div class="container"><CreditsPage /></div> } />
                     <Route path=path!("/snippets") view=|| view! { <div class="container"><SnippetsPage /></div> } />
                     <Route path=path!("/learn/:track/:chapter/:concept") view=|| view! { <div class="container"><ConceptPage /></div> } />
                 </Routes>
@@ -28,6 +32,20 @@ pub fn App() -> impl IntoView {
             <Footer />
         </Router>
     }
+}
+
+/// The first thing Tab reaches: jumps past the top bar to the page content.
+/// Focuses `<main>` directly, because the router would treat `#main` as a
+/// navigation.
+#[component]
+fn SkipLink() -> impl IntoView {
+    let skip = |ev: leptos::ev::MouseEvent| {
+        ev.prevent_default();
+        if let Some(main) = document().get_element_by_id("main") {
+            let _ = main.unchecked_into::<web_sys::HtmlElement>().focus();
+        }
+    };
+    view! { <a class="skip-link" href="#main" on:click=skip>"Skip to content"</a> }
 }
 
 #[component]
@@ -56,7 +74,8 @@ fn Footer() -> impl IntoView {
                         <a href="https://doc.rust-lang.org/book/">"The Rust Programming Language"</a>
                         " (MIT / Apache-2.0) and the "
                         <a href="https://tokio.rs/tokio/tutorial">"Tokio tutorial"</a>
-                        " (MIT)."
+                        " (MIT). "
+                        <A href="/credits">"Credits and licenses"</A>
                     </p>
                     <ApiStatus />
                 </div>

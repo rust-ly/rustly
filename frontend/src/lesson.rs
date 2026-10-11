@@ -207,6 +207,7 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
             <CodeEditor code=code diagnostics=check.diagnostics goto=goto />
             <div class="exercise-actions">
                 <CheckChip check=check />
+                <span class="editor-keys small muted">"esc leaves the editor"</span>
                 <button class="btn btn-secondary btn-sm" on:click=reset disabled=running>"./reset"</button>
                 <button class="btn btn-sm" on:click=run disabled=running>
                     {move || if running() { "running…" } else { "./run" }}

@@ -3,6 +3,7 @@ mod app;
 mod chapter;
 mod check;
 mod course_map;
+mod credits;
 mod editor;
 mod highlight;
 mod hints;
