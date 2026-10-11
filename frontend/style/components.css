@@ -86,9 +86,16 @@
 .topbar-actions { display: flex; align-items: center; gap: var(--space-4); }
 .icon-btn.round { width: 40px; height: 40px; border-radius: 50%; border-color: var(--code-line); color: var(--cream); }
 
+/* Phones: the links move to a second row instead of disappearing. */
 @media (max-width: 640px) {
-  .topbar nav { display: none; }
-  .topbar-actions { margin-left: auto; }
+  .topbar { height: auto; }
+  .topbar-inner { flex-wrap: wrap; column-gap: var(--space-2); row-gap: var(--space-1); padding-top: var(--space-3); padding-bottom: var(--space-2); }
+  .topbar nav { order: 3; width: 100%; margin: 0; justify-content: center; }
+  .topbar nav a { padding: 8px 12px; }
+  .topbar-actions { margin-left: auto; gap: var(--space-2); }
+}
+@media (max-width: 360px) {
+  .topbar .btn-sans { padding-left: var(--space-3); padding-right: var(--space-3); }
 }
 
 /* Page sections */
@@ -249,7 +256,7 @@ main:focus { outline: none; }
   font-size: var(--text-small);
 }
 .snippet-title { font-weight: 500; }
-.snippet-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.snippet-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); margin-left: auto; }
 .btn-sm { padding: 5px 9px; font-size: 11px; }
 .snippet-code {
   display: block;
