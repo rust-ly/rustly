@@ -52,6 +52,11 @@ export function set_markers(handle, markers_json) {
   if (handle.ed) monaco.editor.setModelMarkers(handle.ed.getModel(), "rustc", JSON.parse(markers_json));
 }
 
+export function reveal(handle, line, col) {
+  if (handle.ed) { handle.ed.setPosition({ lineNumber: line, column: col }); handle.ed.revealLineInCenter(line); handle.ed.focus(); }
+  else if (handle.area) { handle.area.focus(); const lines = handle.area.value.split("\n"); const at = lines.slice(0, line - 1).join("\n").length + (line > 1) + col - 1; handle.area.setSelectionRange(at, at); }
+}
+
 export function dispose_editor(handle) {
   handle.disposed = true;
   if (handle.observer) handle.observer.disconnect();
