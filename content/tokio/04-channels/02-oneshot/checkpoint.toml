@@ -1,0 +1,151 @@
+id = "tokio.channels.oneshot.checkpoint"
+kind = "checkpoint"
+title = "A counter manager"
+prompt = '''
+Build a manager task that owns a map of counters.
+
+- `fn spawn_manager() -> (mpsc::Sender<Command>, JoinHandle<()>)` spawns the
+  manager and returns a sender for commands plus its `JoinHandle`. The manager
+  handles commands until every sender is dropped, then finishes.
+  - `Incr { key, resp }` adds 1 to `key`'s counter and replies with the new value.
+  - `Get { key, resp }` replies with the counter's value (0 if it's never been incremented).
+- `async fn incr(tx: &mpsc::Sender<Command>, key: &str) -> u64` and
+  `async fn get(tx: &mpsc::Sender<Command>, key: &str) -> u64` are the client side:
+  make a `oneshot`, send the command, and await the reply.
+'''
+starter = '''
+use std::collections::HashMap;
+use tokio::sync::{mpsc, oneshot};
+use tokio::task::JoinHandle;
+
+enum Command {
+    Incr { key: String, resp: oneshot::Sender<u64> },
+    Get { key: String, resp: oneshot::Sender<u64> },
+}
+
+fn spawn_manager() -> (mpsc::Sender<Command>, JoinHandle<()>) {
+    todo!()
+}
+
+async fn incr(tx: &mpsc::Sender<Command>, key: &str) -> u64 {
+    todo!()
+}
+
+async fn get(tx: &mpsc::Sender<Command>, key: &str) -> u64 {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx, manager) = spawn_manager();
+    incr(&tx, "visits").await;
+    incr(&tx, "visits").await;
+    println!("visits = {}", get(&tx, "visits").await);
+    drop(tx);
+    manager.await.unwrap();
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use tokio::time::timeout;
+
+    #[tokio::test]
+    async fn counts() {
+        let (tx, _manager) = spawn_manager();
+        assert_eq!(get(&tx, "a").await, 0);
+        assert_eq!(incr(&tx, "a").await, 1);
+        assert_eq!(incr(&tx, "a").await, 2);
+        assert_eq!(incr(&tx, "b").await, 1);
+        assert_eq!(get(&tx, "a").await, 2);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn many_clients() {
+        let (tx, _manager) = spawn_manager();
+        let mut clients = Vec::new();
+        for _ in 0..50 {
+            let tx = tx.clone();
+            clients.push(tokio::spawn(async move {
+                for _ in 0..10 {
+                    incr(&tx, "hits").await;
+                }
+            }));
+        }
+        for client in clients {
+            client.await.unwrap();
+        }
+        assert_eq!(get(&tx, "hits").await, 500);
+    }
+
+    #[tokio::test]
+    async fn finishes_when_the_senders_are_gone() {
+        let (tx, manager) = spawn_manager();
+        incr(&tx, "x").await;
+        drop(tx);
+        timeout(Duration::from_secs(1), manager)
+            .await
+            .expect("the manager kept running after every sender was dropped")
+            .unwrap();
+    }
+}
+'''
+hints = [
+  "`spawn_manager`: make an `mpsc::channel(32)`, spawn a task that owns the `Receiver` and a `HashMap<String, u64>`, and loop with `while let Some(command) = rx.recv().await`.",
+  "In the loop, `match` the command and answer with `let _ = resp.send(value);`.",
+  "Client side: `let (resp, answer) = oneshot::channel(); tx.send(Command::Incr { key: key.to_string(), resp }).await.unwrap(); answer.await.unwrap()`.",
+]
+solution = '''
+use std::collections::HashMap;
+use tokio::sync::{mpsc, oneshot};
+use tokio::task::JoinHandle;
+
+enum Command {
+    Incr { key: String, resp: oneshot::Sender<u64> },
+    Get { key: String, resp: oneshot::Sender<u64> },
+}
+
+fn spawn_manager() -> (mpsc::Sender<Command>, JoinHandle<()>) {
+    let (tx, mut rx) = mpsc::channel(32);
+    let manager = tokio::spawn(async move {
+        let mut counters: HashMap<String, u64> = HashMap::new();
+        while let Some(command) = rx.recv().await {
+            match command {
+                Command::Incr { key, resp } => {
+                    let count = counters.entry(key).or_insert(0);
+                    *count += 1;
+                    let _ = resp.send(*count);
+                }
+                Command::Get { key, resp } => {
+                    let _ = resp.send(counters.get(&key).copied().unwrap_or(0));
+                }
+            }
+        }
+    });
+    (tx, manager)
+}
+
+async fn incr(tx: &mpsc::Sender<Command>, key: &str) -> u64 {
+    let (resp, answer) = oneshot::channel();
+    tx.send(Command::Incr { key: key.to_string(), resp }).await.unwrap();
+    answer.await.unwrap()
+}
+
+async fn get(tx: &mpsc::Sender<Command>, key: &str) -> u64 {
+    let (resp, answer) = oneshot::channel();
+    tx.send(Command::Get { key: key.to_string(), resp }).await.unwrap();
+    answer.await.unwrap()
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx, manager) = spawn_manager();
+    incr(&tx, "visits").await;
+    incr(&tx, "visits").await;
+    println!("visits = {}", get(&tx, "visits").await);
+    drop(tx);
+    manager.await.unwrap();
+}
+'''
