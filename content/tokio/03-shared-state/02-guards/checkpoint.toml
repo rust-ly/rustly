@@ -1,0 +1,130 @@
+id = "tokio.shared-state.guards.checkpoint"
+kind = "checkpoint"
+title = "Don't hold the lock across .await"
+prompt = '''
+`record_visits` spawns one task per visitor. Each task adds 1 to that visitor's
+count in the shared `Visits` map, waits for `log_visit` (pretend it's slow I/O),
+and returns the visitor's new count.
+
+It doesn't compile: the task holds the `MutexGuard` across `log_visit(...).await`.
+Fix it without changing `log_visit` and without switching to Tokio's mutex.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tokio::task::yield_now;
+
+type Visits = Arc<Mutex<HashMap<String, u32>>>;
+
+async fn log_visit(name: &str, count: u32) {
+    yield_now().await; // pretend this writes to a log over the network
+    let _ = (name, count);
+}
+
+async fn record_visits(visits: Visits, names: Vec<String>) -> Vec<u32> {
+    let handles: Vec<_> = names
+        .into_iter()
+        .map(|name| {
+            let visits = Arc::clone(&visits);
+            tokio::spawn(async move {
+                let mut map = visits.lock().unwrap();
+                let count = map.entry(name.clone()).or_insert(0);
+                *count += 1;
+                log_visit(&name, *count).await;
+                *count
+            })
+        })
+        .collect();
+    let mut counts = Vec::new();
+    for handle in handles {
+        counts.push(handle.await.unwrap());
+    }
+    counts
+}
+
+#[tokio::main]
+async fn main() {
+    let visits = Visits::default();
+    let names = ["ferris", "corro", "ferris"].map(String::from).to_vec();
+    println!("{:?}", record_visits(Arc::clone(&visits), names).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn names(list: &[&str]) -> Vec<String> {
+        list.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[tokio::test]
+    async fn counts_each_visitor() {
+        let visits = Visits::default();
+        let counts = record_visits(Arc::clone(&visits), names(&["a", "b", "a", "a"])).await;
+        let mut sorted_a: Vec<u32> = counts.iter().zip(["a", "b", "a", "a"]).filter(|(_, n)| *n == "a").map(|(c, _)| *c).collect();
+        sorted_a.sort();
+        assert_eq!(sorted_a, vec![1, 2, 3]);
+        let map = visits.lock().unwrap();
+        assert_eq!(map["a"], 3);
+        assert_eq!(map["b"], 1);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn many_visits_at_once() {
+        let visits = Visits::default();
+        let list: Vec<String> = (0..300).map(|i| format!("v{}", i % 3)).collect();
+        record_visits(Arc::clone(&visits), list).await;
+        let map = visits.lock().unwrap();
+        assert_eq!((map["v0"], map["v1"], map["v2"]), (100, 100, 100));
+    }
+}
+'''
+hints = [
+  "The guard `map` is still alive at `log_visit(&name, *count).await`. Work out the new count first, inside a `{ }` block.",
+  "`let count = { let mut map = visits.lock().unwrap(); let c = map.entry(name.clone()).or_insert(0); *c += 1; *c };`",
+  "After the block the lock is released, so `log_visit(&name, count).await;` then `count` is fine.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tokio::task::yield_now;
+
+type Visits = Arc<Mutex<HashMap<String, u32>>>;
+
+async fn log_visit(name: &str, count: u32) {
+    yield_now().await; // pretend this writes to a log over the network
+    let _ = (name, count);
+}
+
+async fn record_visits(visits: Visits, names: Vec<String>) -> Vec<u32> {
+    let handles: Vec<_> = names
+        .into_iter()
+        .map(|name| {
+            let visits = Arc::clone(&visits);
+            tokio::spawn(async move {
+                let count = {
+                    let mut map = visits.lock().unwrap();
+                    let count = map.entry(name.clone()).or_insert(0);
+                    *count += 1;
+                    *count
+                };
+                log_visit(&name, count).await;
+                count
+            })
+        })
+        .collect();
+    let mut counts = Vec::new();
+    for handle in handles {
+        counts.push(handle.await.unwrap());
+    }
+    counts
+}
+
+#[tokio::main]
+async fn main() {
+    let visits = Visits::default();
+    let names = ["ferris", "corro", "ferris"].map(String::from).to_vec();
+    println!("{:?}", record_visits(Arc::clone(&visits), names).await);
+}
+'''

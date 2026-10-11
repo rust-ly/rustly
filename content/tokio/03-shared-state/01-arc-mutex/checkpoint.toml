@@ -1,0 +1,123 @@
+id = "tokio.shared-state.arc-mutex.checkpoint"
+kind = "checkpoint"
+title = "Handle commands against a shared Db"
+prompt = '''
+Each connection task calls `handle(db, command)` on the shared database.
+
+- `fn new_db() -> Db` makes an empty database.
+- `async fn handle(db: &Db, command: Command) -> Option<String>`:
+  - `Set { key, value }` stores the value and returns the **old** value, if there was one.
+  - `Get { key }` returns a copy of the value, if there is one.
+  - `Del { key }` removes the key and returns the value it had.
+
+The grader runs many connection tasks at once against one `Db`.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+type Db = Arc<Mutex<HashMap<String, String>>>;
+
+enum Command {
+    Set { key: String, value: String },
+    Get { key: String },
+    Del { key: String },
+}
+
+fn new_db() -> Db {
+    todo!()
+}
+
+async fn handle(db: &Db, command: Command) -> Option<String> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let db = new_db();
+    handle(&db, Command::Set { key: "hello".into(), value: "world".into() }).await;
+    println!("{:?}", handle(&db, Command::Get { key: "hello".into() }).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn set(key: &str, value: &str) -> Command {
+        Command::Set { key: key.into(), value: value.into() }
+    }
+    fn get(key: &str) -> Command {
+        Command::Get { key: key.into() }
+    }
+    fn del(key: &str) -> Command {
+        Command::Del { key: key.into() }
+    }
+
+    #[tokio::test]
+    async fn set_get_del() {
+        let db = new_db();
+        assert_eq!(handle(&db, get("a")).await, None);
+        assert_eq!(handle(&db, set("a", "1")).await, None);
+        assert_eq!(handle(&db, set("a", "2")).await, Some("1".into()));
+        assert_eq!(handle(&db, get("a")).await, Some("2".into()));
+        assert_eq!(handle(&db, del("a")).await, Some("2".into()));
+        assert_eq!(handle(&db, get("a")).await, None);
+        assert_eq!(handle(&db, del("a")).await, None);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn many_connections_share_one_db() {
+        let db = new_db();
+        let mut tasks = Vec::new();
+        for i in 0..200 {
+            let db = Arc::clone(&db);
+            tasks.push(tokio::spawn(async move {
+                handle(&db, set(&format!("k{i}"), &i.to_string())).await;
+            }));
+        }
+        for task in tasks {
+            task.await.unwrap();
+        }
+        assert_eq!(db.lock().unwrap().len(), 200);
+        assert_eq!(handle(&db, get("k123")).await, Some("123".into()));
+    }
+}
+'''
+hints = [
+  "`new_db` is `Arc::new(Mutex::new(HashMap::new()))`.",
+  "In `handle`, take the lock once: `let mut map = db.lock().unwrap();`, then `match command { ... }`.",
+  "`HashMap::insert` and `HashMap::remove` already return the old value as an `Option`. `get` needs `.cloned()`.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+type Db = Arc<Mutex<HashMap<String, String>>>;
+
+enum Command {
+    Set { key: String, value: String },
+    Get { key: String },
+    Del { key: String },
+}
+
+fn new_db() -> Db {
+    Arc::new(Mutex::new(HashMap::new()))
+}
+
+async fn handle(db: &Db, command: Command) -> Option<String> {
+    let mut map = db.lock().unwrap();
+    match command {
+        Command::Set { key, value } => map.insert(key, value),
+        Command::Get { key } => map.get(&key).cloned(),
+        Command::Del { key } => map.remove(&key),
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let db = new_db();
+    handle(&db, Command::Set { key: "hello".into(), value: "world".into() }).await;
+    println!("{:?}", handle(&db, Command::Get { key: "hello".into() }).await);
+}
+'''
