@@ -1,0 +1,196 @@
+id = "tokio.hello.challenge"
+kind = "challenge"
+title = "A cache in front of a slow server"
+prompt = '''
+`SlowServer` answers lookups, but every `fetch` takes `SLOW` (100 ms) and counts
+itself in `calls`. Put a cache in front of it:
+
+- `async fn get(&mut self, key: &str) -> Option<String>` on `Cached`: if the key is
+  already in `cache`, return it **straight away** (no waiting, no server call).
+  Otherwise `fetch` it from the server, and remember the answer only if there was one.
+- `fn lookup_all(keys: &[&str]) -> Vec<Option<String>>`: a plain, non-async function.
+  It builds its own current-thread Tokio runtime, creates one `Cached` over
+  `SlowServer::new()`, and looks up every key in order with that same cache.
+
+The grader checks the answers, how many times the server was called, and (with
+Tokio's clock paused) how long each lookup took.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::time::Duration;
+use tokio::time::sleep;
+
+const SLOW: Duration = Duration::from_millis(100);
+
+struct SlowServer {
+    data: HashMap<&'static str, &'static str>,
+    calls: u32,
+}
+
+impl SlowServer {
+    fn new() -> Self {
+        let data = HashMap::from([("hello", "world"), ("crab", "ferris"), ("runtime", "tokio")]);
+        SlowServer { data, calls: 0 }
+    }
+
+    async fn fetch(&mut self, key: &str) -> Option<String> {
+        self.calls += 1;
+        sleep(SLOW).await;
+        self.data.get(key).map(|v| v.to_string())
+    }
+}
+
+struct Cached {
+    server: SlowServer,
+    cache: HashMap<String, String>,
+}
+
+impl Cached {
+    fn new(server: SlowServer) -> Self {
+        Cached { server, cache: HashMap::new() }
+    }
+
+    async fn get(&mut self, key: &str) -> Option<String> {
+        todo!()
+    }
+}
+
+fn lookup_all(keys: &[&str]) -> Vec<Option<String>> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", lookup_all(&["hello", "crab", "hello", "nope"]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    #[tokio::test(start_paused = true)]
+    async fn a_miss_goes_to_the_server() {
+        let mut cached = Cached::new(SlowServer::new());
+        let start = Instant::now();
+        assert_eq!(cached.get("crab").await, Some("ferris".to_string()));
+        assert_eq!(start.elapsed(), SLOW);
+        assert_eq!(cached.server.calls, 1);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_hit_is_instant() {
+        let mut cached = Cached::new(SlowServer::new());
+        cached.get("hello").await;
+        let start = Instant::now();
+        assert_eq!(cached.get("hello").await, Some("world".to_string()));
+        assert_eq!(start.elapsed(), Duration::ZERO);
+        assert_eq!(cached.server.calls, 1);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn unknown_keys_are_not_cached() {
+        let mut cached = Cached::new(SlowServer::new());
+        assert_eq!(cached.get("nope").await, None);
+        assert_eq!(cached.get("nope").await, None);
+        assert_eq!(cached.server.calls, 2);
+        assert!(cached.cache.is_empty());
+    }
+
+    #[test]
+    fn lookup_all_shares_one_cache() {
+        let start = std::time::Instant::now();
+        let got = lookup_all(&["hello", "runtime", "hello", "nope", "runtime"]);
+        assert_eq!(
+            got,
+            vec![
+                Some("world".to_string()),
+                Some("tokio".to_string()),
+                Some("world".to_string()),
+                None,
+                Some("tokio".to_string()),
+            ]
+        );
+        // Three trips to the server, not five.
+        let elapsed = start.elapsed();
+        assert!(elapsed >= SLOW * 3, "{elapsed:?}");
+        assert!(elapsed < SLOW * 5, "{elapsed:?}");
+    }
+
+    #[test]
+    fn lookup_all_with_no_keys() {
+        assert!(lookup_all(&[]).is_empty());
+    }
+}
+'''
+hints = [
+  "In `get`, check `self.cache.get(key)` first and return `Some(value.clone())` on a hit.",
+  "On a miss: `let answer = self.server.fetch(key).await;` then, if it's `Some`, insert a copy into `self.cache` before returning it.",
+  "For `lookup_all`, build the runtime like the first checkpoint, then `block_on(async { ... })` a loop that pushes `cached.get(key).await` into a `Vec`.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::time::Duration;
+use tokio::time::sleep;
+
+const SLOW: Duration = Duration::from_millis(100);
+
+struct SlowServer {
+    data: HashMap<&'static str, &'static str>,
+    calls: u32,
+}
+
+impl SlowServer {
+    fn new() -> Self {
+        let data = HashMap::from([("hello", "world"), ("crab", "ferris"), ("runtime", "tokio")]);
+        SlowServer { data, calls: 0 }
+    }
+
+    async fn fetch(&mut self, key: &str) -> Option<String> {
+        self.calls += 1;
+        sleep(SLOW).await;
+        self.data.get(key).map(|v| v.to_string())
+    }
+}
+
+struct Cached {
+    server: SlowServer,
+    cache: HashMap<String, String>,
+}
+
+impl Cached {
+    fn new(server: SlowServer) -> Self {
+        Cached { server, cache: HashMap::new() }
+    }
+
+    async fn get(&mut self, key: &str) -> Option<String> {
+        if let Some(value) = self.cache.get(key) {
+            return Some(value.clone());
+        }
+        let answer = self.server.fetch(key).await;
+        if let Some(value) = &answer {
+            self.cache.insert(key.to_string(), value.clone());
+        }
+        answer
+    }
+}
+
+fn lookup_all(keys: &[&str]) -> Vec<Option<String>> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let mut cached = Cached::new(SlowServer::new());
+        let mut answers = Vec::new();
+        for key in keys {
+            answers.push(cached.get(key).await);
+        }
+        answers
+    })
+}
+
+fn main() {
+    println!("{:?}", lookup_all(&["hello", "crab", "hello", "nope"]));
+}
+'''

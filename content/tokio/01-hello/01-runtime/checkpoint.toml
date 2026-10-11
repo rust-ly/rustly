@@ -1,0 +1,81 @@
+id = "tokio.hello.runtime.checkpoint"
+kind = "checkpoint"
+title = "Start a runtime by hand"
+prompt = '''
+Write `run`, a tiny version of what `#[tokio::main]` does: it takes any future,
+builds a **current-thread** Tokio runtime with its drivers enabled, and blocks on
+the future until it finishes, returning its output.
+
+The grader calls `run` from plain (non-async) tests, including one where the
+future uses `tokio::time::sleep`, so the timer has to be switched on.
+'''
+starter = '''
+use std::future::Future;
+use std::time::Duration;
+
+fn run<F: Future>(future: F) -> F::Output {
+    todo!()
+}
+
+fn main() {
+    let answer = run(async {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        6 * 7
+    });
+    println!("{answer}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn returns_the_output() {
+        assert_eq!(run(async { 1 + 1 }), 2);
+        assert_eq!(run(async { String::from("tokio") }), "tokio");
+    }
+
+    #[test]
+    fn timers_work() {
+        let start = std::time::Instant::now();
+        let n = run(async {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            7
+        });
+        assert_eq!(n, 7);
+        assert!(start.elapsed() >= Duration::from_millis(20));
+    }
+
+    #[test]
+    fn runs_on_the_calling_thread() {
+        let caller = std::thread::current().id();
+        assert_eq!(run(async { std::thread::current().id() }), caller);
+    }
+}
+'''
+hints = [
+  "Start from `tokio::runtime::Builder::new_current_thread()`.",
+  "Call `.enable_all()` before `.build()`, or `sleep` will panic with no timer running.",
+  "`Builder::new_current_thread().enable_all().build().unwrap().block_on(future)`",
+]
+solution = '''
+use std::future::Future;
+use std::time::Duration;
+
+fn run<F: Future>(future: F) -> F::Output {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(future)
+}
+
+fn main() {
+    let answer = run(async {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        6 * 7
+    });
+    println!("{answer}");
+}
+'''
