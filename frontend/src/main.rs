@@ -13,7 +13,9 @@ mod routes;
 mod snippet;
 mod snippets;
 mod storage;
+mod submit;
 mod topbar;
+mod transfer;
 
 use app::NotFound;
 

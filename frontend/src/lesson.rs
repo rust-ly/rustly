@@ -1,5 +1,5 @@
-//! `/learn/:track/:chapter/:concept`: a concept lesson, and the chapter
-//! challenge at `/learn/:track/:chapter/challenge`.
+//! `/learn/:track/:chapter/:concept`: a concept lesson, the chapter challenge
+//! at `/learn/:track/:chapter/challenge` and its test-out at `.../test-out`.
 
 use content::{Chapter, Concept, Exercise, LessonBlock};
 use leptos::prelude::*;
@@ -12,6 +12,7 @@ use crate::editor::CodeEditor;
 use crate::hints::HintDrawer;
 use crate::learner::Learner;
 use crate::snippet::{SnippetView, program_stderr};
+use crate::submit::{SubmitButton, SubmitResults, SubmitState};
 use crate::{NotFound, api, routes, storage};
 
 #[component]
@@ -28,6 +29,14 @@ pub fn ConceptPage() -> impl IntoView {
         let concept = concept.unwrap_or_default();
         if concept == "challenge" {
             return view! { <ChallengeLesson chapter=chapter /> }.into_any();
+        }
+        if concept == "test-out" {
+            return match &chapter.test_out {
+                Some(test_out) => {
+                    view! { <TestOutLesson chapter=chapter test_out=test_out /> }.into_any()
+                }
+                None => view! { <NotFound /> }.into_any(),
+            };
         }
         match routes::find_concept(chapter, &concept) {
             Some(concept) => view! { <ConceptLesson chapter=chapter concept=concept /> }.into_any(),
@@ -105,6 +114,26 @@ fn ChallengeLesson(chapter: &'static Chapter) -> impl IntoView {
     }
 }
 
+/// Open whenever the chapter itself is: passing it completes the chapter.
+#[component]
+fn TestOutLesson(chapter: &'static Chapter, test_out: &'static Exercise) -> impl IntoView {
+    view! {
+        <div class="lesson">
+            <article class="lesson-prose">
+                <p class="eyebrow">
+                    <A href=routes::chapter_path(chapter)>{format!("ch.{:02} // {}", chapter.order, routes::short_id(&chapter.id))}</A>
+                    " / test-out"
+                </p>
+                <h1>{test_out.title.clone()}</h1>
+                <div class="prose" inner_html=content::markdown_html(&test_out.prompt)></div>
+            </article>
+            <aside class="lesson-side">
+                <ExercisePanel label="test-out //" exercise=test_out />
+            </aside>
+        </div>
+    }
+}
+
 /// The lesson markdown with each snippet rendered as a live component.
 #[component]
 fn LessonBody(concept: &'static Concept) -> impl IntoView {
@@ -121,13 +150,14 @@ fn LessonBody(concept: &'static Concept) -> impl IntoView {
         .collect_view()
 }
 
-/// The exercise for this page: the task, the editor and Run. Drafts are saved
-/// as the learner types, so a reload keeps their code.
+/// The exercise for this page: the task, the editor, Run and Submit. Drafts
+/// are saved as the learner types, so a reload keeps their code.
 #[component]
 fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoView {
     let starter = format!("{}\n", exercise.starter.trim());
     let code = RwSignal::new(storage::load_draft(&exercise.id).unwrap_or_else(|| starter.clone()));
     let state = RwSignal::new(RunState::Idle);
+    let submit = RwSignal::new(SubmitState::Idle);
     {
         let starter = starter.clone();
         Effect::new(move || {
@@ -154,6 +184,7 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
     let reset = move |_| {
         code.set(starter.clone());
         state.set(RunState::Idle);
+        submit.set(SubmitState::Idle);
     };
     // Compile errors from the last run, shown as squiggles until the next one.
     let diagnostics = Signal::derive(move || match state.get() {
@@ -172,8 +203,10 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
                 <button class="btn btn-sm" on:click=run disabled=running>
                     {move || if running() { "running…" } else { "./run" }}
                 </button>
+                <SubmitButton exercise=exercise code=code state=submit />
             </div>
             <RunOutput state=state />
+            <SubmitResults state=submit />
             <HintDrawer exercise=exercise code=code />
         </section>
     }
