@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use content::Progress;
+use content::{Progress, Unlocks};
 use leptos::prelude::*;
 
 use crate::storage;
@@ -48,6 +48,29 @@ impl Learner {
 
     pub fn is_done(&self, concept: &str) -> bool {
         self.progress.with(|p| content::graph().is_done(concept, p))
+    }
+
+    /// Saves a graded submit and returns what a pass opened. Preview mode
+    /// marks nothing passed, so it saves nothing.
+    pub fn record_submit(&self, exercise: &str, passed: bool) -> Unlocks {
+        if self.preview {
+            return Unlocks::default();
+        }
+        let before = self.progress.get_untracked();
+        let mut after = before.clone();
+        after.record_submit(exercise, passed);
+        let unlocks = content::newly_unlocked(content::course(), &before, &after);
+        self.progress.set(after);
+        unlocks
+    }
+
+    /// Replaces progress with an exported copy. Unknown fields are ignored and
+    /// missing ones fall back to defaults, like the saved copy.
+    pub fn import(&self, json: &str) -> Result<(), String> {
+        let progress = serde_json::from_str::<Progress>(json)
+            .map_err(|_| "That file isn't a Rustly progress export.".to_string())?;
+        self.progress.set(progress);
+        Ok(())
     }
 }
 

@@ -1,12 +1,23 @@
 //! Calls to the API functions in `api/`.
 
 use gloo_net::http::Request;
-use shared::{ApiError, CodeRequest, RunResponse};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use shared::{ApiError, CodeRequest, RunResponse, SubmitRequest, SubmitResponse};
 
 /// `POST /api/run`. The error is a message ready to show the learner.
 pub async fn run(code: String) -> Result<RunResponse, String> {
-    let response = Request::post("/api/run")
-        .json(&CodeRequest { code })
+    post("/api/run", &CodeRequest { code }).await
+}
+
+/// `POST /api/submit`: grades the code against the exercise's hidden tests.
+pub async fn submit(exercise_id: String, code: String) -> Result<SubmitResponse, String> {
+    post("/api/submit", &SubmitRequest { exercise_id, code }).await
+}
+
+async fn post<B: Serialize, R: DeserializeOwned>(url: &str, body: &B) -> Result<R, String> {
+    let response = Request::post(url)
+        .json(body)
         .map_err(|e| e.to_string())?
         .send()
         .await

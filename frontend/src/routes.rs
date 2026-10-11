@@ -17,6 +17,10 @@ pub fn challenge_path(chapter: &Chapter) -> String {
     format!("{}/challenge", chapter_path(chapter))
 }
 
+pub fn test_out_path(chapter: &Chapter) -> String {
+    format!("{}/test-out", chapter_path(chapter))
+}
+
 pub fn find_chapter(track: &str, chapter: &str) -> Option<&'static Chapter> {
     let id = format!("{track}.{chapter}");
     content::course().all_chapters().find(|c| c.id == id)

@@ -9,6 +9,7 @@ use leptos_router::hooks::use_query_map;
 use crate::icons::{CheckIcon, LockIcon};
 use crate::learner::Learner;
 use crate::routes;
+use crate::transfer::ProgressTransfer;
 
 /// `/learn`: both tracks with every chapter and concept.
 #[component]
@@ -22,6 +23,7 @@ pub fn LearnPage() -> impl IntoView {
         </section>
         <TrackSection track=Track::Book title="The Rust Book" />
         <TrackSection track=Track::Tokio title="Async with Tokio" />
+        <ProgressTransfer />
     }
 }
 

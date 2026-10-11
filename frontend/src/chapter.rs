@@ -36,6 +36,13 @@ pub fn ChapterPage() -> impl IntoView {
                 <p class="lede">{chapter.summary.clone()}</p>
                 <a href=chapter.source_url.clone() target="_blank" rel="noopener">"Read the full chapter ↗"</a>
             </section>
+            {chapter.test_out.as_ref().filter(|_| state != ChapterState::Done).map(|test_out| view! {
+                <section class="section">
+                    <p class="eyebrow">"test-out //"</p>
+                    <p class="muted">"Already know this chapter? Pass the test-out to complete all of it at once."</p>
+                    <A href=routes::test_out_path(chapter) attr:class="btn btn-secondary">{format!("./{}", routes::short_id(&test_out.id))}</A>
+                </section>
+            })}
             <section class="section">
                 <p class="eyebrow">"concepts //"</p>
                 <ConceptList chapter=chapter />
