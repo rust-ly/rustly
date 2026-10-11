@@ -1,0 +1,78 @@
+id = "tokio.spawning.send.checkpoint"
+kind = "checkpoint"
+title = "Make the task Send"
+prompt = '''
+`spawn_greeting(name)` spawns a task that builds a greeting in two steps, with an
+`.await` in between, and returns it. It doesn't compile: the task keeps an `Rc`
+across the `.await`, so it isn't `Send`.
+
+Fix it so it compiles and returns `"Hello, <name>!"`. Keep the `yield_now().await`
+in the middle.
+'''
+starter = '''
+use std::rc::Rc;
+use tokio::task::{JoinHandle, yield_now};
+
+fn spawn_greeting(name: String) -> JoinHandle<String> {
+    tokio::spawn(async move {
+        let name = Rc::new(name);
+        let mut greeting = format!("Hello, {name}");
+        yield_now().await;
+        greeting.push_str(&format!("{}!", if name.is_empty() { "stranger" } else { "" }));
+        greeting
+    })
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", spawn_greeting("Ferris".to_string()).await.unwrap());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn greets() {
+        assert_eq!(spawn_greeting("Ferris".to_string()).await.unwrap(), "Hello, Ferris!");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn greets_a_stranger() {
+        assert_eq!(spawn_greeting(String::new()).await.unwrap(), "Hello, stranger!");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn many_at_once() {
+        let handles: Vec<_> = (0..20).map(|i| spawn_greeting(format!("crab {i}"))).collect();
+        for (i, handle) in handles.into_iter().enumerate() {
+            assert_eq!(handle.await.unwrap(), format!("Hello, crab {i}!"));
+        }
+    }
+}
+'''
+hints = [
+  "Find what's alive on both sides of `yield_now().await`. `name` is an `Rc`, and it's used after the `.await`.",
+  "Either swap `Rc` for `Arc` (`std::sync::Arc`), or don't wrap `name` at all: work out what you need from it before the `.await`.",
+  "Smallest fix: `use std::sync::Arc;` and `let name = Arc::new(name);`.",
+]
+solution = '''
+use std::sync::Arc;
+use tokio::task::{JoinHandle, yield_now};
+
+fn spawn_greeting(name: String) -> JoinHandle<String> {
+    tokio::spawn(async move {
+        let name = Arc::new(name);
+        let mut greeting = format!("Hello, {name}");
+        yield_now().await;
+        greeting.push_str(&format!("{}!", if name.is_empty() { "stranger" } else { "" }));
+        greeting
+    })
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", spawn_greeting("Ferris".to_string()).await.unwrap());
+}
+'''

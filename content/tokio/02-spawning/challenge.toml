@@ -1,0 +1,167 @@
+id = "tokio.spawning.challenge"
+kind = "challenge"
+title = "Fan out, fan in"
+prompt = '''
+A `Server` is shared by many tasks through an `Arc`. Each `lookup` takes `LATENCY`
+(100 ms), counts itself in `calls` (an atomic, so tasks can bump it from any
+thread), and **panics** on the key `"boom"`, like a buggy request handler.
+
+Write `async fn lookup_all(server: Arc<Server>, keys: Vec<String>) -> Vec<Option<String>>`:
+
+- Look up every key **concurrently**, one spawned task per key, so a whole batch
+  takes 100 ms.
+- Return the answers in the same order as `keys`. A key the server doesn't know is `None`.
+- If a lookup's task **panics**, that key's answer is `None`, and every other key
+  still gets its answer. `lookup_all` itself must not panic.
+
+The grader runs with Tokio's clock paused, so it can check the timing exactly.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(100);
+
+struct Server {
+    data: HashMap<String, String>,
+    calls: AtomicUsize,
+}
+
+impl Server {
+    fn new() -> Self {
+        let data = [("hello", "world"), ("crab", "ferris"), ("runtime", "tokio")]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        Server { data, calls: AtomicUsize::new(0) }
+    }
+
+    async fn lookup(&self, key: &str) -> Option<String> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        sleep(LATENCY).await;
+        if key == "boom" {
+            panic!("the handler for {key:?} crashed");
+        }
+        self.data.get(key).cloned()
+    }
+}
+
+async fn lookup_all(server: Arc<Server>, keys: Vec<String>) -> Vec<Option<String>> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let server = Arc::new(Server::new());
+    let keys = ["hello", "boom", "crab", "nope"].map(String::from).to_vec();
+    println!("{:?}", lookup_all(server, keys).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    fn keys(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    fn some(s: &str) -> Option<String> {
+        Some(s.to_string())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn answers_in_order() {
+        let server = Arc::new(Server::new());
+        let got = lookup_all(Arc::clone(&server), keys(&["crab", "nope", "hello", "crab"])).await;
+        assert_eq!(got, vec![some("ferris"), None, some("world"), some("ferris")]);
+        assert_eq!(server.calls.load(Ordering::SeqCst), 4);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn looks_up_concurrently() {
+        let server = Arc::new(Server::new());
+        let start = Instant::now();
+        lookup_all(server, keys(&["hello", "crab", "runtime", "hello", "crab", "x"])).await;
+        assert_eq!(start.elapsed(), LATENCY, "the lookups ran one after another");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_crashing_lookup_is_none() {
+        let server = Arc::new(Server::new());
+        let got = lookup_all(server, keys(&["boom", "runtime", "boom", "hello"])).await;
+        assert_eq!(got, vec![None, some("tokio"), None, some("world")]);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn no_keys() {
+        let server = Arc::new(Server::new());
+        assert!(lookup_all(Arc::clone(&server), Vec::new()).await.is_empty());
+        assert_eq!(server.calls.load(Ordering::SeqCst), 0);
+    }
+}
+'''
+hints = [
+  "Each task needs its own `Arc<Server>` and its own `String` key: clone the `Arc` and use `async move`.",
+  "Spawn every task first and keep the `JoinHandle`s; await them afterwards, so the lookups overlap.",
+  "`handle.await` is `Err` when the task panicked. `handle.await.unwrap_or(None)` turns that into `None`.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(100);
+
+struct Server {
+    data: HashMap<String, String>,
+    calls: AtomicUsize,
+}
+
+impl Server {
+    fn new() -> Self {
+        let data = [("hello", "world"), ("crab", "ferris"), ("runtime", "tokio")]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        Server { data, calls: AtomicUsize::new(0) }
+    }
+
+    async fn lookup(&self, key: &str) -> Option<String> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        sleep(LATENCY).await;
+        if key == "boom" {
+            panic!("the handler for {key:?} crashed");
+        }
+        self.data.get(key).cloned()
+    }
+}
+
+async fn lookup_all(server: Arc<Server>, keys: Vec<String>) -> Vec<Option<String>> {
+    let handles: Vec<_> = keys
+        .into_iter()
+        .map(|key| {
+            let server = Arc::clone(&server);
+            tokio::spawn(async move { server.lookup(&key).await })
+        })
+        .collect();
+    let mut answers = Vec::new();
+    for handle in handles {
+        answers.push(handle.await.unwrap_or(None));
+    }
+    answers
+}
+
+#[tokio::main]
+async fn main() {
+    let server = Arc::new(Server::new());
+    let keys = ["hello", "boom", "crab", "nope"].map(String::from).to_vec();
+    println!("{:?}", lookup_all(server, keys).await);
+}
+'''
