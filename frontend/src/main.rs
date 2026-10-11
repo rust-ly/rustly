@@ -4,6 +4,7 @@ mod chapter;
 mod course_map;
 mod editor;
 mod highlight;
+mod hints;
 mod home;
 mod icons;
 mod learner;

@@ -338,3 +338,13 @@
 .library-concept { margin: var(--space-5) 0 0; font-size: var(--text-ui); }
 .icon-btn.star { width: 26px; height: 26px; font-size: 15px; line-height: 1; color: var(--muted); border-color: var(--border); }
 .icon-btn.star.starred { color: var(--sand-text); border-color: var(--border-strong); }
+
+/* Hints and solution */
+.hints { margin-top: var(--space-4); }
+.hint-list { margin: 0; padding-left: 1.3em; }
+.hint-list li { margin-bottom: var(--space-2); }
+.hint-list li p { margin: 0; }
+.hint-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.solution { margin-top: var(--space-4); }
+.solution .eyebrow { margin-bottom: var(--space-2); }
+.solution .prose { max-width: none; }

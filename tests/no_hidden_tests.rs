@@ -1,5 +1,6 @@
 //! `/api/submit` must never send back an exercise's hidden tests. (It never
-//! sends the solution anywhere; rustc may still suggest the same fix itself.)
+//! sends the solution either; only `/api/solution` does, after enough failed
+//! submits. rustc may still suggest the same fix itself.)
 
 mod common;
 

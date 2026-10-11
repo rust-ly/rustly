@@ -2,7 +2,7 @@ mod common;
 
 use common::FakePlayground;
 use rustly_api::{Api, MAX_CODE_BYTES};
-use shared::{CodeRequest, Severity, SubmitRequest};
+use shared::{CodeRequest, SOLUTION_AFTER_FAILS, Severity, SolutionRequest, SubmitRequest};
 
 const ONE_ERROR: &str = include_str!("../crates/runner/tests/fixtures/one_error.stderr");
 const HELLO_STDOUT: &str = include_str!("../crates/runner/tests/fixtures/hello.stdout");
@@ -189,4 +189,48 @@ async fn failed_calls_are_not_cached() {
     api.run(code("fn main() {}")).await.unwrap_err();
 
     assert_eq!(playground.received().len(), 2);
+}
+
+fn solution_request(exercise_id: &str, failed_submits: u32) -> SolutionRequest {
+    SolutionRequest {
+        exercise_id: exercise_id.into(),
+        failed_submits,
+    }
+}
+
+#[tokio::test]
+async fn solution_is_sent_after_enough_failed_submits() {
+    let playground = FakePlayground::answering(true, "", "").await;
+    let api = Api::new(playground.client());
+    let exercise = content::exercise(OWNERSHIP).unwrap();
+
+    let res = api
+        .solution(solution_request(OWNERSHIP, SOLUTION_AFTER_FAILS))
+        .unwrap();
+
+    assert_eq!(res.solution, exercise.solution);
+    assert!(!res.solution.contains(exercise.hidden_tests.trim()));
+    assert!(playground.received().is_empty());
+}
+
+#[tokio::test]
+async fn solution_is_403_before_enough_failed_submits() {
+    let playground = FakePlayground::answering(true, "", "").await;
+    let api = Api::new(playground.client());
+
+    let err = api
+        .solution(solution_request(OWNERSHIP, SOLUTION_AFTER_FAILS - 1))
+        .unwrap_err();
+
+    assert_eq!(err.status, 403);
+}
+
+#[tokio::test]
+async fn solution_for_an_unknown_exercise_is_404() {
+    let playground = FakePlayground::answering(true, "", "").await;
+    let api = Api::new(playground.client());
+
+    let err = api.solution(solution_request("book.nope", 99)).unwrap_err();
+
+    assert_eq!(err.status, 404);
 }
