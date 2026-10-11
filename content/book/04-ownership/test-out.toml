@@ -1,0 +1,101 @@
+id = "book.ownership.test-out"
+kind = "test-out"
+title = "Longest word, louder"
+prompt = '''
+Already know moves, borrowing and slices? Pass this to complete the whole chapter.
+
+Write two functions:
+
+1. `longest_word(text)` returns a slice of `text` holding its longest word, where
+   words are separated by spaces. If two words are equally long, return the first.
+   For empty text, return `""`.
+2. `shout(text)` changes `text` in place to upper case and adds a `!` at the end.
+
+Neither function may take ownership of its argument. The tests call them as
+`longest_word(&text)` and `shout(&mut text)`, and use `text` afterwards.
+'''
+starter = '''
+fn longest_word(text: String) -> String {
+    todo!()
+}
+
+fn shout(text: String) {
+    todo!()
+}
+
+fn main() {
+    let text = String::from("borrow the longest word");
+    let word = longest_word(text);
+    let mut loud = String::from(word);
+    shout(loud);
+    println!("{loud}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finds_the_longest_word() {
+        let text = String::from("slices borrow data");
+        assert_eq!(longest_word(&text), "slices");
+    }
+
+    #[test]
+    fn ties_keep_the_first_word() {
+        assert_eq!(longest_word("one two six"), "one");
+    }
+
+    #[test]
+    fn empty_text_has_no_word() {
+        assert_eq!(longest_word(""), "");
+    }
+
+    #[test]
+    fn the_word_is_a_slice_of_the_text() {
+        let text = String::from("a borrowed word");
+        let word = longest_word(&text);
+        let offset = word.as_ptr() as usize - text.as_ptr() as usize;
+        assert_eq!(&text[offset..offset + word.len()], "borrowed");
+    }
+
+    #[test]
+    fn shout_changes_the_string_in_place() {
+        let mut text = String::from("ship it");
+        shout(&mut text);
+        assert_eq!(text, "SHIP IT!");
+        shout(&mut text);
+        assert_eq!(text, "SHIP IT!!");
+    }
+}
+'''
+hints = [
+  "`longest_word` only reads the text and returns part of it, so it takes `&str` and returns `&str`.",
+  "`text.split(' ')` gives each word as a slice of `text`. Keep the longest one you've seen, replacing it only when a word is strictly longer.",
+  "`shout` takes `&mut String`. `*text = text.to_uppercase();` replaces the contents, and `push('!')` adds the mark.",
+]
+solution = '''
+fn longest_word(text: &str) -> &str {
+    let mut longest = "";
+    for word in text.split(' ') {
+        if word.len() > longest.len() {
+            longest = word;
+        }
+    }
+    longest
+}
+
+fn shout(text: &mut String) {
+    *text = text.to_uppercase();
+    text.push('!');
+}
+
+fn main() {
+    let text = String::from("borrow the longest word");
+    let word = longest_word(&text);
+    let mut loud = String::from(word);
+    shout(&mut loud);
+    println!("{loud}");
+}
+'''

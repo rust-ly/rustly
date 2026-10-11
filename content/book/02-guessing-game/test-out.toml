@@ -1,0 +1,88 @@
+id = "book.guessing-game.test-out"
+kind = "test-out"
+title = "The closest guess"
+prompt = '''
+Already know how to parse text into a number and compare it? Pass this to
+complete the whole chapter.
+
+Write `closest_guess(secret, inputs)`. Each input is text the player typed.
+
+- Trim each input and parse it as a `u32`. Skip any input that isn't a whole number.
+- Return the valid guess closest to `secret`, as `Some(guess)`. If two guesses are
+  equally close, keep the one that came first.
+- If no input is a valid number, return `None`.
+
+For example, with a secret of `50`, the inputs `["40", "abc", " 57 ", "45"]`
+give `Some(45)`.
+'''
+starter = '''
+fn closest_guess(secret: u32, inputs: &[&str]) -> Option<u32> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", closest_guess(50, &["40", "abc", " 57 ", "45"]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn picks_the_closest_valid_guess() {
+        assert_eq!(closest_guess(50, &["40", "abc", " 57 ", "45"]), Some(45));
+    }
+
+    #[test]
+    fn an_exact_guess_wins() {
+        assert_eq!(closest_guess(7, &["1", "7", "8"]), Some(7));
+    }
+
+    #[test]
+    fn ties_keep_the_first_guess() {
+        assert_eq!(closest_guess(10, &["12", "8"]), Some(12));
+        assert_eq!(closest_guess(10, &["8", "12"]), Some(8));
+    }
+
+    #[test]
+    fn guesses_above_and_below_both_count() {
+        assert_eq!(closest_guess(100, &["0", "180", "105"]), Some(105));
+    }
+
+    #[test]
+    fn invalid_inputs_are_skipped() {
+        assert_eq!(closest_guess(5, &["five", "-3", "4.5", "", " 9\n"]), Some(9));
+    }
+
+    #[test]
+    fn no_valid_guess_is_none() {
+        assert_eq!(closest_guess(5, &["five", "?"]), None);
+        assert_eq!(closest_guess(5, &[]), None);
+    }
+}
+'''
+hints = [
+  "`input.trim().parse::<u32>()` gives a `Result`. A `match` (or `let Ok(guess) = ... else { continue }`) skips the bad ones.",
+  "`a.abs_diff(b)` gives the distance between two `u32`s without going negative.",
+  "Keep the best guess so far in an `Option<u32>`, and only replace it when a new guess is strictly closer.",
+]
+solution = '''
+fn closest_guess(secret: u32, inputs: &[&str]) -> Option<u32> {
+    let mut best: Option<u32> = None;
+    for input in inputs {
+        let Ok(guess) = input.trim().parse::<u32>() else {
+            continue;
+        };
+        match best {
+            Some(b) if b.abs_diff(secret) <= guess.abs_diff(secret) => {}
+            _ => best = Some(guess),
+        }
+    }
+    best
+}
+
+fn main() {
+    println!("{:?}", closest_guess(50, &["40", "abc", " 57 ", "45"]));
+}
+'''

@@ -1,0 +1,123 @@
+id = "book.structs.test-out"
+kind = "test-out"
+title = "A bank account"
+prompt = '''
+Already know structs, derived traits and methods? Pass this to complete the
+whole chapter.
+
+Define an `Account` struct with an `owner: String` and a `balance: u64`, and give
+it:
+
+- `Account::new(owner)`, which starts with a balance of 0
+- `deposit(&mut self, amount)`
+- `withdraw(&mut self, amount) -> bool`: takes the money out and returns `true`,
+  or returns `false` and changes nothing if the balance is too low
+- `is_empty(&self) -> bool`: true when the balance is 0
+
+`Account` must print with `{:?}` as `Account { owner: "Ada", balance: 5 }`, and
+be comparable with `==` and copyable with `.clone()`.
+'''
+starter = '''
+struct Account {
+    owner: String,
+}
+
+fn main() {
+    let mut account = Account::new("Ada");
+    account.deposit(10);
+    account.withdraw(5);
+    println!("{account:?}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_new_account_is_empty() {
+        let account = Account::new("Ada");
+        assert_eq!(account.owner, "Ada");
+        assert_eq!(account.balance, 0);
+        assert!(account.is_empty());
+    }
+
+    #[test]
+    fn deposits_and_withdrawals_change_the_balance() {
+        let mut account = Account::new("Grace");
+        account.deposit(10);
+        account.deposit(5);
+        assert!(account.withdraw(12));
+        assert_eq!(account.balance, 3);
+        assert!(!account.is_empty());
+    }
+
+    #[test]
+    fn an_overdraft_is_refused_and_changes_nothing() {
+        let mut account = Account::new("Ferris");
+        account.deposit(4);
+        let before = account.clone();
+        assert!(!account.withdraw(5));
+        assert_eq!(account, before);
+    }
+
+    #[test]
+    fn withdrawing_everything_empties_it() {
+        let mut account = Account::new("Ada");
+        account.deposit(7);
+        assert!(account.withdraw(7));
+        assert!(account.is_empty());
+    }
+
+    #[test]
+    fn prints_with_debug() {
+        let mut account = Account::new("Ada");
+        account.deposit(5);
+        assert_eq!(format!("{account:?}"), r#"Account { owner: "Ada", balance: 5 }"#);
+    }
+}
+'''
+hints = [
+  "`#[derive(Debug, Clone, PartialEq)]` above the struct gives you `{:?}`, `.clone()` and `==`.",
+  "`new` is an associated function with no `self`: `fn new(owner: &str) -> Self`, using `owner.to_string()` for the field.",
+  "In `withdraw`, check `amount > self.balance` first and return `false` before changing anything.",
+]
+solution = '''
+#[derive(Debug, Clone, PartialEq)]
+struct Account {
+    owner: String,
+    balance: u64,
+}
+
+impl Account {
+    fn new(owner: &str) -> Self {
+        Self {
+            owner: owner.to_string(),
+            balance: 0,
+        }
+    }
+
+    fn deposit(&mut self, amount: u64) {
+        self.balance += amount;
+    }
+
+    fn withdraw(&mut self, amount: u64) -> bool {
+        if amount > self.balance {
+            return false;
+        }
+        self.balance -= amount;
+        true
+    }
+
+    fn is_empty(&self) -> bool {
+        self.balance == 0
+    }
+}
+
+fn main() {
+    let mut account = Account::new("Ada");
+    account.deposit(10);
+    account.withdraw(5);
+    println!("{account:?}");
+}
+'''

@@ -1,0 +1,73 @@
+id = "book.common-concepts.test-out"
+kind = "test-out"
+title = "Collatz steps"
+prompt = '''
+Already know variables, types, functions and loops? Pass this to complete the
+whole chapter.
+
+Write `collatz_steps(n)`, which counts how many steps it takes to get from `n`
+down to 1 with this rule:
+
+- if the number is even, halve it
+- if it's odd, multiply it by 3 and add 1
+
+`collatz_steps(1)` is 0, and `collatz_steps(6)` is 8:
+6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1.
+'''
+starter = '''
+fn collatz_steps(n: u64) -> u32 {
+    let steps = 0;
+    todo!()
+}
+
+fn main() {
+    println!("6 takes {} steps", collatz_steps(6));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_takes_no_steps() {
+        assert_eq!(collatz_steps(1), 0);
+    }
+
+    #[test]
+    fn small_numbers() {
+        assert_eq!(collatz_steps(2), 1);
+        assert_eq!(collatz_steps(3), 7);
+        assert_eq!(collatz_steps(6), 8);
+    }
+
+    #[test]
+    fn twenty_seven_takes_a_long_way_round() {
+        assert_eq!(collatz_steps(27), 111);
+    }
+
+    #[test]
+    fn large_numbers_fit_in_u64() {
+        assert_eq!(collatz_steps(837_799), 524);
+    }
+}
+'''
+hints = [
+  "Both `n` and the step count change as you go, so they need `mut`.",
+  "`while n != 1 { ... }` keeps going until you reach 1. `n % 2 == 0` tells you whether `n` is even.",
+]
+solution = '''
+fn collatz_steps(n: u64) -> u32 {
+    let mut n = n;
+    let mut steps = 0;
+    while n != 1 {
+        n = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
+        steps += 1;
+    }
+    steps
+}
+
+fn main() {
+    println!("6 takes {} steps", collatz_steps(6));
+}
+'''

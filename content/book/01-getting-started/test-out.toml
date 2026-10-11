@@ -1,0 +1,66 @@
+id = "book.getting-started.test-out"
+kind = "test-out"
+title = "Two lines from Cargo"
+prompt = '''
+Already comfortable with `println!`, `format!` and Cargo? Pass this to complete
+the whole chapter.
+
+Write `cargo_run(name, version)`, which returns the two lines Cargo prints at the
+start of `cargo run`, joined with `\n` and with no newline at the end.
+`cargo_run("hello", "0.1.0")` returns:
+
+       Compiling hello v0.1.0
+         Running `target/debug/hello`
+
+`Compiling` has 3 spaces in front of it and `Running` has 5, so the two words
+line up on the right.
+'''
+starter = '''
+fn cargo_run(name: &str, version: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    println!("{}", cargo_run("hello", "0.1.0"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prints_both_lines() {
+        assert_eq!(
+            cargo_run("hello", "0.1.0"),
+            "   Compiling hello v0.1.0\n     Running `target/debug/hello`"
+        );
+    }
+
+    #[test]
+    fn uses_the_name_and_version_given() {
+        assert_eq!(
+            cargo_run("guessing_game", "2.3.1"),
+            "   Compiling guessing_game v2.3.1\n     Running `target/debug/guessing_game`"
+        );
+    }
+
+    #[test]
+    fn has_no_trailing_newline() {
+        assert!(!cargo_run("a", "1.0.0").ends_with('\n'));
+    }
+}
+'''
+hints = [
+  "`format!` works like `println!` but returns the `String` instead of printing it.",
+  "Put `{name}` and `{version}` straight into the text, and `\\n` between the two lines.",
+]
+solution = '''
+fn cargo_run(name: &str, version: &str) -> String {
+    format!("   Compiling {name} v{version}\n     Running `target/debug/{name}`")
+}
+
+fn main() {
+    println!("{}", cargo_run("hello", "0.1.0"));
+}
+'''
