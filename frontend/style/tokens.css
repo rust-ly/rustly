@@ -45,7 +45,8 @@
   /* palette colours used as text or outlines on the page background */
   --tide-text: var(--tide);
   --sand-text: var(--sand);
-  --amber-text: var(--amber);
+  --amber-text: var(--amber-light);
+  --crab-text: #F0562A;
   color-scheme: dark;
 }
 
@@ -104,6 +105,7 @@
   --tide-text: #1A6475;
   --sand-text: var(--lava);
   --amber-text: #9A5505;
+  --crab-text: #B83303;
   color-scheme: light;
 }
 

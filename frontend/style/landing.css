@@ -191,7 +191,7 @@
 }
 .track-card-tide { background: var(--tide-tint); border-color: var(--tide-border); }
 .track-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
-.track-label { font-size: 13px; font-weight: 500; color: var(--crab); }
+.track-label { font-size: 13px; font-weight: 500; color: var(--crab-text); }
 .track-label-tide { color: var(--tide-text); }
 .track-card h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: var(--space-3); }
 .tide { color: var(--tide-text); }

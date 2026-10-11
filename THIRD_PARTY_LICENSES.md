@@ -285,3 +285,15 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
+
+---
+
+## Fonts and the editor
+
+These aren't adapted course material, but the site ships or loads them. Their licenses live next to the files or at the source.
+
+| Project | Used for | License | Where the license is |
+| --- | --- | --- | --- |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | Code font | SIL Open Font License 1.1 | [`frontend/assets/fonts/jetbrains-mono/OFL.txt`](frontend/assets/fonts/jetbrains-mono/OFL.txt) |
+| [Satoshi](https://www.fontshare.com/fonts/satoshi) by Indian Type Foundry | Text font | ITF Free Font License | Downloaded with the font at build time by `frontend/fetch-fonts.sh` (`FFL.txt`). Its license doesn't allow committing it to a public repository. |
+| [Monaco Editor](https://github.com/microsoft/monaco-editor) by Microsoft | The exercise editor | MIT | Loaded from the jsDelivr CDN, not stored in this repository. See the [Monaco license](https://github.com/microsoft/monaco-editor/blob/main/LICENSE.txt). |

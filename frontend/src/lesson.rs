@@ -199,6 +199,7 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
             <div class="prose small-prose" inner_html=content::markdown_html(&exercise.prompt)></div>
             <CodeEditor code=code diagnostics=diagnostics />
             <div class="exercise-actions">
+                <span class="editor-keys small muted">"esc leaves the editor"</span>
                 <button class="btn btn-secondary btn-sm" on:click=reset disabled=running>"./reset"</button>
                 <button class="btn btn-sm" on:click=run disabled=running>
                     {move || if running() { "running…" } else { "./run" }}

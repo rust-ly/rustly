@@ -73,7 +73,7 @@
 .brand { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; }
 .avatar { border-radius: 50%; object-fit: cover; flex: none; }
 .wordmark { font: 900 22px/1 var(--font-sans); letter-spacing: -0.045em; color: var(--cream); }
-.wordmark span, .wordmark-sm span { color: var(--crab); }
+.wordmark span, .wordmark-sm span { color: var(--crab-text); }
 .topbar nav { display: flex; gap: var(--space-1); margin: 0 auto; }
 .topbar nav a {
   font: 500 var(--text-ui)/1 var(--font-sans);
@@ -187,6 +187,23 @@
 .footer-credits { max-width: 600px; display: grid; gap: var(--space-2); }
 .footer-credits a { color: var(--tide-text); }
 
+/* Skip link: hidden until it gets keyboard focus */
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -100px;
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border-radius: var(--radius-control);
+}
+.skip-link:focus { top: var(--space-3); }
+main:focus { outline: none; }
+
+/* Credits page */
+.credit-list { list-style: none; padding-left: 0; display: grid; gap: var(--space-4); }
+
 /* Lesson page: prose / exercise columns, stacked under 1024px */
 .lesson {
   display: grid;
@@ -260,9 +277,9 @@
   border-radius: var(--radius-control);
 }
 .badge-runnable { border-color: var(--sand); color: var(--sand); }
-.badge-editable { border-color: var(--amber); color: var(--amber); }
+.badge-editable { border-color: var(--amber-text); color: var(--amber-text); }
 .badge-error { background: var(--shell); border-color: var(--shell); color: var(--cream); }
-.badge-panics { border-color: var(--crab); color: var(--crab); }
+.badge-panics { border-color: var(--crab-text); color: var(--crab-text); }
 :root[data-theme="light"] .badge-runnable { border-color: var(--lava); color: var(--lava); }
 :root[data-theme="light"] .badge-editable { color: var(--ink); }
 
@@ -280,12 +297,12 @@
 .output-error { box-shadow: inset 2px 0 0 var(--error-text); color: var(--error-text); }
 
 /* Syntax colours (doc: keywords crab, strings sand, types amber, macros, comments muted) */
-.tok-kw { color: var(--crab); }
+.tok-kw { color: var(--crab-text); }
 .tok-str, .tok-num { color: var(--sand); }
-.tok-ty { color: var(--amber); }
+.tok-ty { color: var(--amber-text); }
 .tok-mac { color: var(--macro); }
 .tok-com { color: var(--muted); font-style: italic; }
-:root[data-theme="light"] .tok-str, :root[data-theme="light"] .tok-num { color: var(--amber); }
+:root[data-theme="light"] .tok-str, :root[data-theme="light"] .tok-num { color: var(--amber-text); }
 
 /* Exercise panel */
 .exercise .exercise-title { font-size: var(--text-h3); letter-spacing: -0.015em; margin-bottom: var(--space-3); }
@@ -311,6 +328,7 @@
 }
 .exercise-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
   padding: var(--space-2);
@@ -319,6 +337,8 @@
   border-top: 0;
   border-radius: 0 0 var(--radius) var(--radius);
 }
+.editor-keys { margin-right: auto; padding-left: var(--space-2); }
+@media (max-width: 640px) { .editor-keys { display: none; } }
 .exercise .snippet-output { margin-top: var(--space-3); border: 1px solid var(--border); max-height: 240px; overflow-y: auto; }
 
 /* Snippet library */
