@@ -1,0 +1,102 @@
+id = "book.advanced.macros.checkpoint"
+kind = "checkpoint"
+title = "Your own macros"
+prompt = '''
+Write three `macro_rules!` macros:
+
+- `max_of!(...)`: one or more expressions, returns the largest. `max_of!(4)` is `4`,
+  and `max_of!(3, 9, 2)` is `9`. (Use `std::cmp::max` and recursion: the max of the
+  first one and `max_of!` of the rest.)
+- `string_vec![...]`: zero or more expressions, returns a `Vec<String>` with
+  `.to_string()` called on each one. `string_vec![1, "a", 'c']` is
+  `["1", "a", "c"]`.
+- `count!(...)`: zero or more expressions, returns how many there were as a `usize`.
+  `count!()` is `0` and `count!(a, b, c)` is `3`.
+'''
+starter = '''
+macro_rules! max_of {
+    ( $( $x:expr ),+ ) => {
+        0
+    };
+}
+
+macro_rules! string_vec {
+    ( $( $x:expr ),* ) => {
+        Vec::<String>::new()
+    };
+}
+
+macro_rules! count {
+    ( $( $x:expr ),* ) => {
+        0usize
+    };
+}
+
+fn main() {
+    println!("{}", max_of!(3));
+    println!("{:?}", string_vec![1, "a", 'c']);
+    println!("{}", count!(1, 2, 3));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn max_of_one_or_many() {
+        assert_eq!(max_of!(4), 4);
+        assert_eq!(max_of!(3, 9, 2), 9);
+        assert_eq!(max_of!(-5, -1, -8, -2), -1);
+        assert_eq!(max_of!(2 + 3, 1 * 4), 5);
+    }
+
+    #[test]
+    fn builds_string_vecs() {
+        let v: Vec<String> = string_vec![1, "a", 'c'];
+        assert_eq!(v, vec!["1", "a", "c"]);
+        let empty: Vec<String> = string_vec![];
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn counts() {
+        let n: usize = count!();
+        assert_eq!(n, 0);
+        assert_eq!(count!(1), 1);
+        assert_eq!(count!("a", "b", "c", 1 + 1), 4);
+    }
+}
+'''
+hints = [
+  "`max_of!` needs two arms: `($x:expr) => { $x };` and `($x:expr, $( $rest:expr ),+) => { std::cmp::max($x, max_of!($( $rest ),+)) };`.",
+  "Put the one-expression arm first, so `max_of!(4)` matches it before trying the longer pattern.",
+  "`string_vec!` can expand to `vec![ $( $x.to_string() ),* ]`.",
+  "For `count!`, start from `0usize` and add one per expression: `0usize $( + { let _ = $x; 1usize } )*`. The `let _ = $x;` is there because a repetition must use at least one captured fragment.",
+]
+solution = '''
+macro_rules! max_of {
+    ($x:expr) => {
+        $x
+    };
+    ($x:expr, $( $rest:expr ),+) => {
+        std::cmp::max($x, max_of!($( $rest ),+))
+    };
+}
+
+macro_rules! string_vec {
+    ( $( $x:expr ),* ) => {
+        vec![ $( $x.to_string() ),* ]
+    };
+}
+
+macro_rules! count {
+    ( $( $x:expr ),* ) => {
+        0usize $( + { let _ = $x; 1usize } )*
+    };
+}
+
+fn main() {
+    println!("{}", max_of!(3));
+    println!("{:?}", string_vec![1, "a", 'c']);
+    println!("{}", count!(1, 2, 3));
+}
+'''
