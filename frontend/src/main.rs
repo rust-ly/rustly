@@ -9,6 +9,7 @@ mod learner;
 mod lesson;
 mod routes;
 mod snippet;
+mod snippets;
 mod storage;
 mod topbar;
 
