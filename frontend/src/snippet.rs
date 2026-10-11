@@ -241,7 +241,7 @@ fn visible_error_lines(snippet: &Snippet, response: &RunResponse) -> BTreeSet<u3
 }
 
 /// What the program itself printed to stderr, without Cargo's build lines.
-fn program_stderr(stderr: &str) -> String {
+pub fn program_stderr(stderr: &str) -> String {
     match stderr.find("Running `") {
         Some(i) => stderr[i..]
             .split_once('\n')

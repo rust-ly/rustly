@@ -30,3 +30,23 @@ pub fn save_preview(on: bool) {
 pub fn save_theme(theme: &str) {
     let _ = LocalStorage::raw().set_item(THEME, theme);
 }
+
+/// The learner's unsubmitted code for an exercise, if they've edited it.
+pub fn load_draft(exercise_id: &str) -> Option<String> {
+    LocalStorage::raw()
+        .get_item(&draft_key(exercise_id))
+        .ok()
+        .flatten()
+}
+
+pub fn save_draft(exercise_id: &str, code: &str) {
+    let _ = LocalStorage::raw().set_item(&draft_key(exercise_id), code);
+}
+
+pub fn clear_draft(exercise_id: &str) {
+    let _ = LocalStorage::raw().remove_item(&draft_key(exercise_id));
+}
+
+fn draft_key(exercise_id: &str) -> String {
+    format!("draft:{exercise_id}")
+}

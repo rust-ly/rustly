@@ -3,12 +3,15 @@
 
 use content::{Chapter, Concept, Exercise, LessonBlock};
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_router::components::{A, Redirect};
 use leptos_router::hooks::use_params_map;
+use shared::{RunResponse, Severity};
 
+use crate::editor::CodeEditor;
 use crate::learner::Learner;
-use crate::snippet::SnippetView;
-use crate::{NotFound, highlight, routes};
+use crate::snippet::{SnippetView, program_stderr};
+use crate::{NotFound, api, routes, storage};
 
 #[component]
 pub fn ConceptPage() -> impl IntoView {
@@ -117,24 +120,113 @@ fn LessonBody(concept: &'static Concept) -> impl IntoView {
         .collect_view()
 }
 
-/// The exercise for this page. The editor and grading arrive in M5–M7; until
-/// then the panel shows the task and the starter code.
+/// The exercise for this page: the task, the editor and Run. Drafts are saved
+/// as the learner types, so a reload keeps their code.
 #[component]
 fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoView {
+    let starter = format!("{}\n", exercise.starter.trim());
+    let code = RwSignal::new(storage::load_draft(&exercise.id).unwrap_or_else(|| starter.clone()));
+    let state = RwSignal::new(RunState::Idle);
+    {
+        let starter = starter.clone();
+        Effect::new(move || {
+            code.with(|code| {
+                if *code == starter {
+                    storage::clear_draft(&exercise.id);
+                } else {
+                    storage::save_draft(&exercise.id, code);
+                }
+            });
+        });
+    }
+
+    let running = move || matches!(state.get(), RunState::Running);
+    let run = move |_| {
+        state.set(RunState::Running);
+        spawn_local(async move {
+            state.set(match api::run(code.get_untracked()).await {
+                Ok(response) => RunState::Done(response),
+                Err(message) => RunState::Failed(message),
+            });
+        });
+    };
+    let reset = move |_| {
+        code.set(starter.clone());
+        state.set(RunState::Idle);
+    };
+    // Compile errors from the last run, shown as squiggles until the next one.
+    let diagnostics = Signal::derive(move || match state.get() {
+        RunState::Done(r) => r.diagnostics,
+        _ => Vec::new(),
+    });
+
     view! {
         <section class="exercise card">
             <p class="eyebrow">{label}</p>
             <h2 class="exercise-title">{exercise.title.clone()}</h2>
             <div class="prose small-prose" inner_html=content::markdown_html(&exercise.prompt)></div>
-            <pre class="snippet-code starter"><code>
-                {exercise.starter.trim().lines().map(|text| view! {
-                    <span class="line">
-                        {highlight::line(text).into_iter().map(|(t, piece)| view! { <span class=t.class()>{piece}</span> }).collect_view()}
-                        "\n"
-                    </span>
-                }).collect_view()}
-            </code></pre>
-            <p class="muted small">"The code editor and ./submit arrive in the next milestone."</p>
+            <CodeEditor code=code diagnostics=diagnostics />
+            <div class="exercise-actions">
+                <button class="btn btn-secondary btn-sm" on:click=reset disabled=running>"./reset"</button>
+                <button class="btn btn-sm" on:click=run disabled=running>
+                    {move || if running() { "running…" } else { "./run" }}
+                </button>
+            </div>
+            <RunOutput state=state />
         </section>
+    }
+}
+
+#[derive(Clone)]
+enum RunState {
+    Idle,
+    Running,
+    Done(RunResponse),
+    Failed(String),
+}
+
+/// What the last Run printed, or why it didn't compile.
+#[component]
+fn RunOutput(state: RwSignal<RunState>) -> impl IntoView {
+    move || match state.get() {
+        RunState::Idle | RunState::Running => None,
+        RunState::Failed(message) => Some(
+            view! { <div class="snippet-output output-error" role="status">{message}</div> }
+                .into_any(),
+        ),
+        RunState::Done(r) if r.success => {
+            let text = if r.stdout.is_empty() {
+                "(no output)".to_string()
+            } else {
+                r.stdout
+            };
+            Some(
+                view! { <pre class="snippet-output output-ok" role="status">{text}</pre> }
+                    .into_any(),
+            )
+        }
+        RunState::Done(r) => {
+            let errors: Vec<_> = r
+                .diagnostics
+                .into_iter()
+                .filter(|d| d.severity == Severity::Error)
+                .collect();
+            Some(if errors.is_empty() {
+                view! {
+                    <pre class="snippet-output output-error" role="status">{r.stdout}{program_stderr(&r.stderr)}</pre>
+                }
+                .into_any()
+            } else {
+                view! {
+                    <div class="snippet-output output-error" role="status">
+                        {errors.into_iter().map(|d| {
+                            let code = d.code.map_or(String::new(), |c| format!("[{c}]"));
+                            view! { <p><strong>{format!("error{code}")}</strong>": "{d.message}{format!(" (line {})", d.line)}</p> }
+                        }).collect_view()}
+                    </div>
+                }
+                .into_any()
+            })
+        }
     }
 }
