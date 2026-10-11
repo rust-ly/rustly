@@ -1,0 +1,176 @@
+id = "tokio.shared-state.challenge"
+kind = "challenge"
+title = "A sharded word counter"
+prompt = '''
+One mutex for the whole store makes every task queue for the same lock. Build
+the tutorial's fix, a **sharded** store: several mutexes, each guarding part of the keys.
+
+- `Store::new(shards: usize)` makes that many empty shards.
+- `fn shard(&self, key: &str) -> &Mutex<HashMap<String, u64>>` picks a key's shard:
+  hash the key with `std::hash::DefaultHasher`, then take the hash modulo the number
+  of shards. The same key must always land in the same shard.
+- `fn incr(&self, key: &str) -> u64` adds 1 to the key's count and returns the new
+  count. `fn get(&self, key: &str) -> u64` returns the count (0 if it's never been seen).
+  Both are plain, non-async methods.
+- `async fn count_words(store: Arc<Store>, texts: Vec<String>)` spawns one task per
+  text. Each task goes through its text's whitespace-separated words, calling
+  `incr` for each word and then `yield_now().await` before the next one.
+
+The grader checks the counts, that every key lives in exactly one shard, that the
+keys are spread over more than one shard, and runs the tasks on several threads.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::{Arc, Mutex};
+use tokio::task::yield_now;
+
+struct Store {
+    shards: Vec<Mutex<HashMap<String, u64>>>,
+}
+
+impl Store {
+    fn new(shards: usize) -> Self {
+        todo!()
+    }
+
+    fn shard(&self, key: &str) -> &Mutex<HashMap<String, u64>> {
+        todo!()
+    }
+
+    fn incr(&self, key: &str) -> u64 {
+        todo!()
+    }
+
+    fn get(&self, key: &str) -> u64 {
+        todo!()
+    }
+}
+
+async fn count_words(store: Arc<Store>, texts: Vec<String>) {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let store = Arc::new(Store::new(4));
+    let texts = vec!["the crab and the runtime".to_string(), "the end".to_string()];
+    count_words(Arc::clone(&store), texts).await;
+    println!("the: {}, crab: {}", store.get("the"), store.get("crab"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn incr_and_get() {
+        let store = Store::new(3);
+        assert_eq!(store.get("x"), 0);
+        assert_eq!(store.incr("x"), 1);
+        assert_eq!(store.incr("x"), 2);
+        assert_eq!(store.incr("y"), 1);
+        assert_eq!(store.get("x"), 2);
+        assert_eq!(store.shards.len(), 3);
+    }
+
+    #[test]
+    fn each_key_lives_in_one_shard() {
+        let store = Store::new(4);
+        let keys: Vec<String> = (0..50).map(|i| format!("key{i}")).collect();
+        for key in &keys {
+            store.incr(key);
+            assert!(std::ptr::eq(store.shard(key), store.shard(key)));
+        }
+        for key in &keys {
+            let homes = store.shards.iter().filter(|s| s.lock().unwrap().contains_key(key)).count();
+            assert_eq!(homes, 1, "{key} is in {homes} shards");
+        }
+        let used = store.shards.iter().filter(|s| !s.lock().unwrap().is_empty()).count();
+        assert!(used > 1, "all 50 keys landed in one shard");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn counts_words_from_many_tasks() {
+        let store = Arc::new(Store::new(8));
+        let texts: Vec<String> = (0..100).map(|_| "tokio is fast and tokio is fun".to_string()).collect();
+        count_words(Arc::clone(&store), texts).await;
+        assert_eq!(store.get("tokio"), 200);
+        assert_eq!(store.get("is"), 200);
+        assert_eq!(store.get("fun"), 100);
+        assert_eq!(store.get("slow"), 0);
+    }
+
+    #[tokio::test]
+    async fn no_texts() {
+        let store = Arc::new(Store::new(2));
+        count_words(Arc::clone(&store), Vec::new()).await;
+        assert!(store.shards.iter().all(|s| s.lock().unwrap().is_empty()));
+    }
+}
+'''
+hints = [
+  "`new`: `(0..shards).map(|_| Mutex::new(HashMap::new())).collect()`.",
+  "`shard`: `let mut h = DefaultHasher::new(); key.hash(&mut h); &self.shards[(h.finish() % self.shards.len() as u64) as usize]`.",
+  "`count_words`: spawn a task per text with its own `Arc` clone, loop over `text.split_whitespace()`, call `store.incr(word)` then `yield_now().await`, and await every handle at the end. `incr` isn't async, so no guard is ever held across the `.await`.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::{Arc, Mutex};
+use tokio::task::yield_now;
+
+struct Store {
+    shards: Vec<Mutex<HashMap<String, u64>>>,
+}
+
+impl Store {
+    fn new(shards: usize) -> Self {
+        Store { shards: (0..shards).map(|_| Mutex::new(HashMap::new())).collect() }
+    }
+
+    fn shard(&self, key: &str) -> &Mutex<HashMap<String, u64>> {
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        &self.shards[(hasher.finish() % self.shards.len() as u64) as usize]
+    }
+
+    fn incr(&self, key: &str) -> u64 {
+        let mut map = self.shard(key).lock().unwrap();
+        let count = map.entry(key.to_string()).or_insert(0);
+        *count += 1;
+        *count
+    }
+
+    fn get(&self, key: &str) -> u64 {
+        self.shard(key).lock().unwrap().get(key).copied().unwrap_or(0)
+    }
+}
+
+async fn count_words(store: Arc<Store>, texts: Vec<String>) {
+    let handles: Vec<_> = texts
+        .into_iter()
+        .map(|text| {
+            let store = Arc::clone(&store);
+            tokio::spawn(async move {
+                for word in text.split_whitespace() {
+                    store.incr(word);
+                    yield_now().await;
+                }
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.await.unwrap();
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let store = Arc::new(Store::new(4));
+    let texts = vec!["the crab and the runtime".to_string(), "the end".to_string()];
+    count_words(Arc::clone(&store), texts).await;
+    println!("the: {}, crab: {}", store.get("the"), store.get("crab"));
+}
+'''
