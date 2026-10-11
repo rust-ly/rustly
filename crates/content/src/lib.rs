@@ -14,7 +14,7 @@ pub use graph::CourseGraph;
 pub use lesson::{LessonBlock, lesson_blocks, markdown_html};
 pub use load::{Course, LoadError};
 pub use model::{Chapter, Concept, Exercise, ExerciseKind, Snippet, SnippetKind, Track};
-pub use progress::{Progress, unlocked};
+pub use progress::{Progress, Unlocks, newly_unlocked, unlocked};
 
 mod embedded {
     include!(concat!(env!("OUT_DIR"), "/files.rs"));

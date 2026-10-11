@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::graph::CourseGraph;
+use crate::load::Course;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -19,6 +20,55 @@ pub struct Progress {
     pub starred_snippets: BTreeSet<String>,
     /// Route to resume from.
     pub last_visited: Option<String>,
+}
+
+impl Progress {
+    /// Records one graded submit: a pass completes the exercise, a fail
+    /// counts towards showing the solution.
+    pub fn record_submit(&mut self, exercise: &str, passed: bool) {
+        if passed {
+            self.completed.insert(exercise.to_string());
+        } else {
+            *self.failed_submits.entry(exercise.to_string()).or_default() += 1;
+        }
+    }
+}
+
+/// What a change in progress opened, in course order.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Unlocks {
+    pub concepts: Vec<String>,
+    /// Chapter ids whose challenge became available.
+    pub challenges: Vec<String>,
+}
+
+impl Unlocks {
+    pub fn is_empty(&self) -> bool {
+        self.concepts.is_empty() && self.challenges.is_empty()
+    }
+}
+
+/// The concepts and challenges open in `after` that weren't in `before`.
+pub fn newly_unlocked(course: &Course, before: &Progress, after: &Progress) -> Unlocks {
+    let graph = course.graph();
+    let concepts = course
+        .concepts()
+        .filter(|c| graph.is_open(&c.id, after) && !graph.is_open(&c.id, before))
+        .map(|c| c.id.clone())
+        .collect();
+    let challenges = course
+        .all_chapters()
+        .filter(|c| {
+            graph.is_challenge_open(&c.id, after)
+                && !graph.is_challenge_open(&c.id, before)
+                && !graph.is_complete(&c.id, after)
+        })
+        .map(|c| c.id.clone())
+        .collect();
+    Unlocks {
+        concepts,
+        challenges,
+    }
 }
 
 /// The concepts whose lessons and checkpoints are open: every requirement is
@@ -174,6 +224,64 @@ mod tests {
         assert!(!unlocked(graph, &one_done).contains("tokio.hello.main"));
         let both_done = progress(&["book.one.challenge", "book.two.challenge"]);
         assert!(unlocked(graph, &both_done).contains("tokio.hello.main"));
+    }
+
+    #[test]
+    fn a_pass_completes_and_a_fail_is_counted() {
+        let mut p = Progress::default();
+        p.record_submit("book.one.a.checkpoint", false);
+        p.record_submit("book.one.a.checkpoint", false);
+        assert_eq!(p.failed_submits["book.one.a.checkpoint"], 2);
+        assert!(p.completed.is_empty());
+        p.record_submit("book.one.a.checkpoint", true);
+        assert!(p.completed.contains("book.one.a.checkpoint"));
+        assert_eq!(p.failed_submits["book.one.a.checkpoint"], 2);
+    }
+
+    #[test]
+    fn a_checkpoint_reports_the_concept_it_unlocked() {
+        let before = progress(&[]);
+        let after = progress(&["book.getting-started.hello-world.checkpoint"]);
+        let unlocks = newly_unlocked(crate::course(), &before, &after);
+        assert_eq!(unlocks.concepts, ["book.getting-started.hello-cargo"]);
+        assert!(unlocks.challenges.is_empty());
+    }
+
+    #[test]
+    fn the_last_checkpoint_reports_the_challenge() {
+        let before = progress(&["book.getting-started.hello-world.checkpoint"]);
+        let mut after = before.clone();
+        after.record_submit("book.getting-started.hello-cargo.checkpoint", true);
+        let unlocks = newly_unlocked(crate::course(), &before, &after);
+        assert!(unlocks.concepts.is_empty());
+        assert_eq!(unlocks.challenges, ["book.getting-started"]);
+    }
+
+    #[test]
+    fn a_challenge_reports_the_next_chapter() {
+        let before = progress(&[
+            "book.getting-started.hello-world.checkpoint",
+            "book.getting-started.hello-cargo.checkpoint",
+        ]);
+        let mut after = before.clone();
+        after.record_submit("book.getting-started.challenge", true);
+        let unlocks = newly_unlocked(crate::course(), &before, &after);
+        assert_eq!(unlocks.concepts, ["book.guessing-game.processing-a-guess"]);
+        assert!(unlocks.challenges.is_empty());
+    }
+
+    #[test]
+    fn a_test_out_reports_the_rest_of_the_chapter_but_not_its_challenge() {
+        let course = cross_track();
+        let unlocks = newly_unlocked(&course, &progress(&[]), &progress(&["book.one.test-out"]));
+        assert_eq!(unlocks.concepts, ["book.one.b", "book.two.c"]);
+        assert!(unlocks.challenges.is_empty());
+    }
+
+    #[test]
+    fn a_repeat_pass_unlocks_nothing_new() {
+        let p = progress(&["book.getting-started.hello-world.checkpoint"]);
+        assert!(newly_unlocked(crate::course(), &p, &p).is_empty());
     }
 
     #[test]
