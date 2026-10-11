@@ -1,0 +1,7 @@
+id = "book.advanced"
+track = "book"
+title = "Advanced Features"
+order = 20
+source = "https://doc.rust-lang.org/book/ch20-00-advanced-features.html"
+summary = "Unsafe Rust, operator overloading, supertraits and newtypes, advanced types, function pointers and returning closures, and macros."
+requires = []

@@ -1,0 +1,189 @@
+id = "book.advanced.challenge"
+kind = "challenge"
+title = "A tiny till"
+prompt = '''
+Build the money side of a shop till, using this chapter's tools together:
+
+- **Newtype + operator overloading.** `Cents(i64)` is a newtype for an amount of
+  money. Implement `Add` (`Cents + Cents`) and `Mul<i64>` (`Cents * 3`, for quantities).
+- **`Display` on a newtype.** Show an amount as shillings and cents with two digits:
+  `Cents(1205)` is `12.05`, `Cents(7)` is `0.07` and `Cents(-340)` is `-3.40`.
+- **A macro.** `total!(...)` adds zero or more `Cents` expressions. `total!()` is
+  `Cents(0)`.
+- **Function pointers and an alias.** With `type Rule = fn(Cents) -> Cents;`, write
+  `apply_rules(amount: Cents, rules: &[Rule]) -> Cents` that applies each rule in order.
+- **Returning a closure.** `percent_off(p: i64) -> Box<dyn Fn(Cents) -> Cents>` returns
+  a closure that takes `p` percent off, rounding down to whole cents
+  (`amount * (100 - p) / 100` in integer cents).
+'''
+starter = '''
+use std::fmt;
+use std::ops::{Add, Mul};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Cents(i64);
+
+impl Add for Cents {
+    type Output = Cents;
+
+    fn add(self, other: Cents) -> Cents {
+        todo!()
+    }
+}
+
+impl Mul<i64> for Cents {
+    type Output = Cents;
+
+    fn mul(self, qty: i64) -> Cents {
+        todo!()
+    }
+}
+
+impl fmt::Display for Cents {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        todo!()
+    }
+}
+
+macro_rules! total {
+    ( $( $x:expr ),* ) => {
+        Cents(0)
+    };
+}
+
+type Rule = fn(Cents) -> Cents;
+
+fn apply_rules(amount: Cents, rules: &[Rule]) -> Cents {
+    todo!()
+}
+
+fn percent_off(p: i64) -> Box<dyn Fn(Cents) -> Cents> {
+    todo!()
+}
+
+fn round_down_to_shilling(c: Cents) -> Cents {
+    Cents(c.0 - c.0 % 100)
+}
+
+fn main() {
+    let bill = total!(Cents(250) * 2, Cents(1205));
+    println!("bill: {bill}");
+    println!("rounded: {}", apply_rules(bill, &[round_down_to_shilling]));
+    println!("10% off: {}", percent_off(10)(bill));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adds_and_multiplies() {
+        assert_eq!(Cents(250) + Cents(5), Cents(255));
+        assert_eq!(Cents(250) * 3, Cents(750));
+        assert_eq!(Cents(100) + Cents(20) * 2, Cents(140));
+    }
+
+    #[test]
+    fn displays_two_decimal_places() {
+        assert_eq!(Cents(1205).to_string(), "12.05");
+        assert_eq!(Cents(7).to_string(), "0.07");
+        assert_eq!(Cents(0).to_string(), "0.00");
+        assert_eq!(Cents(100).to_string(), "1.00");
+        assert_eq!(Cents(-340).to_string(), "-3.40");
+        assert_eq!(Cents(-5).to_string(), "-0.05");
+    }
+
+    #[test]
+    fn totals_with_a_macro() {
+        assert_eq!(total!(), Cents(0));
+        assert_eq!(total!(Cents(5)), Cents(5));
+        assert_eq!(total!(Cents(250) * 2, Cents(1205), Cents(-5)), Cents(1700));
+    }
+
+    #[test]
+    fn applies_rules_in_order() {
+        fn add_fee(c: Cents) -> Cents {
+            c + Cents(30)
+        }
+        assert_eq!(apply_rules(Cents(1250), &[]), Cents(1250));
+        assert_eq!(apply_rules(Cents(1250), &[round_down_to_shilling, add_fee]), Cents(1230));
+        assert_eq!(apply_rules(Cents(1250), &[add_fee, round_down_to_shilling]), Cents(1200));
+    }
+
+    #[test]
+    fn percent_off_closures() {
+        assert_eq!(percent_off(10)(Cents(1000)), Cents(900));
+        assert_eq!(percent_off(0)(Cents(1234)), Cents(1234));
+        assert_eq!(percent_off(15)(Cents(999)), Cents(849));
+        let deals: Vec<Box<dyn Fn(Cents) -> Cents>> = vec![percent_off(50), percent_off(25)];
+        let prices: Vec<Cents> = deals.iter().map(|d| d(Cents(400))).collect();
+        assert_eq!(prices, vec![Cents(200), Cents(300)]);
+    }
+}
+'''
+hints = [
+  "`Add`: `Cents(self.0 + other.0)`. `Mul<i64>`: `Cents(self.0 * qty)`.",
+  "In `Display`, handle the sign first: `let sign = if self.0 < 0 { \"-\" } else { \"\" };`, then work with `self.0.abs()`. `{:02}` pads the cents to two digits.",
+  "`total!` can expand to `Cents(0) $( + $x )*`, which uses your `Add` impl.",
+  "`apply_rules` is a fold: `rules.iter().fold(amount, |acc, rule| rule(acc))`.",
+  "`percent_off`: `Box::new(move |c: Cents| Cents(c.0 * (100 - p) / 100))`.",
+]
+solution = '''
+use std::fmt;
+use std::ops::{Add, Mul};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Cents(i64);
+
+impl Add for Cents {
+    type Output = Cents;
+
+    fn add(self, other: Cents) -> Cents {
+        Cents(self.0 + other.0)
+    }
+}
+
+impl Mul<i64> for Cents {
+    type Output = Cents;
+
+    fn mul(self, qty: i64) -> Cents {
+        Cents(self.0 * qty)
+    }
+}
+
+impl fmt::Display for Cents {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let sign = if self.0 < 0 { "-" } else { "" };
+        let abs = self.0.abs();
+        write!(f, "{sign}{}.{:02}", abs / 100, abs % 100)
+    }
+}
+
+macro_rules! total {
+    ( $( $x:expr ),* ) => {
+        Cents(0) $( + $x )*
+    };
+}
+
+type Rule = fn(Cents) -> Cents;
+
+fn apply_rules(amount: Cents, rules: &[Rule]) -> Cents {
+    rules.iter().fold(amount, |acc, rule| rule(acc))
+}
+
+fn percent_off(p: i64) -> Box<dyn Fn(Cents) -> Cents> {
+    Box::new(move |c: Cents| Cents(c.0 * (100 - p) / 100))
+}
+
+fn round_down_to_shilling(c: Cents) -> Cents {
+    Cents(c.0 - c.0 % 100)
+}
+
+fn main() {
+    let bill = total!(Cents(250) * 2, Cents(1205));
+    println!("bill: {bill}");
+    println!("rounded: {}", apply_rules(bill, &[round_down_to_shilling]));
+    println!("10% off: {}", percent_off(10)(bill));
+}
+'''
