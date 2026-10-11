@@ -320,3 +320,21 @@
   border-radius: 0 0 var(--radius) var(--radius);
 }
 .exercise .snippet-output { margin-top: var(--space-3); border: 1px solid var(--border); max-height: 240px; overflow-y: auto; }
+
+/* Snippet library */
+.library-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-5); }
+.search {
+  flex: 1 1 280px;
+  max-width: 480px;
+  font: 400 var(--text-ui)/1.4 var(--font-mono);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+.check { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-ui); }
+.library-chapter .eyebrow { margin-bottom: var(--space-1); }
+.library-concept { margin: var(--space-5) 0 0; font-size: var(--text-ui); }
+.icon-btn.star { width: 26px; height: 26px; font-size: 15px; line-height: 1; color: var(--muted); border-color: var(--border); }
+.icon-btn.star.starred { color: var(--sand-text); border-color: var(--border-strong); }

@@ -7,6 +7,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use shared::{RunResponse, Severity};
 
+use crate::learner::Learner;
 use crate::{api, highlight};
 
 #[derive(Clone)]
@@ -22,6 +23,19 @@ pub fn SnippetView(snippet: &'static Snippet) -> impl IntoView {
     let kind = snippet.kind;
     let edited = RwSignal::new(snippet.visible_code.clone());
     let state = RwSignal::new(RunState::Idle);
+    let learner = Learner::get();
+    let starred = move || {
+        learner
+            .progress
+            .with(|p| p.starred_snippets.contains(&snippet.id))
+    };
+    let toggle_star = move |_| {
+        learner.progress.update(|p| {
+            if !p.starred_snippets.remove(&snippet.id) {
+                p.starred_snippets.insert(snippet.id.clone());
+            }
+        });
+    };
 
     let run = move |_| {
         let code = match kind {
@@ -61,6 +75,16 @@ pub fn SnippetView(snippet: &'static Snippet) -> impl IntoView {
                 <span class="snippet-title">{snippet.title.clone().unwrap_or_default()}</span>
                 <span class="snippet-actions">
                     {badge(kind)}
+                    <button
+                        class="icon-btn star"
+                        class:starred=starred
+                        on:click=toggle_star
+                        aria-pressed=move || starred().to_string()
+                        aria-label="Star this snippet"
+                        title="Star to keep it in your snippet library"
+                    >
+                        {move || if starred() { "★" } else { "☆" }}
+                    </button>
                     {(kind == SnippetKind::Editable).then(|| view! {
                         <button class="btn btn-secondary btn-sm" on:click=reset>"./reset"</button>
                     })}

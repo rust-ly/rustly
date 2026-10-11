@@ -7,6 +7,7 @@ use crate::course_map::LearnPage;
 use crate::home::Home;
 use crate::learner::Learner;
 use crate::lesson::ConceptPage;
+use crate::snippets::SnippetsPage;
 use crate::topbar::TopBar;
 
 #[component]
@@ -20,6 +21,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/learn") view=|| view! { <div class="container"><LearnPage /></div> } />
                     <Route path=path!("/learn/:track/:chapter") view=|| view! { <div class="container"><ChapterPage /></div> } />
+                    <Route path=path!("/snippets") view=|| view! { <div class="container"><SnippetsPage /></div> } />
                     <Route path=path!("/learn/:track/:chapter/:concept") view=|| view! { <div class="container"><ConceptPage /></div> } />
                 </Routes>
             </main>
@@ -47,7 +49,6 @@ fn Footer() -> impl IntoView {
                 <p class="footer-brand">
                     <img class="avatar" src="/images/rustly-crab.jpg" width="28" height="28" alt="" />
                     <span class="wordmark-sm">"Rust"<span>"ly"</span></span>
-                    <span class="muted small">"A Rust capstone project"</span>
                 </p>
                 <div class="footer-credits small muted">
                     <p>
