@@ -12,6 +12,12 @@
         document.documentElement.dataset.theme = t;
       } catch (e) { document.documentElement.dataset.theme = "dark"; }
     </script>
+    <!-- Monaco, the exercise editor. `src/editor.js` falls back to a textarea
+         if this doesn't load. -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs/loader.js"></script>
+    <script>
+      if (window.require) require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs" } });
+    </script>
     <link data-trunk rel="rust" data-wasm-opt="z" />
     <link data-trunk rel="copy-dir" href="assets/fonts" />
     <link data-trunk rel="copy-dir" href="assets/images" />
