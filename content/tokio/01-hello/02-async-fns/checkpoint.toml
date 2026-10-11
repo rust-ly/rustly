@@ -1,0 +1,121 @@
+id = "tokio.hello.async-fns.checkpoint"
+kind = "checkpoint"
+title = "A key-value client"
+prompt = '''
+Finish the in-memory `Client`. Every call pretends to be a network round trip:
+it **first** waits `LATENCY` with `tokio::time::sleep`, then does its work.
+
+- `async fn set(&mut self, key: &str, value: &str)` stores the value, replacing any old one.
+- `async fn get(&self, key: &str) -> Option<String>` returns a copy of the value, if there is one.
+- `async fn hello_world(client: &mut Client) -> Option<String>` sets `"hello"` to
+  `"world"`, then gets `"hello"` back and returns it.
+
+The grader runs with Tokio's clock paused and checks how long each call takes.
+'''
+starter = '''
+use std::collections::HashMap;
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(10);
+
+#[derive(Default)]
+struct Client {
+    data: HashMap<String, String>,
+}
+
+impl Client {
+    async fn set(&mut self, key: &str, value: &str) {
+        todo!()
+    }
+
+    async fn get(&self, key: &str) -> Option<String> {
+        todo!()
+    }
+}
+
+async fn hello_world(client: &mut Client) -> Option<String> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let mut client = Client::default();
+    println!("{:?}", hello_world(&mut client).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    #[tokio::test(start_paused = true)]
+    async fn set_then_get() {
+        let mut client = Client::default();
+        client.set("a", "1").await;
+        client.set("a", "2").await;
+        assert_eq!(client.get("a").await, Some("2".to_string()));
+        assert_eq!(client.get("missing").await, None);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn every_call_waits_for_the_network() {
+        let mut client = Client::default();
+        let start = Instant::now();
+        client.set("k", "v").await;
+        assert_eq!(start.elapsed(), LATENCY);
+        client.get("k").await;
+        assert_eq!(start.elapsed(), LATENCY * 2);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn says_hello_world() {
+        let mut client = Client::default();
+        let start = Instant::now();
+        assert_eq!(hello_world(&mut client).await, Some("world".to_string()));
+        assert_eq!(start.elapsed(), LATENCY * 2);
+        assert_eq!(client.data.get("hello").map(String::as_str), Some("world"));
+    }
+}
+'''
+hints = [
+  "Start each method with `sleep(LATENCY).await;`.",
+  "`self.data.insert(key.to_string(), value.to_string());` and `self.data.get(key).cloned()`.",
+  "`hello_world` is two awaited calls: `client.set(\"hello\", \"world\").await;` then `client.get(\"hello\").await`.",
+]
+solution = '''
+use std::collections::HashMap;
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(10);
+
+#[derive(Default)]
+struct Client {
+    data: HashMap<String, String>,
+}
+
+impl Client {
+    async fn set(&mut self, key: &str, value: &str) {
+        sleep(LATENCY).await;
+        self.data.insert(key.to_string(), value.to_string());
+    }
+
+    async fn get(&self, key: &str) -> Option<String> {
+        sleep(LATENCY).await;
+        self.data.get(key).cloned()
+    }
+}
+
+async fn hello_world(client: &mut Client) -> Option<String> {
+    client.set("hello", "world").await;
+    client.get("hello").await
+}
+
+#[tokio::main]
+async fn main() {
+    let mut client = Client::default();
+    println!("{:?}", hello_world(&mut client).await);
+}
+'''
