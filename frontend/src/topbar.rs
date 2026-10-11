@@ -11,6 +11,7 @@ pub fn TopBar() -> impl IntoView {
     let learner = Learner::get();
     let location = use_location();
     let on_learn = move || location.pathname.with(|p| p.starts_with("/learn"));
+    let on_snippets = move || location.pathname.with(|p| p.starts_with("/snippets"));
     view! {
         <header class="topbar">
             <div class="container topbar-inner">
@@ -21,6 +22,7 @@ pub fn TopBar() -> impl IntoView {
                 <nav aria-label="Main">
                     <a href="/learn#track-book" class:active=on_learn>"The Book"</a>
                     <a href="/learn#track-tokio">"Tokio"</a>
+                    <A href="/snippets" attr:class=move || if on_snippets() { "active" } else { "" }>"Snippets"</A>
                 </nav>
                 <div class="topbar-actions">
                     {learner.preview.then(|| view! {
