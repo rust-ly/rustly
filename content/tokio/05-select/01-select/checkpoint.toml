@@ -1,0 +1,91 @@
+id = "tokio.select.select.checkpoint"
+kind = "checkpoint"
+title = "Fetch, or give up"
+prompt = '''
+`fetch(delay)` takes `delay` to answer. Write
+`async fn fetch_or_give_up(delay: Duration, limit: Duration) -> Result<String, String>`
+with `tokio::select!`:
+
+- If `fetch` answers first, return `Ok` with its answer.
+- If `limit` passes first, return `Err("timed out")` straight away, without waiting
+  for `fetch` to finish.
+
+The grader uses Tokio's paused clock and checks how long each call takes.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+async fn fetch(delay: Duration) -> String {
+    sleep(delay).await;
+    format!("answer after {} ms", delay.as_millis())
+}
+
+async fn fetch_or_give_up(delay: Duration, limit: Duration) -> Result<String, String> {
+    let answer = fetch(delay).await;
+    if delay > limit {
+        Err("timed out".to_string())
+    } else {
+        Ok(answer)
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let ms = Duration::from_millis;
+    println!("{:?}", fetch_or_give_up(ms(10), ms(100)).await);
+    println!("{:?}", fetch_or_give_up(ms(500), ms(100)).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    fn ms(n: u64) -> Duration {
+        Duration::from_millis(n)
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn fast_enough() {
+        let start = Instant::now();
+        assert_eq!(fetch_or_give_up(ms(30), ms(100)).await, Ok("answer after 30 ms".to_string()));
+        assert_eq!(start.elapsed(), ms(30));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn too_slow() {
+        let start = Instant::now();
+        assert_eq!(fetch_or_give_up(ms(5_000), ms(100)).await, Err("timed out".to_string()));
+        assert_eq!(start.elapsed(), ms(100), "it waited for the slow fetch instead of giving up");
+    }
+}
+'''
+hints = [
+  "Race the two futures: one branch for `fetch(delay)`, one for `sleep(limit)`.",
+  "`tokio::select! { answer = fetch(delay) => Ok(answer), _ = sleep(limit) => Err(\"timed out\".to_string()) }`",
+]
+solution = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+async fn fetch(delay: Duration) -> String {
+    sleep(delay).await;
+    format!("answer after {} ms", delay.as_millis())
+}
+
+async fn fetch_or_give_up(delay: Duration, limit: Duration) -> Result<String, String> {
+    tokio::select! {
+        answer = fetch(delay) => Ok(answer),
+        _ = sleep(limit) => Err("timed out".to_string()),
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let ms = Duration::from_millis;
+    println!("{:?}", fetch_or_give_up(ms(10), ms(100)).await);
+    println!("{:?}", fetch_or_give_up(ms(500), ms(100)).await);
+}
+'''

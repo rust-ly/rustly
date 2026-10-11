@@ -1,0 +1,185 @@
+id = "tokio.select.challenge"
+kind = "challenge"
+title = "A worker with a deadline and a stop button"
+prompt = '''
+Write the main loop of a background worker:
+
+`async fn worker(mut jobs: mpsc::Receiver<u64>, mut stop: oneshot::Receiver<()>, budget: Duration) -> (u64, Ended)`
+
+It adds up every job it receives and returns the total together with why it stopped:
+
+- `Ended::Finished` when the `jobs` channel is closed and empty.
+- `Ended::Stopped` as soon as a value arrives on `stop`. (If the stop **sender** is
+  dropped without sending, that isn't a stop: keep working. A `select!` branch can
+  take a condition, `pattern = future, if condition => ...`, which helps here.)
+- `Ended::OutOfTime` once `budget` has passed since the worker started, counting
+  from the start, not from the last job.
+
+If the stop signal and a job are both ready at the same moment, the stop must win,
+so a stopped worker never takes one more job.
+
+The grader uses Tokio's paused clock.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::sync::{mpsc, oneshot};
+use tokio::time::sleep;
+
+#[derive(Debug, PartialEq)]
+enum Ended {
+    Finished,
+    Stopped,
+    OutOfTime,
+}
+
+async fn worker(mut jobs: mpsc::Receiver<u64>, mut stop: oneshot::Receiver<()>, budget: Duration) -> (u64, Ended) {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let (job_tx, jobs) = mpsc::channel(8);
+    let (_stop_tx, stop) = oneshot::channel();
+    tokio::spawn(async move {
+        for n in 1..=4 {
+            job_tx.send(n).await.unwrap();
+        }
+    });
+    println!("{:?}", worker(jobs, stop, Duration::from_secs(1)).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::{Instant, timeout};
+
+    fn ms(n: u64) -> Duration {
+        Duration::from_millis(n)
+    }
+
+    /// Sends `jobs` with `gap` between them, then closes the channel.
+    fn jobs_every(gap: Duration, jobs: Vec<u64>) -> mpsc::Receiver<u64> {
+        let (tx, rx) = mpsc::channel(1);
+        tokio::spawn(async move {
+            for job in jobs {
+                sleep(gap).await;
+                if tx.send(job).await.is_err() {
+                    return;
+                }
+            }
+        });
+        rx
+    }
+
+    async fn run(jobs: mpsc::Receiver<u64>, stop: oneshot::Receiver<()>, budget: Duration) -> (u64, Ended) {
+        timeout(Duration::from_secs(60), worker(jobs, stop, budget))
+            .await
+            .expect("worker never returned")
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn finishes_when_the_jobs_run_out() {
+        let (_keep, stop) = oneshot::channel();
+        let start = Instant::now();
+        assert_eq!(run(jobs_every(ms(10), vec![1, 2, 3, 4]), stop, ms(1_000)).await, (10, Ended::Finished));
+        assert_eq!(start.elapsed(), ms(40));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn the_budget_counts_from_the_start() {
+        let (_keep, stop) = oneshot::channel();
+        let start = Instant::now();
+        // A job every 40 ms; with a 100 ms budget only the first two arrive in time.
+        let got = run(jobs_every(ms(40), vec![5, 6, 7, 8, 9]), stop, ms(100)).await;
+        assert_eq!(got, (11, Ended::OutOfTime));
+        assert_eq!(start.elapsed(), ms(100));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn stops_on_request() {
+        let (stop_tx, stop) = oneshot::channel();
+        tokio::spawn(async move {
+            sleep(ms(25)).await;
+            let _ = stop_tx.send(());
+        });
+        let start = Instant::now();
+        let got = run(jobs_every(ms(10), vec![1, 1, 1, 1, 1, 1]), stop, ms(1_000)).await;
+        assert_eq!(got, (2, Ended::Stopped));
+        assert_eq!(start.elapsed(), ms(25));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn stop_wins_a_tie() {
+        // select! picks randomly among ready branches unless told otherwise,
+        // so repeat the tie until a lucky pass is vanishingly unlikely.
+        for _ in 0..20 {
+            let (job_tx, jobs) = mpsc::channel(8);
+            let (stop_tx, stop) = oneshot::channel();
+            job_tx.send(100).await.unwrap();
+            stop_tx.send(()).unwrap();
+            assert_eq!(run(jobs, stop, ms(1_000)).await, (0, Ended::Stopped), "a job was taken after the stop signal");
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_dropped_stop_sender_is_not_a_stop() {
+        let (stop_tx, stop) = oneshot::channel::<()>();
+        drop(stop_tx);
+        assert_eq!(run(jobs_every(ms(10), vec![1, 2]), stop, ms(1_000)).await, (3, Ended::Finished));
+    }
+}
+'''
+hints = [
+  "Make the deadline once, before the loop: `let deadline = sleep(budget); tokio::pin!(deadline);` and select on `&mut deadline`.",
+  "`biased;` as the first line of the `select!` makes the branches be checked in order, so put the stop branch first.",
+  "A dropped stop sender makes `&mut stop` finish with `Err`, and polling it again panics. Keep a `stop_open` flag and add a precondition to the branch: `signal = &mut stop, if stop_open => ...`, setting the flag to `false` on `Err`.",
+  "For jobs, `job = jobs.recv() => match job { Some(n) => total += n, None => return (total, Ended::Finished) }`.",
+]
+solution = '''
+use std::time::Duration;
+use tokio::sync::{mpsc, oneshot};
+use tokio::time::sleep;
+
+#[derive(Debug, PartialEq)]
+enum Ended {
+    Finished,
+    Stopped,
+    OutOfTime,
+}
+
+async fn worker(mut jobs: mpsc::Receiver<u64>, mut stop: oneshot::Receiver<()>, budget: Duration) -> (u64, Ended) {
+    let deadline = sleep(budget);
+    tokio::pin!(deadline);
+    let mut total = 0;
+    // A finished oneshot must not be polled again, so this switches the
+    // stop branch off for good once its sender is dropped.
+    let mut stop_open = true;
+    loop {
+        tokio::select! {
+            biased;
+            signal = &mut stop, if stop_open => match signal {
+                Ok(()) => return (total, Ended::Stopped),
+                Err(_) => stop_open = false,
+            },
+            job = jobs.recv() => match job {
+                Some(n) => total += n,
+                None => return (total, Ended::Finished),
+            },
+            _ = &mut deadline => return (total, Ended::OutOfTime),
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let (job_tx, jobs) = mpsc::channel(8);
+    let (_stop_tx, stop) = oneshot::channel();
+    tokio::spawn(async move {
+        for n in 1..=4 {
+            job_tx.send(n).await.unwrap();
+        }
+    });
+    println!("{:?}", worker(jobs, stop, Duration::from_secs(1)).await);
+}
+'''

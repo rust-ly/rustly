@@ -1,0 +1,7 @@
+id = "tokio.select"
+track = "tokio"
+title = "Select"
+order = 5
+source = "https://tokio.rs/tokio/tutorial/select"
+summary = "Waiting on several things at once with tokio::select!: timeouts, cancellation, and select loops over channels."
+requires = []
