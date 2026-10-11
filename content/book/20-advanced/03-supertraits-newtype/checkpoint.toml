@@ -1,0 +1,127 @@
+id = "book.advanced.supertraits-newtype.checkpoint"
+kind = "checkpoint"
+title = "Labels, newtypes and supertraits"
+prompt = '''
+Three small tasks:
+
+1. Make `Tags(Vec<String>)` a **newtype** that implements `Display`, showing the tags as
+   `#a #b #c` (each with a `#`, separated by spaces).
+2. Define a trait `Labeled: fmt::Display` with a **default** method
+   `label(&self) -> String` returning `"<<VALUE>>"`, where VALUE is the `Display`
+   output. Implement it (with no methods of your own) for `Tags`.
+3. `both_names()` returns `(String, String)`: the result of calling `Dog`'s
+   `Animal::name` and its own inherent `name`, in that order. Use fully qualified syntax
+   for the trait one.
+'''
+starter = '''
+use std::fmt;
+
+struct Tags(Vec<String>);
+
+trait Animal {
+    fn name() -> String;
+}
+
+struct Dog;
+
+impl Dog {
+    fn name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Animal for Dog {
+    fn name() -> String {
+        String::from("puppy")
+    }
+}
+
+fn both_names() -> (String, String) {
+    todo!()
+}
+
+fn main() {
+    let t = Tags(vec![String::from("rust"), String::from("crab")]);
+    println!("{t}");
+    println!("{}", t.label());
+    println!("{:?}", both_names());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn displays_tags() {
+        let t = Tags(vec![String::from("a"), String::from("b"), String::from("c")]);
+        assert_eq!(t.to_string(), "#a #b #c");
+        assert_eq!(Tags(vec![]).to_string(), "");
+    }
+
+    #[test]
+    fn labels() {
+        let t = Tags(vec![String::from("rust")]);
+        assert_eq!(t.label(), "<<#rust>>");
+    }
+
+    #[test]
+    fn names() {
+        assert_eq!(both_names(), (String::from("puppy"), String::from("Spot")));
+    }
+}
+'''
+hints = [
+  "`let parts: Vec<String> = self.0.iter().map(|t| format!(\"#{t}\")).collect(); write!(f, \"{}\", parts.join(\" \"))`",
+  "`trait Labeled: fmt::Display { fn label(&self) -> String { format!(\"<<{}>>\", self) } }` then `impl Labeled for Tags {}`.",
+  "`(<Dog as Animal>::name(), Dog::name())`",
+]
+solution = '''
+use std::fmt;
+
+struct Tags(Vec<String>);
+
+impl fmt::Display for Tags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let parts: Vec<String> = self.0.iter().map(|t| format!("#{t}")).collect();
+        write!(f, "{}", parts.join(" "))
+    }
+}
+
+trait Labeled: fmt::Display {
+    fn label(&self) -> String {
+        format!("<<{}>>", self)
+    }
+}
+
+impl Labeled for Tags {}
+
+trait Animal {
+    fn name() -> String;
+}
+
+struct Dog;
+
+impl Dog {
+    fn name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Animal for Dog {
+    fn name() -> String {
+        String::from("puppy")
+    }
+}
+
+fn both_names() -> (String, String) {
+    (<Dog as Animal>::name(), Dog::name())
+}
+
+fn main() {
+    let t = Tags(vec![String::from("rust"), String::from("crab")]);
+    println!("{t}");
+    println!("{}", t.label());
+    println!("{:?}", both_names());
+}
+'''

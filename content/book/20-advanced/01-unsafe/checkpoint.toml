@@ -1,0 +1,84 @@
+id = "book.advanced.unsafe.checkpoint"
+kind = "checkpoint"
+title = "A safe wrapper around unsafe code"
+prompt = '''
+Write `first_and_rest(values: &mut [i32]) -> Option<(&mut i32, &mut [i32])>`, which
+returns a mutable reference to the first element **and** a mutable slice of the rest,
+or `None` for an empty slice.
+
+The borrow checker won't let you borrow `&mut values[0]` and `&mut values[1..]` at
+once, so use a raw pointer (`values.as_mut_ptr()`) with `unsafe`:
+`&mut *ptr` for the first element, and `std::slice::from_raw_parts_mut(ptr.add(1), len - 1)`
+for the rest. Check the length **before** the unsafe block so it's always valid.
+'''
+starter = '''
+use std::slice;
+
+fn first_and_rest(values: &mut [i32]) -> Option<(&mut i32, &mut [i32])> {
+    if values.is_empty() {
+        return None;
+    }
+    Some((&mut values[0], &mut values[1..]))
+}
+
+fn main() {
+    let mut v = vec![1, 2, 3];
+    if let Some((first, rest)) = first_and_rest(&mut v) {
+        *first = 10;
+        rest[0] = 20;
+    }
+    println!("{v:?}");
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn splits_and_mutates_both() {
+        let mut v = vec![1, 2, 3];
+        let (first, rest) = first_and_rest(&mut v).unwrap();
+        *first = 10;
+        rest[0] = 20;
+        rest[1] = 30;
+        assert_eq!(v, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn single_and_empty() {
+        let mut one = vec![7];
+        let (first, rest) = first_and_rest(&mut one).unwrap();
+        assert_eq!(*first, 7);
+        assert!(rest.is_empty());
+        let mut none: Vec<i32> = vec![];
+        assert!(first_and_rest(&mut none).is_none());
+    }
+}
+'''
+hints = [
+  "The starter fails to compile with E0499: two mutable borrows of `values`.",
+  "`let len = values.len(); let ptr = values.as_mut_ptr();` after the empty check.",
+  "`unsafe { Some((&mut *ptr, slice::from_raw_parts_mut(ptr.add(1), len - 1))) }`",
+]
+solution = '''
+use std::slice;
+
+fn first_and_rest(values: &mut [i32]) -> Option<(&mut i32, &mut [i32])> {
+    if values.is_empty() {
+        return None;
+    }
+    let len = values.len();
+    let ptr = values.as_mut_ptr();
+    unsafe { Some((&mut *ptr, slice::from_raw_parts_mut(ptr.add(1), len - 1))) }
+}
+
+fn main() {
+    let mut v = vec![1, 2, 3];
+    if let Some((first, rest)) = first_and_rest(&mut v) {
+        *first = 10;
+        rest[0] = 20;
+    }
+    println!("{v:?}");
+}
+'''

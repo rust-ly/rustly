@@ -1,0 +1,98 @@
+id = "book.advanced.operator-overloading.checkpoint"
+kind = "checkpoint"
+title = "Vector arithmetic"
+prompt = '''
+Make `Vec2` support:
+
+- `a + b` (`Add`): add the components.
+- `a - b` (`Sub`): subtract the components.
+- `a * 3.0` (`Mul<f64>`): scale both components by a number.
+- `-a` (`Neg`): flip both signs.
+
+All of them return a `Vec2`.
+'''
+starter = '''
+use std::ops::{Add, Mul, Neg, Sub};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Vec2 {
+    x: f64,
+    y: f64,
+}
+
+fn main() {
+    let a = Vec2 { x: 1.0, y: 2.0 };
+    let b = Vec2 { x: 3.0, y: -1.0 };
+    println!("{:?} {:?} {:?} {:?}", a + b, a - b, a * 2.0, -a);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn v(x: f64, y: f64) -> Vec2 {
+        Vec2 { x, y }
+    }
+
+    #[test]
+    fn add_and_sub() {
+        assert_eq!(v(1.0, 2.0) + v(3.0, -1.0), v(4.0, 1.0));
+        assert_eq!(v(1.0, 2.0) - v(3.0, -1.0), v(-2.0, 3.0));
+    }
+
+    #[test]
+    fn scale_and_negate() {
+        assert_eq!(v(1.0, 2.0) * 3.0, v(3.0, 6.0));
+        assert_eq!(-v(1.0, -2.0), v(-1.0, 2.0));
+    }
+}
+'''
+hints = [
+  "`impl Add for Vec2 { type Output = Vec2; fn add(self, o: Vec2) -> Vec2 { Vec2 { x: self.x + o.x, y: self.y + o.y } } }`",
+  "Scaling: `impl Mul<f64> for Vec2 { type Output = Vec2; fn mul(self, k: f64) -> Vec2 { ... } }`",
+  "Negation: `impl Neg for Vec2 { type Output = Vec2; fn neg(self) -> Vec2 { ... } }`",
+]
+solution = '''
+use std::ops::{Add, Mul, Neg, Sub};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Vec2 {
+    x: f64,
+    y: f64,
+}
+
+impl Add for Vec2 {
+    type Output = Vec2;
+    fn add(self, o: Vec2) -> Vec2 {
+        Vec2 { x: self.x + o.x, y: self.y + o.y }
+    }
+}
+
+impl Sub for Vec2 {
+    type Output = Vec2;
+    fn sub(self, o: Vec2) -> Vec2 {
+        Vec2 { x: self.x - o.x, y: self.y - o.y }
+    }
+}
+
+impl Mul<f64> for Vec2 {
+    type Output = Vec2;
+    fn mul(self, k: f64) -> Vec2 {
+        Vec2 { x: self.x * k, y: self.y * k }
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Vec2;
+    fn neg(self) -> Vec2 {
+        Vec2 { x: -self.x, y: -self.y }
+    }
+}
+
+fn main() {
+    let a = Vec2 { x: 1.0, y: 2.0 };
+    let b = Vec2 { x: 3.0, y: -1.0 };
+    println!("{:?} {:?} {:?} {:?}", a + b, a - b, a * 2.0, -a);
+}
+'''

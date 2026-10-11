@@ -1,0 +1,109 @@
+id = "book.advanced.functions-closures.checkpoint"
+kind = "checkpoint"
+title = "A pipeline of steps"
+prompt = '''
+Build a small number pipeline out of functions and closures:
+
+- `apply_all(fs: &[fn(i32) -> i32], x: i32) -> i32`: apply each function in order,
+  feeding each result into the next.
+- `make_multiplier(n: i32) -> impl Fn(i32) -> i32`: return a closure that multiplies
+  its input by `n`.
+- `make_steps(offsets: &[i32]) -> Vec<Box<dyn Fn(i32) -> i32>>`: return one boxed
+  closure per offset, each adding that offset to its input.
+
+`double` and `negate` are already written for you.
+'''
+starter = '''
+fn double(x: i32) -> i32 {
+    x * 2
+}
+
+fn negate(x: i32) -> i32 {
+    -x
+}
+
+fn apply_all(fs: &[fn(i32) -> i32], x: i32) -> i32 {
+    todo!()
+}
+
+fn make_multiplier(n: i32) -> impl Fn(i32) -> i32 {
+    move |x| todo!()
+}
+
+fn make_steps(offsets: &[i32]) -> Vec<Box<dyn Fn(i32) -> i32>> {
+    todo!()
+}
+
+fn main() {
+    println!("{}", apply_all(&[double, negate], 5));
+    println!("{}", make_multiplier(3)(7));
+    let steps = make_steps(&[1, 10]);
+    println!("{}", steps[1](5));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn applies_in_order() {
+        assert_eq!(apply_all(&[double, negate], 5), -10);
+        assert_eq!(apply_all(&[negate, double, double], 1), -4);
+        assert_eq!(apply_all(&[], 7), 7);
+    }
+
+    #[test]
+    fn multiplies() {
+        let triple = make_multiplier(3);
+        assert_eq!(triple(7), 21);
+        assert_eq!(make_multiplier(0)(99), 0);
+    }
+
+    #[test]
+    fn boxed_steps() {
+        let steps = make_steps(&[1, 10, -3]);
+        assert_eq!(steps.len(), 3);
+        let results: Vec<i32> = steps.iter().map(|f| f(5)).collect();
+        assert_eq!(results, vec![6, 15, 2]);
+        assert!(make_steps(&[]).is_empty());
+    }
+}
+'''
+hints = [
+  "`apply_all` is a fold: `fs.iter().fold(x, |acc, f| f(acc))`.",
+  "`make_multiplier` needs `move` so the closure owns `n`: `move |x| x * n`.",
+  "In `make_steps`, map each offset to `Box::new(move |x| x + offset) as Box<dyn Fn(i32) -> i32>`, then `collect()`. The `as` turns each closure's own type into the shared trait object.",
+  "Inside the map, `offsets.iter()` gives `&i32`. Copy it out first with `|&offset|`.",
+]
+solution = '''
+fn double(x: i32) -> i32 {
+    x * 2
+}
+
+fn negate(x: i32) -> i32 {
+    -x
+}
+
+fn apply_all(fs: &[fn(i32) -> i32], x: i32) -> i32 {
+    fs.iter().fold(x, |acc, f| f(acc))
+}
+
+fn make_multiplier(n: i32) -> impl Fn(i32) -> i32 {
+    move |x| x * n
+}
+
+fn make_steps(offsets: &[i32]) -> Vec<Box<dyn Fn(i32) -> i32>> {
+    offsets
+        .iter()
+        .map(|&offset| Box::new(move |x| x + offset) as Box<dyn Fn(i32) -> i32>)
+        .collect()
+}
+
+fn main() {
+    println!("{}", apply_all(&[double, negate], 5));
+    println!("{}", make_multiplier(3)(7));
+    let steps = make_steps(&[1, 10]);
+    println!("{}", steps[1](5));
+}
+'''
