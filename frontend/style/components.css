@@ -141,7 +141,7 @@
 .track-soon { margin-top: var(--space-6); max-width: 560px; }
 
 .chip-open { border-color: var(--sand); color: var(--sand); }
-.chip-progress { border-color: var(--amber); color: var(--amber); }
+.chip-progress { border-color: var(--amber-text); color: var(--amber-text); }
 .chip-done { border-color: var(--sand); color: var(--sand); }
 .chip-locked { color: var(--muted); }
 :root[data-theme="light"] .chip-open,
@@ -185,7 +185,7 @@
 .footer-brand { display: flex; align-items: center; gap: var(--space-3); }
 .wordmark-sm { font: 900 17px/1 var(--font-sans); letter-spacing: -0.04em; }
 .footer-credits { max-width: 600px; display: grid; gap: var(--space-2); }
-.footer-credits a { color: var(--tide); }
+.footer-credits a { color: var(--tide-text); }
 
 /* Lesson page: prose / exercise columns, stacked under 1024px */
 .lesson {
