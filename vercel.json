@@ -1,6 +1,6 @@
 {
   "installCommand": "sh vercel-install.sh",
-  "buildCommand": ". $HOME/.cargo/env && cd frontend && ./fetch-fonts.sh && trunk build --release",
+  "buildCommand": "sh vercel-build.sh",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
