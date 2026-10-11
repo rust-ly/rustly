@@ -47,7 +47,6 @@ fn Footer() -> impl IntoView {
                 <p class="footer-brand">
                     <img class="avatar" src="/images/rustly-crab.jpg" width="28" height="28" alt="" />
                     <span class="wordmark-sm">"Rust"<span>"ly"</span></span>
-                    <span class="muted small">"A Rust capstone project"</span>
                 </p>
                 <div class="footer-credits small muted">
                     <p>
