@@ -126,10 +126,12 @@
 .step h3 { font-size: 19px; margin: var(--space-3) 0 var(--space-2); }
 .step p { color: var(--muted); font-size: 15px; margin: 0; }
 .step-num { font: 900 44px/1 var(--font-sans); }
-.step-tide { color: var(--tide); }
-.step-sand { color: var(--sand); }
+.step-tide { color: var(--tide-text); }
+.step-sand { color: var(--sand-text); }
 .step-amber { color: var(--amber-light); }
 .step-coral { color: var(--coral); }
+:root[data-theme="light"] .step-amber { color: var(--amber-text); }
+:root[data-theme="light"] .step-coral { color: var(--crab); }
 @media (max-width: 860px) {
   .steps { grid-template-columns: minmax(0, 1fr); }
 }
@@ -164,10 +166,10 @@
   border: 1px solid;
   border-radius: var(--radius-pill);
 }
-.pill-sand { color: var(--sand); border-color: var(--sand); }
-.pill-amber { color: var(--amber); border-color: var(--amber); }
+.pill-sand { color: var(--sand-text); border-color: var(--sand-text); }
+.pill-amber { color: var(--amber-text); border-color: var(--amber-text); }
 .pill-shell { background: var(--shell); border-color: var(--shell); color: var(--cream); }
-.pill-tide { color: var(--tide); border-color: var(--tide); }
+.pill-tide { color: var(--tide-text); border-color: var(--tide-text); }
 .pill-solid-sand { background: var(--sand); border-color: var(--sand); color: var(--lava); font-family: var(--font-sans); font-weight: 700; }
 .pill-outline { color: var(--muted); border-color: var(--border-strong); font-family: var(--font-sans); }
 
@@ -190,9 +192,9 @@
 .track-card-tide { background: var(--tide-tint); border-color: var(--tide-border); }
 .track-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
 .track-label { font-size: 13px; font-weight: 500; color: var(--crab); }
-.track-label-tide { color: var(--tide); }
+.track-label-tide { color: var(--tide-text); }
 .track-card h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: var(--space-3); }
-.tide { color: var(--tide); }
+.tide { color: var(--tide-text); }
 .track-meta { display: flex; gap: var(--space-5); font-size: 15px; }
 
 /* Closing call to action */
@@ -207,4 +209,4 @@
 @media (max-width: 960px) {
   .start-photo { display: none; }
 }
-.tide-link { color: var(--tide); font-weight: 500; }
+.tide-link { color: var(--tide-text); font-weight: 500; }
