@@ -1,0 +1,111 @@
+id = "book.advanced.advanced-types.checkpoint"
+kind = "checkpoint"
+title = "Units that can't be mixed up"
+prompt = '''
+Use newtypes, an alias and the never type:
+
+- `Celsius(f64)` and `Fahrenheit(f64)` are newtypes. Write
+  `to_fahrenheit(c: Celsius) -> Fahrenheit` (°F = °C × 9 / 5 + 32).
+- Define the alias `type Readings = Vec<(String, Celsius)>;` and write
+  `warmest(readings: &Readings) -> Option<&str>`: the name with the highest temperature.
+- `sum_valid(inputs: &[&str]) -> i32`: add up the inputs that parse as `i32`, skipping
+  the rest with `Err(_) => continue` inside a `match`.
+'''
+starter = '''
+struct Celsius(f64);
+struct Fahrenheit(f64);
+
+fn to_fahrenheit(c: Celsius) -> Fahrenheit {
+    todo!()
+}
+
+fn sum_valid(inputs: &[&str]) -> i32 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", to_fahrenheit(Celsius(100.0)).0);
+    let readings: Readings = vec![(String::from("Nairobi"), Celsius(24.0)), (String::from("Oslo"), Celsius(3.0))];
+    println!("{:?}", warmest(&readings));
+    println!("{}", sum_valid(&["1", "x", "41"]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts() {
+        assert_eq!(to_fahrenheit(Celsius(100.0)).0, 212.0);
+        assert_eq!(to_fahrenheit(Celsius(-40.0)).0, -40.0);
+    }
+
+    #[test]
+    fn warmest_place() {
+        let r: Readings = vec![
+            (String::from("Oslo"), Celsius(3.0)),
+            (String::from("Nairobi"), Celsius(24.0)),
+            (String::from("Lima"), Celsius(19.0)),
+        ];
+        assert_eq!(warmest(&r), Some("Nairobi"));
+        let empty: Readings = vec![];
+        assert_eq!(warmest(&empty), None);
+    }
+
+    #[test]
+    fn sums_valid_numbers() {
+        assert_eq!(sum_valid(&["1", "x", "41"]), 42);
+        assert_eq!(sum_valid(&["no"]), 0);
+    }
+}
+'''
+hints = [
+  "`Fahrenheit(c.0 * 9.0 / 5.0 + 32.0)`",
+  "`type Readings = Vec<(String, Celsius)>;` at the top level.",
+  "In `warmest`, loop and keep the best `(name, temp)` so far, comparing `temp.0`.",
+  "`let n: i32 = match s.parse() { Ok(n) => n, Err(_) => continue };`",
+]
+solution = '''
+struct Celsius(f64);
+struct Fahrenheit(f64);
+
+type Readings = Vec<(String, Celsius)>;
+
+fn to_fahrenheit(c: Celsius) -> Fahrenheit {
+    Fahrenheit(c.0 * 9.0 / 5.0 + 32.0)
+}
+
+fn warmest(readings: &Readings) -> Option<&str> {
+    let mut best: Option<(&str, f64)> = None;
+    for (name, temp) in readings {
+        let better = match best {
+            None => true,
+            Some((_, t)) => temp.0 > t,
+        };
+        if better {
+            best = Some((name, temp.0));
+        }
+    }
+    best.map(|(name, _)| name)
+}
+
+fn sum_valid(inputs: &[&str]) -> i32 {
+    let mut total = 0;
+    for s in inputs {
+        let n: i32 = match s.parse() {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
+        total += n;
+    }
+    total
+}
+
+fn main() {
+    println!("{}", to_fahrenheit(Celsius(100.0)).0);
+    let readings: Readings = vec![(String::from("Nairobi"), Celsius(24.0)), (String::from("Oslo"), Celsius(3.0))];
+    println!("{:?}", warmest(&readings));
+    println!("{}", sum_valid(&["1", "x", "41"]));
+}
+'''
