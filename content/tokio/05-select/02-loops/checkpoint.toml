@@ -1,0 +1,115 @@
+id = "tokio.select.loops.checkpoint"
+kind = "checkpoint"
+title = "Merge two feeds"
+prompt = '''
+Write `async fn merge(mut news: mpsc::Receiver<String>, mut sport: mpsc::Receiver<String>) -> Vec<String>`.
+
+It reads both channels with a `select!` loop, as messages arrive, and collects
+every message as `"news: ..."` or `"sport: ..."`. It returns once **both**
+channels are closed and empty.
+
+Messages from one channel must stay in their original order (the grader checks
+each feed's order separately, not how the two are interleaved).
+'''
+starter = '''
+use tokio::sync::mpsc;
+
+async fn merge(mut news: mpsc::Receiver<String>, mut sport: mpsc::Receiver<String>) -> Vec<String> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    let (news_tx, news) = mpsc::channel(8);
+    let (sport_tx, sport) = mpsc::channel(8);
+    tokio::spawn(async move {
+        news_tx.send("rust 2024 ships".to_string()).await.unwrap();
+    });
+    tokio::spawn(async move {
+        sport_tx.send("crabs win the cup".to_string()).await.unwrap();
+    });
+    println!("{:?}", merge(news, sport).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use tokio::time::{sleep, timeout};
+
+    fn feed(prefix: &'static str, n: u32, gap_ms: u64) -> mpsc::Receiver<String> {
+        let (tx, rx) = mpsc::channel(2);
+        tokio::spawn(async move {
+            for i in 0..n {
+                tx.send(format!("{prefix}{i}")).await.unwrap();
+                sleep(Duration::from_millis(gap_ms)).await;
+            }
+        });
+        rx
+    }
+
+    async fn run(news: mpsc::Receiver<String>, sport: mpsc::Receiver<String>) -> Vec<String> {
+        timeout(Duration::from_secs(5), merge(news, sport))
+            .await
+            .expect("merge never returned: does it stop when both channels close?")
+    }
+
+    fn only(all: &[String], label: &str) -> Vec<String> {
+        all.iter().filter(|m| m.starts_with(label)).cloned().collect()
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn collects_both_feeds_in_order() {
+        let all = run(feed("n", 5, 7), feed("s", 3, 11)).await;
+        assert_eq!(all.len(), 8);
+        assert_eq!(only(&all, "news: "), (0..5).map(|i| format!("news: n{i}")).collect::<Vec<_>>());
+        assert_eq!(only(&all, "sport: "), (0..3).map(|i| format!("sport: s{i}")).collect::<Vec<_>>());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn keeps_going_after_one_feed_closes() {
+        let all = run(feed("n", 1, 1), feed("s", 6, 50)).await;
+        assert_eq!(all.len(), 7);
+        assert_eq!(all.last().unwrap(), "sport: s5");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn both_empty() {
+        assert!(run(feed("n", 0, 1), feed("s", 0, 1)).await.is_empty());
+    }
+}
+'''
+hints = [
+  "Loop with `select!` and one branch per channel, using the `Some(msg) = news.recv()` pattern so a closed channel drops out.",
+  "Add `else => break` so the loop ends once both branches are disabled.",
+  "`loop { tokio::select! { Some(m) = news.recv() => all.push(format!(\"news: {m}\")), Some(m) = sport.recv() => all.push(format!(\"sport: {m}\")), else => break } }`",
+]
+solution = '''
+use tokio::sync::mpsc;
+
+async fn merge(mut news: mpsc::Receiver<String>, mut sport: mpsc::Receiver<String>) -> Vec<String> {
+    let mut all = Vec::new();
+    loop {
+        tokio::select! {
+            Some(m) = news.recv() => all.push(format!("news: {m}")),
+            Some(m) = sport.recv() => all.push(format!("sport: {m}")),
+            else => break,
+        }
+    }
+    all
+}
+
+#[tokio::main]
+async fn main() {
+    let (news_tx, news) = mpsc::channel(8);
+    let (sport_tx, sport) = mpsc::channel(8);
+    tokio::spawn(async move {
+        news_tx.send("rust 2024 ships".to_string()).await.unwrap();
+    });
+    tokio::spawn(async move {
+        sport_tx.send("crabs win the cup".to_string()).await.unwrap();
+    });
+    println!("{:?}", merge(news, sport).await);
+}
+'''
