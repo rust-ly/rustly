@@ -18,3 +18,7 @@ backend = "http://127.0.0.1:3003/"
 [[proxy]]
 rewrite = "/api/submit"
 backend = "http://127.0.0.1:3004/"
+
+[[proxy]]
+rewrite = "/api/solution"
+backend = "http://127.0.0.1:3005/"

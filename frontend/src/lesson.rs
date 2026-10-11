@@ -9,6 +9,7 @@ use leptos_router::hooks::use_params_map;
 use shared::{RunResponse, Severity};
 
 use crate::editor::CodeEditor;
+use crate::hints::HintDrawer;
 use crate::learner::Learner;
 use crate::snippet::{SnippetView, program_stderr};
 use crate::submit::{SubmitButton, SubmitResults, SubmitState};
@@ -206,6 +207,7 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
             </div>
             <RunOutput state=state />
             <SubmitResults state=submit />
+            <HintDrawer exercise=exercise code=code />
         </section>
     }
 }

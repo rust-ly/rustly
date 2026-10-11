@@ -13,6 +13,7 @@ VERCEL_DEV_PORT=3001 cargo run --bin health
 VERCEL_DEV_PORT=3002 cargo run --bin check
 VERCEL_DEV_PORT=3003 cargo run --bin run
 VERCEL_DEV_PORT=3004 cargo run --bin submit
+VERCEL_DEV_PORT=3005 cargo run --bin solution
 
 # 2. Frontend: Trunk serves the app on :8080 and proxies each /api/* route to its port.
 #    fetch-fonts.sh downloads Satoshi once (its license doesn't allow committing it).

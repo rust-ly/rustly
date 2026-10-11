@@ -3,7 +3,10 @@
 use gloo_net::http::Request;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use shared::{ApiError, CodeRequest, RunResponse, SubmitRequest, SubmitResponse};
+use shared::{
+    ApiError, CodeRequest, RunResponse, SolutionRequest, SolutionResponse, SubmitRequest,
+    SubmitResponse,
+};
 
 /// `POST /api/run`. The error is a message ready to show the learner.
 pub async fn run(code: String) -> Result<RunResponse, String> {
@@ -13,6 +16,17 @@ pub async fn run(code: String) -> Result<RunResponse, String> {
 /// `POST /api/submit`: grades the code against the exercise's hidden tests.
 pub async fn submit(exercise_id: String, code: String) -> Result<SubmitResponse, String> {
     post("/api/submit", &SubmitRequest { exercise_id, code }).await
+}
+
+/// `POST /api/solution`, once the learner has failed enough submits.
+pub async fn solution(exercise_id: String, failed_submits: u32) -> Result<String, String> {
+    let request = SolutionRequest {
+        exercise_id,
+        failed_submits,
+    };
+    post::<_, SolutionResponse>("/api/solution", &request)
+        .await
+        .map(|r| r.solution)
 }
 
 async fn post<B: Serialize, R: DeserializeOwned>(url: &str, body: &B) -> Result<R, String> {

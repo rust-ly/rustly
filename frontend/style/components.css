@@ -375,3 +375,13 @@
 /* Export / Import progress */
 .transfer-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
 .transfer-actions label { cursor: pointer; }
+
+/* Hints and solution */
+.hints { margin-top: var(--space-4); }
+.hint-list { margin: 0; padding-left: 1.3em; }
+.hint-list li { margin-bottom: var(--space-2); }
+.hint-list li p { margin: 0; }
+.hint-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.solution { margin-top: var(--space-4); }
+.solution .eyebrow { margin-bottom: var(--space-2); }
+.solution .prose { max-width: none; }

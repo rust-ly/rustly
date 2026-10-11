@@ -33,6 +33,10 @@ name = "submit"
 path = "api/submit.rs"
 
 [[bin]]
+name = "solution"
+path = "api/solution.rs"
+
+[[bin]]
 name = "health"
 path = "api/health.rs"
 

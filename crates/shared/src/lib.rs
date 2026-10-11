@@ -76,6 +76,23 @@ pub struct SubmitResponse {
     pub stderr: String,
 }
 
+/// Failed submits after which an exercise's solution can be shown.
+pub const SOLUTION_AFTER_FAILS: u32 = 3;
+
+/// Body of `/api/solution`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SolutionRequest {
+    pub exercise_id: String,
+    /// The learner's failed submits for this exercise, from their progress.
+    pub failed_submits: u32,
+}
+
+/// Response of `/api/solution`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SolutionResponse {
+    pub solution: String,
+}
+
 /// Body of every non-2xx API response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApiError {

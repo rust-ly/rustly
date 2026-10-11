@@ -2,7 +2,10 @@
 
 use runner::playground::Output;
 use runner::{PlaygroundClient, assemble_submission, parse_diagnostics, parse_tests};
-use shared::{CheckResponse, CodeRequest, RunResponse, SubmitRequest, SubmitResponse};
+use shared::{
+    CheckResponse, CodeRequest, RunResponse, SOLUTION_AFTER_FAILS, SolutionRequest,
+    SolutionResponse, SubmitRequest, SubmitResponse,
+};
 
 use crate::cache::Cache;
 use crate::{Failure, check_size, redact};
@@ -56,12 +59,7 @@ impl Api {
     /// replaced in `stderr`.
     pub async fn submit(&self, req: SubmitRequest) -> Result<SubmitResponse, Failure> {
         check_size(&req.code)?;
-        let exercise = content::exercise(&req.exercise_id).ok_or_else(|| {
-            Failure::new(
-                404,
-                format!("There's no exercise called `{}`.", req.exercise_id),
-            )
-        })?;
+        let exercise = find_exercise(&req.exercise_id)?;
         let program = assemble_submission(&req.code, &exercise.hidden_tests);
         let out = self.execute(&program, true).await?;
 
@@ -79,6 +77,25 @@ impl Api {
             tests,
             diagnostics,
             stderr: redact::hidden_test_lines(&out.stderr, learner_lines),
+        })
+    }
+
+    /// `/api/solution`: the reference solution, once the learner has failed
+    /// [`SOLUTION_AFTER_FAILS`] submits.
+    ///
+    /// The fail count comes from the learner's own progress, so this only
+    /// keeps an honest learner from seeing the answer too early, the same
+    /// way unlocking does. The hidden tests are never sent.
+    pub fn solution(&self, req: SolutionRequest) -> Result<SolutionResponse, Failure> {
+        let exercise = find_exercise(&req.exercise_id)?;
+        if req.failed_submits < SOLUTION_AFTER_FAILS {
+            return Err(Failure::new(
+                403,
+                format!("The solution opens after {SOLUTION_AFTER_FAILS} failed submits."),
+            ));
+        }
+        Ok(SolutionResponse {
+            solution: exercise.solution.clone(),
         })
     }
 
@@ -100,4 +117,9 @@ impl Api {
         self.cache.put(endpoint, code, out.clone());
         Ok(out)
     }
+}
+
+fn find_exercise(id: &str) -> Result<&'static content::Exercise, Failure> {
+    content::exercise(id)
+        .ok_or_else(|| Failure::new(404, format!("There's no exercise called `{id}`.")))
 }
