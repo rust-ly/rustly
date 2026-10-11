@@ -1,0 +1,7 @@
+id = "tokio.spawning"
+track = "tokio"
+title = "Spawning"
+order = 2
+source = "https://tokio.rs/tokio/tutorial/spawning"
+summary = "Running work concurrently with tokio::spawn, and the 'static and Send rules every spawned task has to follow."
+requires = []

@@ -10,7 +10,8 @@ use crate::storage;
 pub fn TopBar() -> impl IntoView {
     let learner = Learner::get();
     let location = use_location();
-    let on_learn = move || location.pathname.with(|p| p.starts_with("/learn"));
+    let on_tokio = move || location.pathname.with(|p| p.starts_with("/learn/tokio"));
+    let on_book = move || location.pathname.with(|p| p.starts_with("/learn")) && !on_tokio();
     let on_snippets = move || location.pathname.with(|p| p.starts_with("/snippets"));
     view! {
         <header class="topbar">
@@ -20,8 +21,8 @@ pub fn TopBar() -> impl IntoView {
                     <span class="wordmark">"Rust"<span>"ly"</span></span>
                 </A>
                 <nav aria-label="Main">
-                    <a href="/learn#track-book" class:active=on_learn>"The Book"</a>
-                    <a href="/learn#track-tokio">"Tokio"</a>
+                    <a href="/learn#track-book" class:active=on_book>"The Book"</a>
+                    <a href="/learn#track-tokio" class:active=on_tokio>"Tokio"</a>
                     <A href="/snippets" attr:class=move || if on_snippets() { "active" } else { "" }>"Snippets"</A>
                 </nav>
                 <div class="topbar-actions">

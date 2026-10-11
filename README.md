@@ -10,7 +10,7 @@
 
 - **Read short lessons.** Each concept is a few hundred words in plain language, adapted from the Rust Book or the Tokio tutorial, with a link to the original chapter.
 - **Run every example.** Snippets run in place. Some you can edit, and some are meant not to compile, so you can see the compiler error.
-- **Write real Rust.** Every concept ends with an exercise in a full code editor (Monaco, the editor behind VS Code). **./run** shows the output, and compile errors appear as red squiggles at the right line.
+- **Write real Rust.** Every concept ends with an exercise in a full code editor (Monaco, the editor behind VS Code). **./run** shows the output. As you type, compiler errors and warnings appear as squiggles at the right spot, with a Problems list under the editor.
 - **Get graded.** **./submit** runs hidden tests against your code and shows which ones passed. Passing a checkpoint unlocks the next concept, and passing a chapter's challenge unlocks the next chapter.
 - **Get unstuck.** Hints appear one at a time, and the solution opens after three failed submits.
 - **Keep your place.** Progress, drafts and starred snippets are saved in your browser. **Export / Import** moves them to another browser.
@@ -23,7 +23,7 @@
 | Track | Follows | Status |
 | --- | --- | --- |
 | 1. The Rust Book | [doc.rust-lang.org/book](https://doc.rust-lang.org/book/) | Chapters 1–20 |
-| 2. Async with Tokio | [tokio.rs/tokio/tutorial](https://tokio.rs/tokio/tutorial) | Being written. It unlocks after Book chapters 10, 13 and 16 |
+| 2. Async with Tokio | [tokio.rs/tokio/tutorial](https://tokio.rs/tokio/tutorial) | Hello Tokio, Spawning, Shared State and Channels, with Select next. It unlocks after Book chapters 10, 13 and 16 |
 
 Exercises are pure functions graded by tests, because the Playground has no stdin, files or network. Tokio exercises use channels and in-memory I/O instead of sockets.
 

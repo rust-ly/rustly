@@ -1,0 +1,194 @@
+id = "tokio.channels.challenge"
+kind = "challenge"
+title = "A bank teller task"
+prompt = '''
+A bank keeps its accounts inside one **teller** task, so balances can never be
+updated by two tasks at once. Everyone else talks to the teller over a channel.
+
+- `fn spawn_teller() -> Bank` spawns the teller and returns a `Bank` handle.
+  `Bank` is `Clone`, so each customer task can have its own.
+- `async fn deposit(&self, account: &str, amount: u64) -> u64` adds to the
+  account (new accounts start at 0) and returns the new balance.
+- `async fn withdraw(&self, account: &str, amount: u64) -> Result<u64, String>`
+  takes money out and returns the new balance. If the account has less than
+  `amount`, nothing changes and it returns `Err("insufficient funds")`.
+- `async fn balance(&self, account: &str) -> u64` returns the balance (0 for an
+  unknown account).
+
+Fill in `Request` with whatever variants you need. Each request should carry a
+`oneshot::Sender` for its reply.
+'''
+starter = '''
+use std::collections::HashMap;
+use tokio::sync::{mpsc, oneshot};
+
+enum Request {
+    // Your variants here.
+}
+
+#[derive(Clone)]
+struct Bank {
+    tx: mpsc::Sender<Request>,
+}
+
+fn spawn_teller() -> Bank {
+    todo!()
+}
+
+impl Bank {
+    async fn deposit(&self, account: &str, amount: u64) -> u64 {
+        todo!()
+    }
+
+    async fn withdraw(&self, account: &str, amount: u64) -> Result<u64, String> {
+        todo!()
+    }
+
+    async fn balance(&self, account: &str) -> u64 {
+        todo!()
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let bank = spawn_teller();
+    bank.deposit("ferris", 100).await;
+    println!("{:?}", bank.withdraw("ferris", 30).await);
+    println!("{:?}", bank.withdraw("ferris", 500).await);
+    println!("balance = {}", bank.balance("ferris").await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn deposits_and_withdrawals() {
+        let bank = spawn_teller();
+        assert_eq!(bank.balance("a").await, 0);
+        assert_eq!(bank.deposit("a", 100).await, 100);
+        assert_eq!(bank.deposit("a", 50).await, 150);
+        assert_eq!(bank.withdraw("a", 120).await, Ok(30));
+        assert_eq!(bank.balance("a").await, 30);
+        assert_eq!(bank.balance("b").await, 0);
+    }
+
+    #[tokio::test]
+    async fn refuses_an_overdraft() {
+        let bank = spawn_teller();
+        bank.deposit("a", 10).await;
+        assert_eq!(bank.withdraw("a", 11).await, Err("insufficient funds".to_string()));
+        assert_eq!(bank.balance("a").await, 10);
+        assert_eq!(bank.withdraw("nobody", 1).await, Err("insufficient funds".to_string()));
+        assert_eq!(bank.withdraw("a", 10).await, Ok(0));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn many_customers_at_once() {
+        let bank = spawn_teller();
+        bank.deposit("shared", 1_000).await;
+        let mut customers = Vec::new();
+        for _ in 0..40 {
+            let bank = bank.clone();
+            customers.push(tokio::spawn(async move {
+                let mut ok = 0;
+                for _ in 0..5 {
+                    if bank.withdraw("shared", 7).await.is_ok() {
+                        ok += 1;
+                    }
+                    bank.deposit("tips", 1).await;
+                }
+                ok
+            }));
+        }
+        let mut successes = 0;
+        for c in customers {
+            successes += c.await.unwrap();
+        }
+        // 1000 / 7 = 142 withdrawals fit; the other 58 must be refused.
+        assert_eq!(successes, 142);
+        assert_eq!(bank.balance("shared").await, 1_000 - 142 * 7);
+        assert_eq!(bank.balance("tips").await, 200);
+    }
+}
+'''
+hints = [
+  "One variant per operation, e.g. `Deposit { account: String, amount: u64, resp: oneshot::Sender<u64> }` and `Withdraw { ..., resp: oneshot::Sender<Result<u64, String>> }`.",
+  "`spawn_teller`: make the channel, spawn a task that owns a `HashMap<String, u64>` and loops on `rx.recv().await`, and return `Bank { tx }`.",
+  "Each method: `let (resp, answer) = oneshot::channel(); self.tx.send(Request::...).await.unwrap(); answer.await.unwrap()`. For `withdraw`, check the balance inside the teller before subtracting.",
+]
+solution = '''
+use std::collections::HashMap;
+use tokio::sync::{mpsc, oneshot};
+
+enum Request {
+    Deposit { account: String, amount: u64, resp: oneshot::Sender<u64> },
+    Withdraw { account: String, amount: u64, resp: oneshot::Sender<Result<u64, String>> },
+    Balance { account: String, resp: oneshot::Sender<u64> },
+}
+
+#[derive(Clone)]
+struct Bank {
+    tx: mpsc::Sender<Request>,
+}
+
+fn spawn_teller() -> Bank {
+    let (tx, mut rx) = mpsc::channel(32);
+    tokio::spawn(async move {
+        let mut accounts: HashMap<String, u64> = HashMap::new();
+        while let Some(request) = rx.recv().await {
+            match request {
+                Request::Deposit { account, amount, resp } => {
+                    let balance = accounts.entry(account).or_insert(0);
+                    *balance += amount;
+                    let _ = resp.send(*balance);
+                }
+                Request::Withdraw { account, amount, resp } => {
+                    let balance = accounts.entry(account).or_insert(0);
+                    let reply = if *balance >= amount {
+                        *balance -= amount;
+                        Ok(*balance)
+                    } else {
+                        Err("insufficient funds".to_string())
+                    };
+                    let _ = resp.send(reply);
+                }
+                Request::Balance { account, resp } => {
+                    let _ = resp.send(accounts.get(&account).copied().unwrap_or(0));
+                }
+            }
+        }
+    });
+    Bank { tx }
+}
+
+impl Bank {
+    async fn deposit(&self, account: &str, amount: u64) -> u64 {
+        let (resp, answer) = oneshot::channel();
+        self.tx.send(Request::Deposit { account: account.to_string(), amount, resp }).await.unwrap();
+        answer.await.unwrap()
+    }
+
+    async fn withdraw(&self, account: &str, amount: u64) -> Result<u64, String> {
+        let (resp, answer) = oneshot::channel();
+        self.tx.send(Request::Withdraw { account: account.to_string(), amount, resp }).await.unwrap();
+        answer.await.unwrap()
+    }
+
+    async fn balance(&self, account: &str) -> u64 {
+        let (resp, answer) = oneshot::channel();
+        self.tx.send(Request::Balance { account: account.to_string(), resp }).await.unwrap();
+        answer.await.unwrap()
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let bank = spawn_teller();
+    bank.deposit("ferris", 100).await;
+    println!("{:?}", bank.withdraw("ferris", 30).await);
+    println!("{:?}", bank.withdraw("ferris", 500).await);
+    println!("balance = {}", bank.balance("ferris").await);
+}
+'''

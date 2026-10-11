@@ -1,0 +1,7 @@
+id = "tokio.shared-state"
+track = "tokio"
+title = "Shared State"
+order = 3
+source = "https://tokio.rs/tokio/tutorial/shared-state"
+summary = "Sharing a key-value store between tasks with Arc<Mutex<...>>, and keeping mutex guards away from .await."
+requires = []

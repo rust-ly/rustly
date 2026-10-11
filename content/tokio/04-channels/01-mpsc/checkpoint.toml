@@ -1,0 +1,94 @@
+id = "tokio.channels.mpsc.checkpoint"
+kind = "checkpoint"
+title = "Collect from many producers"
+prompt = '''
+`sum_squares(n)` spawns one task for each number `1..=n`. Each task sends its
+number squared over an `mpsc` channel, and `sum_squares` adds up everything it
+receives.
+
+Every message arrives, but the function **never finishes**. Fix it.
+The grader gives it one second.
+'''
+starter = '''
+use tokio::sync::mpsc;
+
+async fn sum_squares(n: u64) -> u64 {
+    let (tx, mut rx) = mpsc::channel(4);
+    for i in 1..=n {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            tx.send(i * i).await.unwrap();
+        });
+    }
+
+    let mut total = 0;
+    while let Some(square) = rx.recv().await {
+        total += square;
+    }
+    total
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", sum_squares(10).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use tokio::time::timeout;
+
+    async fn within_a_second(n: u64) -> u64 {
+        timeout(Duration::from_secs(1), sum_squares(n))
+            .await
+            .expect("sum_squares never finished: is a Sender still alive?")
+    }
+
+    #[tokio::test]
+    async fn small() {
+        assert_eq!(within_a_second(3).await, 1 + 4 + 9);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn many_producers_small_buffer() {
+        assert_eq!(within_a_second(100).await, 338_350);
+    }
+
+    #[tokio::test]
+    async fn none() {
+        assert_eq!(within_a_second(0).await, 0);
+    }
+}
+'''
+hints = [
+  "`rx.recv()` only returns `None` when **every** `Sender` is gone. How many senders exist after the loop?",
+  "Each task drops its clone when it finishes, but `sum_squares` still owns the original `tx`.",
+  "Add `drop(tx);` after the spawning loop, before `while let`.",
+]
+solution = '''
+use tokio::sync::mpsc;
+
+async fn sum_squares(n: u64) -> u64 {
+    let (tx, mut rx) = mpsc::channel(4);
+    for i in 1..=n {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            tx.send(i * i).await.unwrap();
+        });
+    }
+    drop(tx);
+
+    let mut total = 0;
+    while let Some(square) = rx.recv().await {
+        total += square;
+    }
+    total
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{}", sum_squares(10).await);
+}
+'''

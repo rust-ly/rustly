@@ -8,6 +8,7 @@ use leptos_router::components::{A, Redirect};
 use leptos_router::hooks::use_params_map;
 use shared::{RunResponse, Severity};
 
+use crate::check::{CheckChip, LiveCheck, Problems};
 use crate::editor::CodeEditor;
 use crate::hints::HintDrawer;
 use crate::learner::Learner;
@@ -171,11 +172,22 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
         });
     }
 
+    let check = LiveCheck::new(code);
+    let goto = RwSignal::new(None::<(u32, u32)>);
+
     let running = move || matches!(state.get(), RunState::Running);
     let run = move |_| {
         state.set(RunState::Running);
+        // A run's compile errors replace any check still on its way.
+        let id = check.next();
         spawn_local(async move {
-            state.set(match api::run(code.get_untracked()).await {
+            let result = api::run(code.get_untracked()).await;
+            if let Ok(response) = &result
+                && check.is_latest(id)
+            {
+                check.show(response.diagnostics.clone());
+            }
+            state.set(match result {
                 Ok(response) => RunState::Done(response),
                 Err(message) => RunState::Failed(message),
             });
@@ -186,19 +198,15 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
         state.set(RunState::Idle);
         submit.set(SubmitState::Idle);
     };
-    // Compile errors from the last run, shown as squiggles until the next one.
-    let diagnostics = Signal::derive(move || match state.get() {
-        RunState::Done(r) => r.diagnostics,
-        _ => Vec::new(),
-    });
 
     view! {
         <section class="exercise card">
             <p class="eyebrow">{label}</p>
             <h2 class="exercise-title">{exercise.title.clone()}</h2>
             <div class="prose small-prose" inner_html=content::markdown_html(&exercise.prompt)></div>
-            <CodeEditor code=code diagnostics=diagnostics />
+            <CodeEditor code=code diagnostics=check.diagnostics goto=goto />
             <div class="exercise-actions">
+                <CheckChip check=check />
                 <span class="editor-keys small muted">"esc leaves the editor"</span>
                 <button class="btn btn-secondary btn-sm" on:click=reset disabled=running>"./reset"</button>
                 <button class="btn btn-sm" on:click=run disabled=running>
@@ -206,6 +214,7 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
                 </button>
                 <SubmitButton exercise=exercise code=code state=submit />
             </div>
+            <Problems check=check goto=goto />
             <RunOutput state=state />
             <SubmitResults state=submit />
             <HintDrawer exercise=exercise code=code />

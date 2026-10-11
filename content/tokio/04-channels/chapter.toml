@@ -1,0 +1,7 @@
+id = "tokio.channels"
+track = "tokio"
+title = "Channels"
+order = 4
+source = "https://tokio.rs/tokio/tutorial/channels"
+summary = "Message passing between tasks: mpsc channels, oneshot replies, and the manager-task pattern."
+requires = []

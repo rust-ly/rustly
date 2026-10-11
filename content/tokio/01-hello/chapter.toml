@@ -1,0 +1,7 @@
+id = "tokio.hello"
+track = "tokio"
+title = "Hello Tokio"
+order = 1
+source = "https://tokio.rs/tokio/tutorial/hello-tokio"
+summary = "What the Tokio runtime is, what #[tokio::main] really does, and writing and awaiting your own async functions."
+requires = ["book.generics", "book.functional", "book.concurrency"]
