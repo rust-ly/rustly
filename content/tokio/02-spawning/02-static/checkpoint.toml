@@ -1,0 +1,90 @@
+id = "tokio.spawning.static.checkpoint"
+kind = "checkpoint"
+title = "Fix the borrowing tasks"
+prompt = '''
+`lengths` should spawn one task per word, have each task return its word's length,
+and collect the lengths in order. It doesn't compile: the tasks borrow `words`.
+
+Fix it so each task **owns** what it uses. The function still takes
+`words: Arc<Vec<String>>`, and the caller must still be able to use its own `Arc`
+afterwards.
+'''
+starter = '''
+use std::sync::Arc;
+
+async fn lengths(words: Arc<Vec<String>>) -> Vec<usize> {
+    let mut handles = Vec::new();
+    for i in 0..words.len() {
+        handles.push(tokio::spawn(async {
+            words[i].len()
+        }));
+    }
+    let mut out = Vec::new();
+    for handle in handles {
+        out.push(handle.await.unwrap());
+    }
+    out
+}
+
+#[tokio::main]
+async fn main() {
+    let words = Arc::new(vec!["hello".to_string(), "tokio".to_string(), "!".to_string()]);
+    println!("{:?}", lengths(Arc::clone(&words)).await);
+    println!("still have {} words", words.len());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn measures_each_word() {
+        let words = Arc::new(vec!["a".to_string(), "abc".to_string(), String::new()]);
+        assert_eq!(lengths(Arc::clone(&words)).await, vec![1, 3, 0]);
+        assert_eq!(words.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn no_words() {
+        assert!(lengths(Arc::new(Vec::new())).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn every_task_lets_go_of_its_arc() {
+        let words = Arc::new(vec!["x".to_string(); 4]);
+        lengths(Arc::clone(&words)).await;
+        assert_eq!(Arc::strong_count(&words), 1);
+    }
+}
+'''
+hints = [
+  "Each task needs its own owned handle to the data: clone the `Arc` inside the loop.",
+  "Then make the block `async move`, so the task takes its clone (and `i`) with it.",
+  "`let words = Arc::clone(&words); handles.push(tokio::spawn(async move { words[i].len() }));`",
+]
+solution = '''
+use std::sync::Arc;
+
+async fn lengths(words: Arc<Vec<String>>) -> Vec<usize> {
+    let mut handles = Vec::new();
+    for i in 0..words.len() {
+        let words = Arc::clone(&words);
+        handles.push(tokio::spawn(async move {
+            words[i].len()
+        }));
+    }
+    let mut out = Vec::new();
+    for handle in handles {
+        out.push(handle.await.unwrap());
+    }
+    out
+}
+
+#[tokio::main]
+async fn main() {
+    let words = Arc::new(vec!["hello".to_string(), "tokio".to_string(), "!".to_string()]);
+    println!("{:?}", lengths(Arc::clone(&words)).await);
+    println!("still have {} words", words.len());
+}
+'''

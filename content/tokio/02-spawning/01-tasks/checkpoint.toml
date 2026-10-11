@@ -1,0 +1,99 @@
+id = "tokio.spawning.tasks.checkpoint"
+kind = "checkpoint"
+title = "Fetch every key at once"
+prompt = '''
+`fetch(key)` takes `LATENCY` (100 ms) and returns the key in upper case.
+Write `async fn fetch_all(keys: Vec<String>) -> Vec<String>` that fetches every
+key **concurrently** (one spawned task per key) and returns the answers in the
+same order as `keys`.
+
+The grader checks the answers, and with Tokio's clock paused, that the whole
+batch takes 100 ms however many keys there are.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(100);
+
+async fn fetch(key: String) -> String {
+    sleep(LATENCY).await;
+    key.to_uppercase()
+}
+
+async fn fetch_all(keys: Vec<String>) -> Vec<String> {
+    let mut answers = Vec::new();
+    for key in keys {
+        answers.push(fetch(key).await);
+    }
+    answers
+}
+
+#[tokio::main]
+async fn main() {
+    let keys = vec!["hello".to_string(), "tokio".to_string()];
+    println!("{:?}", fetch_all(keys).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    fn keys(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn answers_in_order() {
+        let got = fetch_all(keys(&["a", "bb", "ccc"])).await;
+        assert_eq!(got, keys(&["A", "BB", "CCC"]));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn fetches_concurrently() {
+        let start = Instant::now();
+        fetch_all(keys(&["one", "two", "three", "four", "five"])).await;
+        assert_eq!(start.elapsed(), LATENCY, "the fetches ran one after another");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn no_keys() {
+        let start = Instant::now();
+        assert!(fetch_all(Vec::new()).await.is_empty());
+        assert_eq!(start.elapsed(), std::time::Duration::ZERO);
+    }
+}
+'''
+hints = [
+  "Spawn everything first: `tokio::spawn(fetch(key))` for each key, and keep the `JoinHandle`s in a `Vec`.",
+  "Then loop over the handles and push `handle.await.unwrap()` into the answers.",
+  "`let handles: Vec<_> = keys.into_iter().map(|k| tokio::spawn(fetch(k))).collect();`",
+]
+solution = '''
+use std::time::Duration;
+use tokio::time::sleep;
+
+const LATENCY: Duration = Duration::from_millis(100);
+
+async fn fetch(key: String) -> String {
+    sleep(LATENCY).await;
+    key.to_uppercase()
+}
+
+async fn fetch_all(keys: Vec<String>) -> Vec<String> {
+    let handles: Vec<_> = keys.into_iter().map(|key| tokio::spawn(fetch(key))).collect();
+    let mut answers = Vec::new();
+    for handle in handles {
+        answers.push(handle.await.unwrap());
+    }
+    answers
+}
+
+#[tokio::main]
+async fn main() {
+    let keys = vec!["hello".to_string(), "tokio".to_string()];
+    println!("{:?}", fetch_all(keys).await);
+}
+'''
