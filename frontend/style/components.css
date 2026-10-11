@@ -385,3 +385,17 @@
 .solution { margin-top: var(--space-4); }
 .solution .eyebrow { margin-bottom: var(--space-2); }
 .solution .prose { max-width: none; }
+
+/* Live checking */
+.check-chip { margin-right: auto; align-self: center; font: 500 11px/1 var(--font-mono); padding: 4px 8px; border-radius: var(--radius-control); border: 1px solid var(--border); color: var(--muted); }
+.check-chip.ok { color: var(--link); }
+.check-chip.warn { color: var(--sand-text); }
+.check-chip.error { color: var(--error-text); border-color: currentColor; }
+.problems { list-style: none; margin: var(--space-3) 0 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.problems li + li { border-top: 1px solid var(--border); }
+.problem { display: flex; gap: var(--space-3); align-items: baseline; width: 100%; padding: var(--space-2) var(--space-3); background: var(--surface); color: var(--ink); border: 0; text-align: left; font: 400 var(--text-small)/1.4 var(--font-mono); cursor: pointer; }
+.problem:hover, .problem:focus-visible { background: var(--surface-2); }
+.problem-kind { flex: none; font-weight: 700; color: var(--sand-text); }
+.problem.error .problem-kind { color: var(--error-text); }
+.problem-message { flex: 1; }
+.problem-line { flex: none; color: var(--muted); }

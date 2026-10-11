@@ -4,9 +4,14 @@ use gloo_net::http::Request;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use shared::{
-    ApiError, CodeRequest, RunResponse, SolutionRequest, SolutionResponse, SubmitRequest,
-    SubmitResponse,
+    ApiError, CheckResponse, CodeRequest, RunResponse, SolutionRequest, SolutionResponse,
+    SubmitRequest, SubmitResponse,
 };
+
+/// `POST /api/check`: the compiler's diagnostics, for live squiggles.
+pub async fn check(code: String) -> Result<CheckResponse, String> {
+    post("/api/check", &CodeRequest { code }).await
+}
 
 /// `POST /api/run`. The error is a message ready to show the learner.
 pub async fn run(code: String) -> Result<RunResponse, String> {

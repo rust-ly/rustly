@@ -1,6 +1,7 @@
 mod api;
 mod app;
 mod chapter;
+mod check;
 mod course_map;
 mod editor;
 mod highlight;

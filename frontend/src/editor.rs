@@ -14,6 +14,7 @@ extern "C" {
     fn get_value(editor: &JsValue) -> String;
     fn set_value(editor: &JsValue, code: &str);
     fn set_markers(editor: &JsValue, markers_json: &str);
+    fn reveal(editor: &JsValue, line: u32, col: u32);
     fn dispose_editor(editor: &JsValue);
 }
 
@@ -25,10 +26,12 @@ struct Editor {
 
 /// Edits `code` in both directions: typing updates the signal, and setting the
 /// signal (e.g. Reset) updates the editor. `diagnostics` become squiggles.
+/// Setting `goto` to a line and column moves the cursor there.
 #[component]
 pub fn CodeEditor(
     code: RwSignal<String>,
     #[prop(into)] diagnostics: Signal<Vec<Diagnostic>>,
+    #[prop(optional)] goto: Option<RwSignal<Option<(u32, u32)>>>,
 ) -> impl IntoView {
     let host = NodeRef::<Div>::new();
     let editor = StoredValue::new_local(None::<Editor>);
@@ -63,6 +66,19 @@ pub fn CodeEditor(
             }
         });
     });
+    if let Some(goto) = goto {
+        Effect::new(move || {
+            let Some((line, col)) = goto.get() else {
+                return;
+            };
+            editor.with_value(|e| {
+                if let Some(e) = e {
+                    reveal(&e.handle, line, col);
+                }
+            });
+            goto.set(None);
+        });
+    }
     on_cleanup(move || {
         editor.try_with_value(|e| {
             if let Some(e) = e {
