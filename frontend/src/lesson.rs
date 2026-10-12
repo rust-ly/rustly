@@ -13,7 +13,7 @@ use crate::editor::CodeEditor;
 use crate::hints::HintDrawer;
 use crate::learner::Learner;
 use crate::snippet::{SnippetView, program_stderr};
-use crate::submit::{SubmitButton, SubmitResults, SubmitState};
+use crate::submit::{SubmitButton, SubmitResults, SubmitState, TodoNote, stopped_at_todo};
 use crate::{NotFound, api, routes, storage};
 
 #[component]
@@ -257,8 +257,11 @@ fn RunOutput(state: RwSignal<RunState>) -> impl IntoView {
                 .filter(|d| d.severity == Severity::Error)
                 .collect();
             Some(if errors.is_empty() {
+                let stderr = program_stderr(&r.stderr);
+                let todo = stopped_at_todo(&stderr);
                 view! {
-                    <pre class="snippet-output output-error" role="status">{r.stdout}{program_stderr(&r.stderr)}</pre>
+                    <pre class="snippet-output output-error" role="status">{r.stdout}{stderr}</pre>
+                    {todo.then(|| view! { <TodoNote /> })}
                 }
                 .into_any()
             } else {
