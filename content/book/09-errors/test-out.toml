@@ -1,0 +1,124 @@
+id = "book.errors.test-out"
+kind = "test-out"
+title = "Minutes between times"
+prompt = '''
+Already know `Result`, `?` and when to panic? Pass this to complete the whole
+chapter.
+
+Times are written like `"09:30"`, on a 24-hour clock. Write two functions that
+return a `TimeError` instead of panicking:
+
+1. `parse_time(text) -> Result<u32, TimeError>`: the number of minutes since
+   midnight, so `"09:30"` is `570`.
+   - no `:` in the text is `TimeError::NoColon`
+   - an hour or minute that isn't a whole number is `TimeError::NotANumber`
+   - an hour above 23 or a minute above 59 is `TimeError::OutOfRange`
+2. `minutes_between(start, end) -> Result<u32, TimeError>`: how many minutes
+   from `start` to `end`. It passes on any error from either time, and returns
+   `TimeError::Backwards` if `end` is earlier than `start`.
+
+Use `?` in `minutes_between`.
+'''
+starter = '''
+#[derive(Debug, PartialEq)]
+enum TimeError {
+    NoColon,
+    NotANumber,
+    OutOfRange,
+    Backwards,
+}
+
+fn parse_time(text: &str) -> Result<u32, TimeError> {
+    let (hours, minutes) = text.split_once(':').unwrap();
+    let hours: u32 = hours.parse().unwrap();
+    let minutes: u32 = minutes.parse().unwrap();
+    Ok(hours * 60 + minutes)
+}
+
+fn minutes_between(start: &str, end: &str) -> Result<u32, TimeError> {
+    todo!()
+}
+
+fn main() {
+    println!("{:?}", minutes_between("09:30", "17:15"));
+    println!("{:?}", minutes_between("9.30", "17:15"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_good_times() {
+        assert_eq!(parse_time("00:00"), Ok(0));
+        assert_eq!(parse_time("09:30"), Ok(570));
+        assert_eq!(parse_time("23:59"), Ok(1439));
+    }
+
+    #[test]
+    fn reports_each_kind_of_bad_time() {
+        assert_eq!(parse_time("0930"), Err(TimeError::NoColon));
+        assert_eq!(parse_time("nine:30"), Err(TimeError::NotANumber));
+        assert_eq!(parse_time("09:"), Err(TimeError::NotANumber));
+        assert_eq!(parse_time("24:00"), Err(TimeError::OutOfRange));
+        assert_eq!(parse_time("12:60"), Err(TimeError::OutOfRange));
+    }
+
+    #[test]
+    fn counts_minutes_between() {
+        assert_eq!(minutes_between("09:30", "17:15"), Ok(465));
+        assert_eq!(minutes_between("12:00", "12:00"), Ok(0));
+    }
+
+    #[test]
+    fn passes_on_errors_from_either_time() {
+        assert_eq!(minutes_between("9.30", "17:15"), Err(TimeError::NoColon));
+        assert_eq!(minutes_between("09:30", "25:00"), Err(TimeError::OutOfRange));
+    }
+
+    #[test]
+    fn refuses_to_go_backwards() {
+        assert_eq!(minutes_between("17:15", "09:30"), Err(TimeError::Backwards));
+    }
+}
+'''
+hints = [
+  "`text.split_once(':')` returns an `Option`. `.ok_or(TimeError::NoColon)?` turns `None` into your error and returns it early.",
+  "`.parse::<u32>()` returns a `Result` with a `ParseIntError`. `.map_err(|_| TimeError::NotANumber)?` swaps in your own error.",
+  "Check the ranges after parsing: `if hours > 23 || minutes > 59 { return Err(TimeError::OutOfRange); }`.",
+  "In `minutes_between`, `let start = parse_time(start)?;` does all the error handling for you. Compare the two numbers before subtracting, since a `u32` can't go below zero.",
+]
+solution = '''
+#[derive(Debug, PartialEq)]
+enum TimeError {
+    NoColon,
+    NotANumber,
+    OutOfRange,
+    Backwards,
+}
+
+fn parse_time(text: &str) -> Result<u32, TimeError> {
+    let (hours, minutes) = text.split_once(':').ok_or(TimeError::NoColon)?;
+    let hours: u32 = hours.parse().map_err(|_| TimeError::NotANumber)?;
+    let minutes: u32 = minutes.parse().map_err(|_| TimeError::NotANumber)?;
+    if hours > 23 || minutes > 59 {
+        return Err(TimeError::OutOfRange);
+    }
+    Ok(hours * 60 + minutes)
+}
+
+fn minutes_between(start: &str, end: &str) -> Result<u32, TimeError> {
+    let start = parse_time(start)?;
+    let end = parse_time(end)?;
+    if end < start {
+        return Err(TimeError::Backwards);
+    }
+    Ok(end - start)
+}
+
+fn main() {
+    println!("{:?}", minutes_between("09:30", "17:15"));
+    println!("{:?}", minutes_between("9.30", "17:15"));
+}
+'''
