@@ -1,0 +1,131 @@
+id = "book.collections.test-out"
+kind = "test-out"
+title = "Word counts"
+prompt = '''
+Already know vectors, strings and hash maps? Pass this to complete the whole
+chapter.
+
+Write three functions:
+
+1. `word_counts(text) -> HashMap<String, usize>`: how many times each word
+   appears. Words are separated by whitespace, count in lower case, and lose any
+   punctuation at either end, so `"The"`, `"the,"` and `"THE!"` all count as
+   `"the"`.
+2. `top_words(text, n) -> Vec<(String, usize)>`: the `n` most common words with
+   their counts, most common first. Words with the same count go in
+   alphabetical order.
+3. `capitalise(text) -> String`: the text with the first letter of every word
+   made upper case and words joined by single spaces, so `"hello   wide world"`
+   becomes `"Hello Wide World"`.
+'''
+starter = '''
+use std::collections::HashMap;
+
+fn word_counts(text: &str) -> HashMap<String, usize> {
+    let mut counts = HashMap::new();
+    todo!()
+}
+
+fn top_words(text: &str, n: usize) -> Vec<(String, usize)> {
+    todo!()
+}
+
+fn capitalise(text: &str) -> String {
+    todo!()
+}
+
+fn main() {
+    let text = "The cat sat. The cat ran! A dog sat.";
+    println!("{:?}", top_words(text, 3));
+    println!("{}", capitalise(text));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counts_words_ignoring_case_and_punctuation() {
+        let counts = word_counts("The cat, the CAT! the dog.");
+        assert_eq!(counts.get("the"), Some(&3));
+        assert_eq!(counts.get("cat"), Some(&2));
+        assert_eq!(counts.get("dog"), Some(&1));
+        assert_eq!(counts.len(), 3);
+    }
+
+    #[test]
+    fn empty_text_has_no_words() {
+        assert!(word_counts("").is_empty());
+        assert!(word_counts("  ...  ").is_empty());
+    }
+
+    #[test]
+    fn top_words_are_most_common_first() {
+        let text = "b a c b a b";
+        assert_eq!(top_words(text, 2), vec![("b".to_string(), 3), ("a".to_string(), 2)]);
+    }
+
+    #[test]
+    fn ties_go_alphabetically() {
+        let text = "pear apple fig apple pear fig";
+        assert_eq!(
+            top_words(text, 5),
+            vec![("apple".to_string(), 2), ("fig".to_string(), 2), ("pear".to_string(), 2)]
+        );
+    }
+
+    #[test]
+    fn capitalises_every_word() {
+        assert_eq!(capitalise("hello   wide world"), "Hello Wide World");
+        assert_eq!(capitalise("über café"), "Über Café");
+        assert_eq!(capitalise(""), "");
+    }
+}
+'''
+hints = [
+  "`text.split_whitespace()` gives the words. `word.trim_matches(|c: char| !c.is_alphanumeric())` strips punctuation from both ends, and `.to_lowercase()` does the rest. Skip words that end up empty.",
+  "`*counts.entry(word).or_insert(0) += 1` counts a word whether or not it's been seen before.",
+  "For `top_words`, collect the map into a `Vec`, then `sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)))` and `truncate(n)`.",
+  "For `capitalise`, take `word.chars()`, call `.next()` for the first letter and `.to_uppercase()` it, then add the rest with `chars.as_str()`. Collect the words into a `Vec` and `.join(\" \")`.",
+]
+solution = '''
+use std::collections::HashMap;
+
+fn word_counts(text: &str) -> HashMap<String, usize> {
+    let mut counts = HashMap::new();
+    for word in text.split_whitespace() {
+        let word = word.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase();
+        if !word.is_empty() {
+            *counts.entry(word).or_insert(0) += 1;
+        }
+    }
+    counts
+}
+
+fn top_words(text: &str, n: usize) -> Vec<(String, usize)> {
+    let mut words: Vec<(String, usize)> = word_counts(text).into_iter().collect();
+    words.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    words.truncate(n);
+    words
+}
+
+fn capitalise(text: &str) -> String {
+    let mut words = Vec::new();
+    for word in text.split_whitespace() {
+        let mut chars = word.chars();
+        if let Some(first) = chars.next() {
+            let mut capitalised: String = first.to_uppercase().collect();
+            capitalised.push_str(chars.as_str());
+            words.push(capitalised);
+        }
+    }
+    words.join(" ")
+}
+
+fn main() {
+    let text = "The cat sat. The cat ran! A dog sat.";
+    println!("{:?}", top_words(text, 3));
+    println!("{}", capitalise(text));
+}
+'''

@@ -1,0 +1,136 @@
+id = "book.generics.test-out"
+kind = "test-out"
+title = "A generics toolbox"
+prompt = '''
+Already know generics, traits and lifetimes? Pass this to complete the whole
+chapter.
+
+Write these four pieces:
+
+1. `largest(items) -> Option<T>`: the largest item in a slice of any type that
+   can be compared and copied, or `None` for an empty slice.
+2. A `Summary` trait with a required method `author(&self) -> String` and a
+   default method `summarize(&self) -> String` that returns
+   `"(Read more from @author...)"`. Implement it for `Post`, using the default
+   `summarize`.
+3. `notify(item) -> String`, which takes anything that implements `Summary` and
+   returns `"Breaking! "` followed by its summary.
+4. `longer(a, b)`, which returns whichever of two string slices is longer, or
+   `a` if they're the same length. It returns a reference, so it needs a
+   lifetime.
+'''
+starter = '''
+struct Post {
+    author: String,
+    text: String,
+}
+
+fn main() {
+    println!("{:?}", largest(&[3, 9, 2]));
+    let post = Post { author: "ferris".to_string(), text: "Hi!".to_string() };
+    println!("{}", notify(&post));
+    println!("{}", longer("crab", "lobster"));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn largest_works_for_any_comparable_type() {
+        assert_eq!(largest(&[3, 9, 2]), Some(9));
+        assert_eq!(largest(&[1.5, -2.0]), Some(1.5));
+        assert_eq!(largest(&['a', 'z', 'm']), Some('z'));
+        assert_eq!(largest::<u8>(&[]), None);
+    }
+
+    #[test]
+    fn post_uses_the_default_summary() {
+        let post = Post { author: "ferris".to_string(), text: "Hi!".to_string() };
+        assert_eq!(post.author(), "ferris");
+        assert_eq!(post.summarize(), "(Read more from @ferris...)");
+    }
+
+    struct Note;
+
+    impl Summary for Note {
+        fn author(&self) -> String {
+            "anon".to_string()
+        }
+        fn summarize(&self) -> String {
+            "a short note".to_string()
+        }
+    }
+
+    #[test]
+    fn notify_takes_anything_with_a_summary() {
+        let post = Post { author: "ada".to_string(), text: String::new() };
+        assert_eq!(notify(&post), "Breaking! (Read more from @ada...)");
+        assert_eq!(notify(&Note), "Breaking! a short note");
+    }
+
+    #[test]
+    fn longer_picks_the_longer_slice() {
+        assert_eq!(longer("crab", "lobster"), "lobster");
+        assert_eq!(longer("abc", "xyz"), "abc");
+        let owned = String::from("a longer string");
+        let result;
+        {
+            result = longer(owned.as_str(), "short");
+        }
+        assert_eq!(result, "a longer string");
+    }
+}
+'''
+hints = [
+  "`fn largest<T: PartialOrd + Copy>(items: &[T]) -> Option<T>`. Start with `let mut best = *items.first()?;` and replace it whenever an item is bigger.",
+  "A default method has a body inside the trait: `fn summarize(&self) -> String { format!(\"(Read more from @{}...)\", self.author()) }`. Then `impl Summary for Post` only needs `author`.",
+  "`fn notify(item: &impl Summary) -> String` accepts a reference to any type that implements the trait.",
+  "`fn longer<'a>(a: &'a str, b: &'a str) -> &'a str` tells Rust the result lives as long as both inputs.",
+]
+solution = '''
+struct Post {
+    author: String,
+    text: String,
+}
+
+fn largest<T: PartialOrd + Copy>(items: &[T]) -> Option<T> {
+    let mut best = *items.first()?;
+    for &item in items {
+        if item > best {
+            best = item;
+        }
+    }
+    Some(best)
+}
+
+trait Summary {
+    fn author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from @{}...)", self.author())
+    }
+}
+
+impl Summary for Post {
+    fn author(&self) -> String {
+        self.author.clone()
+    }
+}
+
+fn notify(item: &impl Summary) -> String {
+    format!("Breaking! {}", item.summarize())
+}
+
+fn longer<'a>(a: &'a str, b: &'a str) -> &'a str {
+    if b.len() > a.len() { b } else { a }
+}
+
+fn main() {
+    println!("{:?}", largest(&[3, 9, 2]));
+    let post = Post { author: "ferris".to_string(), text: "Hi!".to_string() };
+    println!("{} ({} chars)", notify(&post), post.text.len());
+    println!("{}", longer("crab", "lobster"));
+}
+'''

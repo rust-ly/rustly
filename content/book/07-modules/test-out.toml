@@ -1,0 +1,115 @@
+id = "book.modules.test-out"
+kind = "test-out"
+title = "A weather station"
+prompt = '''
+Already know modules, paths, `pub` and `use`? Pass this to complete the whole
+chapter.
+
+Organise the weather code into modules:
+
+1. A module `units` with two public modules inside it:
+   `units::celsius::to_fahrenheit(c: f64) -> f64` and
+   `units::fahrenheit::to_celsius(f: f64) -> f64`.
+2. A module `sensors` with a public struct `Reading`:
+   - a public field `place: String`
+   - a **private** field `celsius: f64`
+   - `Reading::new(place, celsius)`, `celsius(&self) -> f64` and
+     `fahrenheit(&self) -> f64`, all public. `fahrenheit` should reuse
+     `units::celsius::to_fahrenheit` rather than repeat the formula.
+3. Re-export `Reading` at the crate root with `pub use`, so `main` can say just
+   `Reading`.
+'''
+starter = '''
+fn to_fahrenheit(c: f64) -> f64 {
+    c * 9.0 / 5.0 + 32.0
+}
+
+fn main() {
+    let reading = Reading::new("Nairobi", 25.0);
+    println!("{}: {}°F", reading.place, reading.fahrenheit());
+    println!("Water boils at {}°C", units::fahrenheit::to_celsius(212.0));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_both_ways() {
+        assert_eq!(units::celsius::to_fahrenheit(100.0), 212.0);
+        assert_eq!(units::celsius::to_fahrenheit(0.0), 32.0);
+        assert_eq!(units::fahrenheit::to_celsius(212.0), 100.0);
+        assert_eq!(units::fahrenheit::to_celsius(32.0), 0.0);
+    }
+
+    #[test]
+    fn reading_lives_in_sensors() {
+        let r = sensors::Reading::new("Lab", 20.0);
+        assert_eq!(r.place, "Lab");
+        assert_eq!(r.celsius(), 20.0);
+        assert_eq!(r.fahrenheit(), 68.0);
+    }
+
+    #[test]
+    fn root_re_export_is_the_same_type() {
+        let r: sensors::Reading = Reading::new("Roof", -40.0);
+        assert_eq!(r.fahrenheit(), -40.0);
+    }
+}
+'''
+hints = [
+  "Modules can nest: `mod units { pub mod celsius { pub fn to_fahrenheit(...) } pub mod fahrenheit { ... } }`. Both the inner modules and their functions need `pub`.",
+  "A struct's fields are private unless marked `pub`, even when the struct itself is `pub`. Leave `celsius` without `pub` and add a `celsius()` method to read it.",
+  "From inside `sensors`, reach the other module with `super::units::celsius::to_fahrenheit`, or bring it in with `use crate::units::celsius;` and call `celsius::to_fahrenheit`.",
+  "`pub use sensors::Reading;` at the crate root makes `Reading` usable on its own.",
+]
+solution = '''
+mod units {
+    pub mod celsius {
+        pub fn to_fahrenheit(c: f64) -> f64 {
+            c * 9.0 / 5.0 + 32.0
+        }
+    }
+
+    pub mod fahrenheit {
+        pub fn to_celsius(f: f64) -> f64 {
+            (f - 32.0) * 5.0 / 9.0
+        }
+    }
+}
+
+mod sensors {
+    use crate::units::celsius;
+
+    pub struct Reading {
+        pub place: String,
+        celsius: f64,
+    }
+
+    impl Reading {
+        pub fn new(place: &str, celsius: f64) -> Reading {
+            Reading {
+                place: place.to_string(),
+                celsius,
+            }
+        }
+
+        pub fn celsius(&self) -> f64 {
+            self.celsius
+        }
+
+        pub fn fahrenheit(&self) -> f64 {
+            celsius::to_fahrenheit(self.celsius)
+        }
+    }
+}
+
+pub use sensors::Reading;
+
+fn main() {
+    let reading = Reading::new("Nairobi", 25.0);
+    println!("{}: {}°F", reading.place, reading.fahrenheit());
+    println!("Water boils at {}°C", units::fahrenheit::to_celsius(212.0));
+}
+'''
