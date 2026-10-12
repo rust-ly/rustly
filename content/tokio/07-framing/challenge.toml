@@ -1,0 +1,231 @@
+id = "tokio.framing.challenge"
+kind = "challenge"
+title = "A tiny framed key-value server"
+prompt = '''
+Build the in-memory cousin of the Tokio tutorial's mini-Redis:
+
+`async fn serve(socket: DuplexStream) -> io::Result<usize>`
+
+Every message, in both directions, is a length-prefixed frame (a big-endian `u32`
+length, then that many bytes of UTF-8 text). For each frame the client sends, reply
+with exactly one frame:
+
+| Client sends | Reply |
+| --- | --- |
+| `SET key value` | `OK`, and remember `value` for `key`. The value may contain spaces. |
+| `GET key` | the value stored for `key`, or `(nil)` if there isn't one |
+| anything else | `ERR unknown command` |
+
+- When the client closes cleanly, return `Ok` with how many frames you answered.
+- When it closes in the middle of a frame, return an `Err` with kind
+  `io::ErrorKind::UnexpectedEof`.
+
+The grader sends frames through a pipe that only carries a few bytes at a time.
+'''
+starter = '''
+use std::collections::HashMap;
+
+use bytes::{Buf, Bytes, BytesMut};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+struct Connection {
+    stream: DuplexStream,
+    buffer: BytesMut,
+}
+
+impl Connection {
+    async fn read_frame(&mut self) -> io::Result<Option<Bytes>> {
+        todo!()
+    }
+
+    async fn write_frame(&mut self, payload: &[u8]) -> io::Result<()> {
+        todo!()
+    }
+}
+
+async fn serve(socket: DuplexStream) -> io::Result<usize> {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (client, server) = io::duplex(64);
+    let server_task = tokio::spawn(serve(server));
+    let mut conn = Connection { stream: client, buffer: BytesMut::new() };
+    for command in ["SET greeting hello world", "GET greeting", "GET nothing", "PING"] {
+        conn.write_frame(command.as_bytes()).await?;
+        let reply = conn.read_frame().await?.unwrap();
+        println!("{command:?} -> {:?}", String::from_utf8_lossy(&reply));
+    }
+    drop(conn);
+    println!("answered {} frames", server_task.await.unwrap()?);
+    Ok(())
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn encode(commands: &[&str]) -> Vec<u8> {
+        let mut v = Vec::new();
+        for c in commands {
+            v.extend_from_slice(&(c.len() as u32).to_be_bytes());
+            v.extend_from_slice(c.as_bytes());
+        }
+        v
+    }
+
+    fn decode(mut bytes: &[u8]) -> Vec<String> {
+        let mut out = Vec::new();
+        while bytes.len() >= 4 {
+            let len = u32::from_be_bytes(bytes[..4].try_into().unwrap()) as usize;
+            out.push(String::from_utf8(bytes[4..4 + len].to_vec()).unwrap());
+            bytes = &bytes[4 + len..];
+        }
+        assert!(bytes.is_empty(), "the server sent half a frame: {bytes:?}");
+        out
+    }
+
+    async fn talk(bytes: Vec<u8>, capacity: usize) -> (Vec<String>, io::Result<usize>) {
+        let (client, server) = io::duplex(capacity);
+        let server_task = tokio::spawn(serve(server));
+        let (mut rd, mut wr) = io::split(client);
+        let sender = tokio::spawn(async move {
+            let _ = wr.write_all(&bytes).await;
+            let _ = wr.shutdown().await;
+            wr
+        });
+        let mut replies = Vec::new();
+        rd.read_to_end(&mut replies).await.unwrap();
+        let _wr = sender.await.unwrap();
+        (decode(&replies), server_task.await.unwrap())
+    }
+
+    #[tokio::test]
+    async fn set_get_and_unknown() {
+        let (replies, answered) =
+            talk(encode(&["SET a 1", "GET a", "GET b", "PING"]), 64).await;
+        assert_eq!(replies, ["OK", "1", "(nil)", "ERR unknown command"]);
+        assert_eq!(answered.unwrap(), 4);
+    }
+
+    #[tokio::test]
+    async fn values_can_have_spaces_and_be_replaced() {
+        let (replies, _) = talk(
+            encode(&["SET greeting hello world", "GET greeting", "SET greeting hi", "GET greeting"]),
+            64,
+        )
+        .await;
+        assert_eq!(replies, ["OK", "hello world", "OK", "hi"]);
+    }
+
+    #[tokio::test]
+    async fn through_a_three_byte_pipe() {
+        let commands: Vec<String> = (0..20).map(|i| format!("SET key{i} value number {i}")).collect();
+        let mut all: Vec<&str> = commands.iter().map(|s| s.as_str()).collect();
+        all.push("GET key7");
+        let (replies, answered) = talk(encode(&all), 3).await;
+        assert_eq!(replies.len(), 21);
+        assert_eq!(replies[20], "value number 7");
+        assert_eq!(answered.unwrap(), 21);
+    }
+
+    #[tokio::test]
+    async fn a_client_that_sends_nothing() {
+        let (replies, answered) = talk(Vec::new(), 8).await;
+        assert!(replies.is_empty());
+        assert_eq!(answered.unwrap(), 0);
+    }
+
+    #[tokio::test]
+    async fn closing_mid_frame_is_an_error() {
+        let mut bytes = encode(&["SET a 1"]);
+        bytes.extend_from_slice(&[0, 0, 0, 20, b'G', b'E']);
+        let (replies, answered) = talk(bytes, 8).await;
+        assert_eq!(replies, ["OK"]);
+        assert_eq!(answered.expect_err("half a frame must be an error").kind(), io::ErrorKind::UnexpectedEof);
+    }
+}
+'''
+hints = [
+  "`read_frame` is the loop from the lesson: try to parse a frame from the buffer, otherwise `read_buf` more, and handle `0`. `write_frame` is `write_u32`, `write_all`, `flush`.",
+  "In `serve`, keep a `HashMap<String, String>` and loop with `while let Some(frame) = conn.read_frame().await? { ... }`. The `?` passes the mid-frame error on for you.",
+  "`let text = String::from_utf8_lossy(&frame); let mut parts = text.splitn(3, ' ');` then `match (parts.next(), parts.next(), parts.next())` with arms like `(Some(\"SET\"), Some(key), Some(value))` and `(Some(\"GET\"), Some(key), None)`.",
+]
+solution = '''
+use std::collections::HashMap;
+
+use bytes::{Buf, Bytes, BytesMut};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+struct Connection {
+    stream: DuplexStream,
+    buffer: BytesMut,
+}
+
+impl Connection {
+    async fn read_frame(&mut self) -> io::Result<Option<Bytes>> {
+        loop {
+            if self.buffer.len() >= 4 {
+                let len = (&self.buffer[..4]).get_u32() as usize;
+                if self.buffer.len() >= 4 + len {
+                    self.buffer.advance(4);
+                    return Ok(Some(self.buffer.split_to(len).freeze()));
+                }
+            }
+            if self.stream.read_buf(&mut self.buffer).await? == 0 {
+                return if self.buffer.is_empty() {
+                    Ok(None)
+                } else {
+                    Err(io::Error::new(io::ErrorKind::UnexpectedEof, "closed mid-frame"))
+                };
+            }
+        }
+    }
+
+    async fn write_frame(&mut self, payload: &[u8]) -> io::Result<()> {
+        self.stream.write_u32(payload.len() as u32).await?;
+        self.stream.write_all(payload).await?;
+        self.stream.flush().await
+    }
+}
+
+async fn serve(socket: DuplexStream) -> io::Result<usize> {
+    let mut conn = Connection { stream: socket, buffer: BytesMut::new() };
+    let mut store: HashMap<String, String> = HashMap::new();
+    let mut answered = 0;
+    while let Some(frame) = conn.read_frame().await? {
+        let text = String::from_utf8_lossy(&frame);
+        let mut parts = text.splitn(3, ' ');
+        let reply = match (parts.next(), parts.next(), parts.next()) {
+            (Some("SET"), Some(key), Some(value)) => {
+                store.insert(key.to_string(), value.to_string());
+                "OK".to_string()
+            }
+            (Some("GET"), Some(key), None) => {
+                store.get(key).cloned().unwrap_or_else(|| "(nil)".to_string())
+            }
+            _ => "ERR unknown command".to_string(),
+        };
+        conn.write_frame(reply.as_bytes()).await?;
+        answered += 1;
+    }
+    Ok(answered)
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (client, server) = io::duplex(64);
+    let server_task = tokio::spawn(serve(server));
+    let mut conn = Connection { stream: client, buffer: BytesMut::new() };
+    for command in ["SET greeting hello world", "GET greeting", "GET nothing", "PING"] {
+        conn.write_frame(command.as_bytes()).await?;
+        let reply = conn.read_frame().await?.unwrap();
+        println!("{command:?} -> {:?}", String::from_utf8_lossy(&reply));
+    }
+    drop(conn);
+    println!("answered {} frames", server_task.await.unwrap()?);
+    Ok(())
+}
+'''

@@ -1,0 +1,7 @@
+id = "tokio.framing"
+track = "tokio"
+title = "Framing"
+order = 7
+source = "https://tokio.rs/tokio/tutorial/framing"
+summary = "Turning a stream of bytes into separate messages: length-prefixed frames, a BytesMut buffer, and a connection that reads and writes one frame at a time."
+requires = []
