@@ -59,7 +59,13 @@ export function get_value(handle) { return handle.code; }
 
 export function set_value(handle, code) {
   handle.code = code;
-  if (handle.ed) handle.ed.setValue(code);
+  // An edit rather than setValue, so Ctrl+Z can undo a Format or Reset.
+  if (handle.ed) {
+    const model = handle.ed.getModel();
+    handle.ed.pushUndoStop();
+    handle.ed.executeEdits("rustly", [{ range: model.getFullModelRange(), text: code }]);
+    handle.ed.pushUndoStop();
+  }
   if (handle.area) handle.area.value = code;
 }
 

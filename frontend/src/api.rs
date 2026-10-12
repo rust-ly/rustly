@@ -4,8 +4,8 @@ use gloo_net::http::Request;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use shared::{
-    ApiError, CheckResponse, CodeRequest, RunResponse, SolutionRequest, SolutionResponse,
-    SubmitRequest, SubmitResponse,
+    ApiError, CheckResponse, CodeRequest, FormatResponse, RunResponse, SolutionRequest,
+    SolutionResponse, SubmitRequest, SubmitResponse,
 };
 
 /// `POST /api/check`: the compiler's diagnostics, for live squiggles.
@@ -16,6 +16,11 @@ pub async fn check(code: String) -> Result<CheckResponse, String> {
 /// `POST /api/run`. The error is a message ready to show the learner.
 pub async fn run(code: String) -> Result<RunResponse, String> {
     post("/api/run", &CodeRequest { code }).await
+}
+
+/// `POST /api/format`: the code tidied by rustfmt.
+pub async fn format(code: String) -> Result<FormatResponse, String> {
+    post("/api/format", &CodeRequest { code }).await
 }
 
 /// `POST /api/submit`: grades the code against the exercise's hidden tests.
