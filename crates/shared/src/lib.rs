@@ -41,6 +41,30 @@ pub struct Diagnostic {
     pub end_col: u32,
 }
 
+impl Diagnostic {
+    /// The official page explaining this diagnostic's code, if it has one.
+    pub fn explain_url(&self) -> Option<String> {
+        explain_url(self.code.as_deref()?)
+    }
+}
+
+/// Where the Rust docs explain `code`: error codes like `E0382` have a page in
+/// the error index, and Clippy lints have an entry in Clippy's lint list.
+pub fn explain_url(code: &str) -> Option<String> {
+    if let Some(digits) = code.strip_prefix('E')
+        && digits.len() == 4
+        && digits.bytes().all(|b| b.is_ascii_digit())
+    {
+        return Some(format!("https://doc.rust-lang.org/error_codes/{code}.html"));
+    }
+    let lint = code.strip_prefix("clippy::")?;
+    (!lint.is_empty()
+        && lint
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_'))
+    .then(|| format!("https://rust-lang.github.io/rust-clippy/stable/index.html#{lint}"))
+}
+
 /// Response of `/api/check`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CheckResponse {
@@ -124,6 +148,36 @@ mod tests {
         };
         let json = serde_json::to_string(&d).unwrap();
         assert_eq!(serde_json::from_str::<Diagnostic>(&json).unwrap(), d);
+    }
+
+    #[test]
+    fn error_codes_link_to_the_error_index() {
+        assert_eq!(
+            explain_url("E0382").as_deref(),
+            Some("https://doc.rust-lang.org/error_codes/E0382.html")
+        );
+    }
+
+    #[test]
+    fn clippy_lints_link_to_the_lint_list() {
+        assert_eq!(
+            explain_url("clippy::len_zero").as_deref(),
+            Some("https://rust-lang.github.io/rust-clippy/stable/index.html#len_zero")
+        );
+    }
+
+    #[test]
+    fn other_codes_have_no_link() {
+        for code in [
+            "unused_variables",
+            "E038",
+            "E03822",
+            "Eabcd",
+            "clippy::",
+            "clippy::a#b",
+        ] {
+            assert_eq!(explain_url(code), None, "{code}");
+        }
     }
 
     #[test]
