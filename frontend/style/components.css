@@ -420,7 +420,12 @@ main:focus { outline: none; }
 .check-chip.warn { color: var(--sand-text); }
 .check-chip.error { color: var(--error-text); border-color: currentColor; }
 .problems { list-style: none; margin: var(--space-3) 0 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.problems li { display: flex; flex-wrap: wrap; align-items: baseline; background: var(--surface); }
 .problems li + li { border-top: 1px solid var(--border); }
+.problems .problem { flex: 1 1 14rem; }
+.problems .explain-link { flex: none; padding: var(--space-2) var(--space-3); }
+.explain-link { font: 400 var(--text-small)/1.4 var(--font-mono); white-space: nowrap; }
+.explain-link::after { content: " ↗"; }
 .problem { display: flex; gap: var(--space-3); align-items: baseline; width: 100%; padding: var(--space-2) var(--space-3); background: var(--surface); color: var(--ink); border: 0; text-align: left; font: 400 var(--text-small)/1.4 var(--font-mono); cursor: pointer; }
 .problem:hover, .problem:focus-visible { background: var(--surface-2); }
 .problem-kind { flex: none; font-weight: 700; color: var(--sand-text); }

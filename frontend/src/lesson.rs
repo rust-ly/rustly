@@ -8,7 +8,7 @@ use leptos_router::components::{A, Redirect};
 use leptos_router::hooks::use_params_map;
 use shared::{RunResponse, Severity};
 
-use crate::check::{CheckChip, LiveCheck, Problems};
+use crate::check::{CheckChip, ExplainLink, LiveCheck, Problems};
 use crate::editor::CodeEditor;
 use crate::hints::HintDrawer;
 use crate::learner::Learner;
@@ -299,8 +299,8 @@ fn RunOutput(state: RwSignal<RunState>) -> impl IntoView {
                 view! {
                     <div class="snippet-output output-error" role="status">
                         {errors.into_iter().map(|d| {
-                            let code = d.code.map_or(String::new(), |c| format!("[{c}]"));
-                            view! { <p><strong>{format!("error{code}")}</strong>": "{d.message}{format!(" (line {})", d.line)}</p> }
+                            let code = d.code.as_ref().map_or(String::new(), |c| format!("[{c}]"));
+                            view! { <p><strong>{format!("error{code}")}</strong>": "{d.message.clone()}{format!(" (line {}) ", d.line)}<ExplainLink diagnostic=d /></p> }
                         }).collect_view()}
                     </div>
                 }

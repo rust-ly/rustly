@@ -160,14 +160,15 @@ pub fn Problems(check: LiveCheck, goto: RwSignal<Option<(u32, u32)>>) -> impl In
                         {shown.into_iter().map(|d| {
                             let (line, col) = (d.line, d.col);
                             let error = d.severity == Severity::Error;
-                            let code = d.code.map_or(String::new(), |c| format!("[{c}]"));
+                            let code = d.code.as_ref().map_or(String::new(), |c| format!("[{c}]"));
                             view! {
                                 <li>
                                     <button class="problem" class:error=error on:click=move |_| goto.set(Some((line, col)))>
                                         <span class="problem-kind">{format!("{}{code}", if error { "error" } else { "warning" })}</span>
-                                        <span class="problem-message">{d.message}</span>
+                                        <span class="problem-message">{d.message.clone()}</span>
                                         <span class="problem-line">{format!("line {line}")}</span>
                                     </button>
+                                    <ExplainLink diagnostic=d />
                                 </li>
                             }
                         }).collect_view()}
@@ -176,4 +177,18 @@ pub fn Problems(check: LiveCheck, goto: RwSignal<Option<(u32, u32)>>) -> impl In
             })
         })
     }
+}
+
+/// "explain", linking to the official page for the diagnostic's code. Nothing
+/// when the code has no such page.
+#[component]
+pub fn ExplainLink(diagnostic: Diagnostic) -> impl IntoView {
+    let code = diagnostic.code.clone().unwrap_or_default();
+    diagnostic.explain_url().map(|href| {
+        view! {
+            <a class="explain-link" href=href target="_blank" rel="noopener" aria-label=format!("Explain {code} (opens the Rust docs)")>
+                "explain"
+            </a>
+        }
+    })
 }

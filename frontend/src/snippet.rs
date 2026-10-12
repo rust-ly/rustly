@@ -7,6 +7,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use shared::{RunResponse, Severity};
 
+use crate::check::ExplainLink;
 use crate::learner::Learner;
 use crate::{api, highlight};
 
@@ -182,7 +183,7 @@ fn Output(snippet: &'static Snippet, state: RwSignal<RunState>) -> impl IntoView
                         {errors.into_iter().map(|d| {
                             let line = visible_line(snippet, d.line).map_or(String::new(), |n| format!(" (line {n})"));
                             let code = d.code.as_ref().map_or(String::new(), |c| format!("[{c}]"));
-                            view! { <p><strong>{format!("error{code}")}</strong>": "{d.message.clone()}{line}</p> }
+                            view! { <p><strong>{format!("error{code}")}</strong>": "{d.message.clone()}{line}" "<ExplainLink diagnostic=d.clone() /></p> }
                         }).collect_view()}
                     </div>
                 }
