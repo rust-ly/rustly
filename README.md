@@ -23,7 +23,7 @@
 | Track | Follows | Status |
 | --- | --- | --- |
 | 1. The Rust Book | [doc.rust-lang.org/book](https://doc.rust-lang.org/book/) | Chapters 1–20 |
-| 2. Async with Tokio | [tokio.rs/tokio/tutorial](https://tokio.rs/tokio/tutorial) | Hello Tokio, Spawning, Shared State, Channels, Select and I/O. It unlocks after Book chapters 10, 13 and 16 |
+| 2. Async with Tokio | [tokio.rs/tokio/tutorial](https://tokio.rs/tokio/tutorial) | Hello Tokio, Spawning, Shared State, Channels, Select, I/O and Framing. It unlocks after Book chapters 10, 13 and 16 |
 
 Exercises are pure functions graded by tests, because the Playground has no stdin, files or network. Tokio exercises use channels and in-memory I/O instead of sockets.
 

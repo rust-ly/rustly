@@ -1,0 +1,180 @@
+id = "tokio.framing.connection.checkpoint"
+kind = "checkpoint"
+title = "Read frames from a slow connection"
+prompt = '''
+Finish `Connection::read_frame`. `parse_frame` is done for you.
+
+- Return `Ok(Some(frame))` for each frame, in order, however the bytes arrive.
+- When the other side closes and nothing is buffered, return `Ok(None)`.
+- When it closes in the middle of a frame, return an `Err` with kind
+  `io::ErrorKind::UnexpectedEof`.
+
+The starter reads once and then gives up, so it only works when a whole frame arrives
+in a single read.
+'''
+starter = '''
+use bytes::{Buf, Bytes, BytesMut};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+struct Connection {
+    stream: DuplexStream,
+    buffer: BytesMut,
+}
+
+impl Connection {
+    async fn read_frame(&mut self) -> io::Result<Option<Bytes>> {
+        if let Some(frame) = parse_frame(&mut self.buffer) {
+            return Ok(Some(frame));
+        }
+        self.stream.read_buf(&mut self.buffer).await?;
+        Ok(parse_frame(&mut self.buffer))
+    }
+}
+
+fn parse_frame(buf: &mut BytesMut) -> Option<Bytes> {
+    if buf.len() < 4 {
+        return None;
+    }
+    let len = (&buf[..4]).get_u32() as usize;
+    if buf.len() < 4 + len {
+        return None;
+    }
+    buf.advance(4);
+    Some(buf.split_to(len).freeze())
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (mut client, server) = io::duplex(3);
+    tokio::spawn(async move {
+        for word in ["hello", "framing"] {
+            client.write_u32(word.len() as u32).await.unwrap();
+            client.write_all(word.as_bytes()).await.unwrap();
+        }
+    });
+    let mut conn = Connection { stream: server, buffer: BytesMut::new() };
+    while let Some(frame) = conn.read_frame().await? {
+        println!("frame: {frame:?}");
+    }
+    Ok(())
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn connect(bytes: Vec<u8>, capacity: usize) -> Connection {
+        let (mut client, server) = io::duplex(capacity);
+        tokio::spawn(async move {
+            client.write_all(&bytes).await.unwrap();
+        });
+        Connection { stream: server, buffer: BytesMut::new() }
+    }
+
+    fn frames(words: &[&str]) -> Vec<u8> {
+        let mut v = Vec::new();
+        for w in words {
+            v.extend_from_slice(&(w.len() as u32).to_be_bytes());
+            v.extend_from_slice(w.as_bytes());
+        }
+        v
+    }
+
+    async fn read_all(conn: &mut Connection) -> Vec<String> {
+        let mut out = Vec::new();
+        while let Some(f) = conn.read_frame().await.unwrap() {
+            out.push(String::from_utf8(f.to_vec()).unwrap());
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn frames_through_a_slow_pipe() {
+        let mut conn = connect(frames(&["hello", "framing", "", "tokio"]), 3);
+        assert_eq!(read_all(&mut conn).await, ["hello", "framing", "", "tokio"]);
+    }
+
+    #[tokio::test]
+    async fn many_frames_in_one_read() {
+        let words: Vec<String> = (0..50).map(|i| format!("frame {i}")).collect();
+        let refs: Vec<&str> = words.iter().map(|s| s.as_str()).collect();
+        let mut conn = connect(frames(&refs), 4096);
+        assert_eq!(read_all(&mut conn).await, words);
+    }
+
+    #[tokio::test]
+    async fn a_clean_close_is_none() {
+        let mut conn = connect(Vec::new(), 8);
+        assert!(conn.read_frame().await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn closing_mid_frame_is_an_error() {
+        let mut bytes = frames(&["whole"]);
+        bytes.extend_from_slice(&[0, 0, 0, 9, b'h', b'a']);
+        let mut conn = connect(bytes, 4);
+        assert_eq!(conn.read_frame().await.unwrap().as_deref(), Some(&b"whole"[..]));
+        let err = conn.read_frame().await.expect_err("half a frame must be an error");
+        assert_eq!(err.kind(), io::ErrorKind::UnexpectedEof);
+    }
+}
+'''
+hints = [
+  "Put both steps in a `loop`: try `parse_frame` first, and only read when it returns `None`.",
+  "`read_buf` returns how many bytes it added. When that's `0`: return `Ok(None)` if `self.buffer.is_empty()`, otherwise `Err(io::Error::new(io::ErrorKind::UnexpectedEof, \"closed mid-frame\"))`.",
+]
+solution = '''
+use bytes::{Buf, Bytes, BytesMut};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+struct Connection {
+    stream: DuplexStream,
+    buffer: BytesMut,
+}
+
+impl Connection {
+    async fn read_frame(&mut self) -> io::Result<Option<Bytes>> {
+        loop {
+            if let Some(frame) = parse_frame(&mut self.buffer) {
+                return Ok(Some(frame));
+            }
+            if self.stream.read_buf(&mut self.buffer).await? == 0 {
+                return if self.buffer.is_empty() {
+                    Ok(None)
+                } else {
+                    Err(io::Error::new(io::ErrorKind::UnexpectedEof, "closed mid-frame"))
+                };
+            }
+        }
+    }
+}
+
+fn parse_frame(buf: &mut BytesMut) -> Option<Bytes> {
+    if buf.len() < 4 {
+        return None;
+    }
+    let len = (&buf[..4]).get_u32() as usize;
+    if buf.len() < 4 + len {
+        return None;
+    }
+    buf.advance(4);
+    Some(buf.split_to(len).freeze())
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (mut client, server) = io::duplex(3);
+    tokio::spawn(async move {
+        for word in ["hello", "framing"] {
+            client.write_u32(word.len() as u32).await.unwrap();
+            client.write_all(word.as_bytes()).await.unwrap();
+        }
+    });
+    let mut conn = Connection { stream: server, buffer: BytesMut::new() };
+    while let Some(frame) = conn.read_frame().await? {
+        println!("frame: {frame:?}");
+    }
+    Ok(())
+}
+'''
