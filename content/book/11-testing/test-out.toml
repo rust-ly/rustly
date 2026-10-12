@@ -1,0 +1,104 @@
+id = "book.testing.test-out"
+kind = "test-out"
+title = "Leap years and a careful average"
+prompt = '''
+Already know `assert!`, `assert_eq!` and `#[should_panic]`? Pass this to complete
+the whole chapter.
+
+1. Write a checker, `check_leap_year(is_leap: fn(u32) -> bool)`, that tests any
+   leap-year function. The rules are:
+   - a year divisible by **4** is a leap year,
+   - except a year divisible by **100**, which isn't,
+   - except a year divisible by **400**, which is.
+
+   The grader runs your checker against a correct version and against four
+   versions, each with one planted bug. It must pass for the correct one and
+   panic for every buggy one.
+2. Write `average(numbers: &[i32]) -> i32`, the whole-number average (rounded
+   down, like `/`). An empty slice is a bug in the caller, so it should
+   **panic** with a message containing `"empty list"`.
+'''
+starter = '''
+fn check_leap_year(is_leap: fn(u32) -> bool) {
+    assert!(is_leap(2024));
+}
+
+fn my_is_leap(year: u32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn average(numbers: &[i32]) -> i32 {
+    todo!()
+}
+
+fn main() {
+    check_leap_year(my_is_leap);
+    println!("my_is_leap passed every check");
+    println!("average: {}", average(&[3, 4, 8]));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod grading {
+    use super::*;
+
+    fn correct(y: u32) -> bool { y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) }
+    fn only_fours(y: u32) -> bool { y % 4 == 0 }
+    fn no_400_rule(y: u32) -> bool { y % 4 == 0 && y % 100 != 0 }
+    fn only_400(y: u32) -> bool { y % 400 == 0 }
+    fn every_other_year(y: u32) -> bool { y % 2 == 0 && (y % 100 != 0 || y % 400 == 0) }
+
+    #[test]
+    fn correct_version_passes() { check_leap_year(correct); }
+
+    #[test] #[should_panic] fn catches_missing_century_rule() { check_leap_year(only_fours); }
+    #[test] #[should_panic] fn catches_missing_400_rule() { check_leap_year(no_400_rule); }
+    #[test] #[should_panic] fn catches_only_400() { check_leap_year(only_400); }
+    #[test] #[should_panic] fn catches_every_other_year() { check_leap_year(every_other_year); }
+
+    #[test]
+    fn averages_round_down() {
+        assert_eq!(average(&[3, 4, 8]), 5);
+        assert_eq!(average(&[1, 2]), 1);
+        assert_eq!(average(&[7]), 7);
+    }
+
+    #[test]
+    #[should_panic(expected = "empty list")]
+    fn an_empty_list_panics() {
+        average(&[]);
+    }
+}
+'''
+hints = [
+  "Test each rule on its own: 2024 is a leap year, 2023 isn't, 1900 isn't (divisible by 100), and 2000 is (divisible by 400).",
+  "A year like 2022 is even but not divisible by 4, so it catches a version that checks `% 2` instead of `% 4`.",
+  "`assert!(!is_leap(1900), \"1900 is divisible by 100\")` gives a clear message when a check fails.",
+  "In `average`, check `numbers.is_empty()` first and call `panic!(\"average of an empty list\")`. Then `numbers.iter().sum::<i32>() / numbers.len() as i32`.",
+]
+solution = '''
+fn check_leap_year(is_leap: fn(u32) -> bool) {
+    assert!(is_leap(2024), "2024 is divisible by 4");
+    assert!(!is_leap(2023), "2023 isn't divisible by 4");
+    assert!(!is_leap(2022), "2022 is even but not divisible by 4");
+    assert!(!is_leap(1900), "1900 is divisible by 100");
+    assert!(is_leap(2000), "2000 is divisible by 400");
+}
+
+fn my_is_leap(year: u32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn average(numbers: &[i32]) -> i32 {
+    if numbers.is_empty() {
+        panic!("average of an empty list");
+    }
+    numbers.iter().sum::<i32>() / numbers.len() as i32
+}
+
+fn main() {
+    check_leap_year(my_is_leap);
+    println!("my_is_leap passed every check");
+    println!("average: {}", average(&[3, 4, 8]));
+}
+'''

@@ -1,0 +1,161 @@
+id = "book.smart-pointers.test-out"
+kind = "test-out"
+title = "A list and a drop log"
+prompt = '''
+Already know `Box`, `Drop`, `Rc` and `RefCell`? Pass this to complete the whole
+chapter.
+
+1. `List` is the cons list from the chapter: `Cons(i32, Box<List>)` or `Nil`.
+   Give it:
+   - `List::from_slice(&[i32]) -> List`, so `[1, 2]` becomes
+     `Cons(1, Box::new(Cons(2, Box::new(Nil))))`
+   - `sum(&self) -> i32` and `len(&self) -> usize`
+2. `Log` is a shared, changeable list of messages:
+   `type Log = Rc<RefCell<Vec<String>>>;`
+3. `Noisy::new(name, &log)` keeps its own handle to the log. When a `Noisy` is
+   dropped, it adds `"dropped NAME"` to the log.
+'''
+starter = '''
+use std::cell::RefCell;
+use std::rc::Rc;
+
+type Log = Rc<RefCell<Vec<String>>>;
+
+enum List {
+    Cons(i32, List),
+    Nil,
+}
+
+fn main() {
+    let list = List::from_slice(&[1, 2, 3]);
+    println!("{} items adding up to {}", list.len(), list.sum());
+
+    let log: Log = Rc::new(RefCell::new(Vec::new()));
+    {
+        let _a = Noisy::new("a", &log);
+        let _b = Noisy::new("b", &log);
+    }
+    println!("{:?}", log.borrow());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_a_cons_list() {
+        let list = List::from_slice(&[4, 5, 6]);
+        assert_eq!(list.len(), 3);
+        assert_eq!(list.sum(), 15);
+        match list {
+            List::Cons(4, rest) => assert_eq!(rest.len(), 2),
+            _ => panic!("the list should start with 4"),
+        }
+    }
+
+    #[test]
+    fn an_empty_list_is_nil() {
+        let list = List::from_slice(&[]);
+        assert!(matches!(list, List::Nil));
+        assert_eq!(list.len(), 0);
+        assert_eq!(list.sum(), 0);
+    }
+
+    #[test]
+    fn noisy_values_log_their_drop_in_reverse_order() {
+        let log: Log = Rc::new(RefCell::new(Vec::new()));
+        {
+            let _a = Noisy::new("a", &log);
+            let _b = Noisy::new("b", &log);
+            assert_eq!(Rc::strong_count(&log), 3);
+            assert!(log.borrow().is_empty());
+        }
+        assert_eq!(*log.borrow(), vec!["dropped b", "dropped a"]);
+        assert_eq!(Rc::strong_count(&log), 1);
+    }
+
+    #[test]
+    fn dropping_early_logs_straight_away() {
+        let log: Log = Rc::new(RefCell::new(Vec::new()));
+        let first = Noisy::new("first", &log);
+        let _second = Noisy::new("second", &log);
+        drop(first);
+        assert_eq!(*log.borrow(), vec!["dropped first"]);
+    }
+}
+'''
+hints = [
+  "A recursive type needs a known size, so the rest of the list goes in a `Box`: `Cons(i32, Box<List>)`.",
+  "`from_slice` can be recursive: `match items { [] => Nil, [first, rest @ ..] => Cons(*first, Box::new(List::from_slice(rest))) }`. Bring the variants in with `use List::{Cons, Nil};`.",
+  "`Noisy` holds `name: String` and `log: Log`. In `new`, `Rc::clone(log)` gives it its own handle.",
+  "`impl Drop for Noisy { fn drop(&mut self) { ... } }` and inside, `self.log.borrow_mut().push(format!(\"dropped {}\", self.name))`.",
+]
+solution = '''
+use std::cell::RefCell;
+use std::rc::Rc;
+
+type Log = Rc<RefCell<Vec<String>>>;
+
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+impl List {
+    fn from_slice(items: &[i32]) -> List {
+        match items {
+            [] => Nil,
+            [first, rest @ ..] => Cons(*first, Box::new(List::from_slice(rest))),
+        }
+    }
+
+    fn sum(&self) -> i32 {
+        match self {
+            Cons(value, rest) => value + rest.sum(),
+            Nil => 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            Cons(_, rest) => 1 + rest.len(),
+            Nil => 0,
+        }
+    }
+}
+
+struct Noisy {
+    name: String,
+    log: Log,
+}
+
+impl Noisy {
+    fn new(name: &str, log: &Log) -> Noisy {
+        Noisy {
+            name: name.to_string(),
+            log: Rc::clone(log),
+        }
+    }
+}
+
+impl Drop for Noisy {
+    fn drop(&mut self) {
+        self.log.borrow_mut().push(format!("dropped {}", self.name));
+    }
+}
+
+fn main() {
+    let list = List::from_slice(&[1, 2, 3]);
+    println!("{} items adding up to {}", list.len(), list.sum());
+
+    let log: Log = Rc::new(RefCell::new(Vec::new()));
+    {
+        let _a = Noisy::new("a", &log);
+        let _b = Noisy::new("b", &log);
+    }
+    println!("{:?}", log.borrow());
+}
+'''

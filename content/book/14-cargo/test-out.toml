@@ -1,0 +1,141 @@
+id = "book.cargo.test-out"
+kind = "test-out"
+title = "A tidy public API"
+prompt = '''
+Already know doc comments and re-exporting with `pub use`? Pass this to complete
+the whole chapter.
+
+This is the `art` crate from the chapter, written as a module. Its types live
+deep inside `art::kinds` and its function inside `art::utils`, which is awkward
+for anyone using it. Finish it and tidy the API:
+
+1. `art::kinds` has two public enums: `PrimaryColor` (`Red`, `Yellow`, `Blue`)
+   and `SecondaryColor` (`Orange`, `Green`, `Purple`).
+2. `art::utils::mix(a, b) -> Option<SecondaryColor>` mixes two primary colours:
+   red and yellow make orange, yellow and blue make green, and red and blue make
+   purple, in either order. Mixing a colour with itself is `None`.
+3. Re-export all three with `pub use` inside `art`, so people can write
+   `art::PrimaryColor` and `art::mix`. The long paths should still work too.
+
+Give `mix` a `///` doc comment with an example. The grader can't read comments,
+but anyone using your crate can.
+'''
+starter = '''
+mod art {
+    pub mod kinds {
+        pub enum PrimaryColor {
+            Red,
+            Yellow,
+            Blue,
+        }
+    }
+
+    pub mod utils {
+        use super::kinds::*;
+
+        pub fn mix(a: PrimaryColor, b: PrimaryColor) -> Option<SecondaryColor> {
+            todo!()
+        }
+    }
+}
+
+fn main() {
+    use art::{PrimaryColor, mix};
+    println!("{:?}", mix(PrimaryColor::Red, PrimaryColor::Yellow));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_paths_work() {
+        assert_eq!(art::mix(art::PrimaryColor::Red, art::PrimaryColor::Yellow), Some(art::SecondaryColor::Orange));
+    }
+
+    #[test]
+    fn long_paths_still_work() {
+        use art::kinds::{PrimaryColor, SecondaryColor};
+        assert_eq!(art::utils::mix(PrimaryColor::Yellow, PrimaryColor::Blue), Some(SecondaryColor::Green));
+    }
+
+    #[test]
+    fn order_does_not_matter() {
+        use art::PrimaryColor::*;
+        use art::SecondaryColor::*;
+        assert_eq!(art::mix(Blue, Red), Some(Purple));
+        assert_eq!(art::mix(Red, Blue), Some(Purple));
+        assert_eq!(art::mix(Yellow, Red), Some(Orange));
+        assert_eq!(art::mix(Blue, Yellow), Some(Green));
+    }
+
+    #[test]
+    fn a_colour_with_itself_is_none() {
+        use art::PrimaryColor::*;
+        assert_eq!(art::mix(Red, Red), None);
+        assert_eq!(art::mix(Blue, Blue), None);
+    }
+}
+'''
+hints = [
+  "The tests compare colours with `==` and print them with `{:?}`, so put `#[derive(Debug, Clone, Copy, PartialEq)]` on both enums.",
+  "`match (a, b)` lets you match pairs: `(Red, Yellow) | (Yellow, Red) => Some(Orange)`, and `_ => None` for the rest.",
+  "Inside `mod art`, `pub use self::kinds::{PrimaryColor, SecondaryColor};` and `pub use self::utils::mix;` add the short paths.",
+]
+solution = '''
+mod art {
+    //! Mix primary colours into secondary ones.
+
+    pub use self::kinds::{PrimaryColor, SecondaryColor};
+    pub use self::utils::mix;
+
+    pub mod kinds {
+        /// The primary colours of the RYB colour model.
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        pub enum PrimaryColor {
+            Red,
+            Yellow,
+            Blue,
+        }
+
+        /// The colours you get by mixing two different primary colours.
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        pub enum SecondaryColor {
+            Orange,
+            Green,
+            Purple,
+        }
+    }
+
+    pub mod utils {
+        use super::kinds::*;
+
+        /// Mixes two different primary colours.
+        ///
+        /// ```
+        /// use art::{PrimaryColor, SecondaryColor, mix};
+        /// assert_eq!(mix(PrimaryColor::Red, PrimaryColor::Yellow), Some(SecondaryColor::Orange));
+        /// assert_eq!(mix(PrimaryColor::Red, PrimaryColor::Red), None);
+        /// ```
+        pub fn mix(a: PrimaryColor, b: PrimaryColor) -> Option<SecondaryColor> {
+            use PrimaryColor::*;
+            use SecondaryColor::*;
+            match (a, b) {
+                (Red, Yellow) | (Yellow, Red) => Some(Orange),
+                (Yellow, Blue) | (Blue, Yellow) => Some(Green),
+                (Red, Blue) | (Blue, Red) => Some(Purple),
+                _ => None,
+            }
+        }
+    }
+}
+
+fn main() {
+    use art::{PrimaryColor, SecondaryColor, mix};
+    println!("{:?}", mix(PrimaryColor::Red, PrimaryColor::Yellow));
+    println!("green? {}", mix(PrimaryColor::Blue, PrimaryColor::Yellow) == Some(SecondaryColor::Green));
+    println!("{:?}", mix(PrimaryColor::Blue, PrimaryColor::Red));
+    println!("{:?}", mix(PrimaryColor::Blue, PrimaryColor::Blue));
+}
+'''

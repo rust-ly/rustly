@@ -1,0 +1,124 @@
+id = "book.functional.test-out"
+kind = "test-out"
+title = "A closure workshop"
+prompt = '''
+Already know closures, the `Fn` traits and iterator adapters? Pass this to
+complete the whole chapter.
+
+1. `make_adder(n)` returns a closure that adds `n` to its argument, so
+   `make_adder(3)(4)` is `7`.
+2. `then(f, g)` returns a closure that runs `f`, then runs `g` on the result.
+3. `counter()` returns a closure that gives `1`, then `2`, then `3`, and so on
+   each time it's called.
+4. `passing(scores, pass_mark) -> Vec<String>`: the names of everyone who
+   scored at least `pass_mark`, in upper case, highest score first. Use an
+   iterator chain.
+'''
+starter = '''
+fn passing(scores: &[(&str, u32)], pass_mark: u32) -> Vec<String> {
+    let mut names = Vec::new();
+    for (name, score) in scores {
+        if *score >= pass_mark {
+            names.push(name.to_string());
+        }
+    }
+    names
+}
+
+fn main() {
+    let add_three = make_adder(3);
+    let add_then_double = then(add_three, |x| x * 2);
+    println!("{}", add_then_double(4));
+
+    let mut next = counter();
+    println!("{} {} {}", next(), next(), next());
+
+    println!("{:?}", passing(&[("ada", 92), ("bo", 40), ("cy", 75)], 50));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adders_add() {
+        let add_three = make_adder(3);
+        assert_eq!(add_three(4), 7);
+        assert_eq!(add_three(-3), 0);
+        assert_eq!(make_adder(10)(1), 11);
+    }
+
+    #[test]
+    fn then_runs_f_before_g() {
+        let add_then_double = then(make_adder(1), |x| x * 2);
+        assert_eq!(add_then_double(4), 10);
+        let double_then_add = then(|x| x * 2, make_adder(1));
+        assert_eq!(double_then_add(4), 9);
+    }
+
+    #[test]
+    fn counters_count_and_are_independent() {
+        let mut a = counter();
+        let mut b = counter();
+        assert_eq!(a(), 1);
+        assert_eq!(a(), 2);
+        assert_eq!(b(), 1);
+        assert_eq!(a(), 3);
+    }
+
+    #[test]
+    fn passing_names_are_upper_case_best_first() {
+        let scores = [("ada", 92), ("bo", 40), ("cy", 75), ("di", 50)];
+        assert_eq!(passing(&scores, 50), vec!["ADA", "CY", "DI"]);
+        assert!(passing(&scores, 100).is_empty());
+    }
+}
+'''
+hints = [
+  "A function can return a closure with `impl Fn(i32) -> i32`. Use `move |x| x + n` so the closure owns its own copy of `n`.",
+  "`fn then<F, G>(f: F, g: G) -> impl Fn(i32) -> i32 where F: Fn(i32) -> i32, G: Fn(i32) -> i32` and the body `move |x| g(f(x))`.",
+  "`counter` changes the count it captured, so it returns `impl FnMut() -> u32`. Start with `let mut count = 0;` and return `move || { count += 1; count }`.",
+  "For `passing`: `filter` the scores, collect them, `sort_by(|a, b| b.1.cmp(&a.1))`, then `map` to `name.to_uppercase()` and `collect`.",
+]
+solution = '''
+fn make_adder(n: i32) -> impl Fn(i32) -> i32 {
+    move |x| x + n
+}
+
+fn then<F, G>(f: F, g: G) -> impl Fn(i32) -> i32
+where
+    F: Fn(i32) -> i32,
+    G: Fn(i32) -> i32,
+{
+    move |x| g(f(x))
+}
+
+fn counter() -> impl FnMut() -> u32 {
+    let mut count = 0;
+    move || {
+        count += 1;
+        count
+    }
+}
+
+fn passing(scores: &[(&str, u32)], pass_mark: u32) -> Vec<String> {
+    let mut passed: Vec<&(&str, u32)> = scores
+        .iter()
+        .filter(|(_, score)| *score >= pass_mark)
+        .collect();
+    passed.sort_by(|a, b| b.1.cmp(&a.1));
+    passed.iter().map(|(name, _)| name.to_uppercase()).collect()
+}
+
+fn main() {
+    let add_three = make_adder(3);
+    let add_then_double = then(add_three, |x| x * 2);
+    println!("{}", add_then_double(4));
+
+    let mut next = counter();
+    println!("{} {} {}", next(), next(), next());
+
+    println!("{:?}", passing(&[("ada", 92), ("bo", 40), ("cy", 75)], 50));
+}
+'''
