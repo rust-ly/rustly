@@ -1,0 +1,91 @@
+id = "tokio.io.read-write.checkpoint"
+kind = "checkpoint"
+title = "Read the whole message"
+prompt = '''
+`read_message` should return everything the other side sends, as a `String`, once the
+other side closes its end.
+
+The starter calls `read` once, so it only returns the first piece that arrived.
+Fix it so it keeps reading until `read` returns `0` (or use `read_to_string`).
+
+The grader sends messages through a `duplex` pipe that only holds a few bytes at a time.
+'''
+starter = '''
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+async fn read_message(mut stream: DuplexStream) -> io::Result<String> {
+    let mut buf = [0u8; 1024];
+    let n = stream.read(&mut buf).await?;
+    Ok(String::from_utf8_lossy(&buf[..n]).into_owned())
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (mut client, server) = io::duplex(4);
+    tokio::spawn(async move {
+        client.write_all(b"hello, async world").await.unwrap();
+    });
+    println!("{:?}", read_message(server).await?);
+    Ok(())
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn send(message: &'static str, capacity: usize) -> String {
+        let (mut client, server) = io::duplex(capacity);
+        tokio::spawn(async move {
+            client.write_all(message.as_bytes()).await.unwrap();
+        });
+        read_message(server).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn reads_a_message_in_small_pieces() {
+        assert_eq!(send("hello, async world", 4).await, "hello, async world");
+    }
+
+    #[tokio::test]
+    async fn reads_a_long_message() {
+        let long: &'static str = Box::leak("tokio ".repeat(400).into_boxed_str());
+        assert_eq!(send(long, 64).await, long);
+    }
+
+    #[tokio::test]
+    async fn an_empty_message_is_an_empty_string() {
+        assert_eq!(send("", 4).await, "");
+    }
+}
+'''
+hints = [
+  "Wrap the `read` in a `loop`. Stop when it returns `0`, and otherwise keep the `n` new bytes, for example with `bytes.extend_from_slice(&buf[..n])`.",
+  "Or let Tokio loop for you: `let mut text = String::new(); stream.read_to_string(&mut text).await?; Ok(text)`",
+]
+solution = '''
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, DuplexStream};
+
+async fn read_message(mut stream: DuplexStream) -> io::Result<String> {
+    let mut bytes = Vec::new();
+    let mut buf = [0u8; 1024];
+    loop {
+        let n = stream.read(&mut buf).await?;
+        if n == 0 {
+            break;
+        }
+        bytes.extend_from_slice(&buf[..n]);
+    }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (mut client, server) = io::duplex(4);
+    tokio::spawn(async move {
+        client.write_all(b"hello, async world").await.unwrap();
+    });
+    println!("{:?}", read_message(server).await?);
+    Ok(())
+}
+'''
