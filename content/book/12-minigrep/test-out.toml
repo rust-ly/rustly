@@ -1,0 +1,156 @@
+id = "book.minigrep.test-out"
+kind = "test-out"
+title = "minigrep with flags"
+prompt = '''
+Already know how minigrep reads its arguments, builds a `Config` and searches?
+Pass this to complete the whole chapter.
+
+1. `Config::build(args: &[String]) -> Result<Config, &'static str>`:
+   - `args[1]` is the query and `args[2]` the file path. With fewer than three
+     arguments, return `Err("not enough arguments")`.
+   - Any arguments after those are flags: `-i` turns on `ignore_case` and `-v`
+     turns on `invert`. Any other flag is `Err("unknown flag")`.
+2. `search(config, contents) -> Vec<&str>`: the lines of `contents` that contain
+   the query, matching any case when `ignore_case` is on. With `invert` on, it
+   returns the lines that **don't** match instead.
+
+`Config` has public fields `query`, `file_path`, `ignore_case` and `invert`.
+'''
+starter = '''
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+}
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+        Ok(Config { query, file_path })
+    }
+}
+
+fn main() {
+    let args: Vec<String> = ["minigrep", "the", "poem.txt", "-i"].map(String::from).to_vec();
+    let config = Config::build(&args).unwrap();
+    let poem = "The night is dark\nand full of stars\nthe end";
+    for line in search(&config, poem) {
+        println!("{line}");
+    }
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn config(query: &str, ignore_case: bool, invert: bool) -> Config {
+        Config { query: query.to_string(), file_path: "poem.txt".to_string(), ignore_case, invert }
+    }
+
+    const POEM: &str = "Rust is fast\nand safe.\nTrust it.\nrusty nails";
+
+    #[test]
+    fn builds_a_plain_config() {
+        let c = Config::build(&args(&["minigrep", "to", "poem.txt"])).unwrap();
+        assert_eq!(c.query, "to");
+        assert_eq!(c.file_path, "poem.txt");
+        assert!(!c.ignore_case);
+        assert!(!c.invert);
+    }
+
+    #[test]
+    fn reads_flags_in_any_order() {
+        let c = Config::build(&args(&["minigrep", "to", "poem.txt", "-v", "-i"])).unwrap();
+        assert!(c.ignore_case);
+        assert!(c.invert);
+    }
+
+    #[test]
+    fn reports_bad_arguments() {
+        assert!(matches!(Config::build(&args(&["minigrep", "to"])), Err("not enough arguments")));
+        assert!(matches!(Config::build(&args(&["minigrep", "to", "poem.txt", "-x"])), Err("unknown flag")));
+    }
+
+    #[test]
+    fn searches_with_case() {
+        assert_eq!(search(&config("Rust", false, false), POEM), vec!["Rust is fast"]);
+    }
+
+    #[test]
+    fn searches_ignoring_case() {
+        assert_eq!(search(&config("rUsT", true, false), POEM), vec!["Rust is fast", "Trust it.", "rusty nails"]);
+    }
+
+    #[test]
+    fn inverts_the_match() {
+        assert_eq!(search(&config("rust", false, true), POEM), vec!["Rust is fast", "and safe."]);
+        assert_eq!(search(&config("rust", true, true), POEM), vec!["and safe."]);
+    }
+}
+'''
+hints = [
+  "Check `args.len() < 3` before indexing, and return `Err(\"not enough arguments\")`.",
+  "Loop over `&args[3..]` and `match flag.as_str()`: `\"-i\"` sets `ignore_case`, `\"-v\"` sets `invert`, and `_` returns `Err(\"unknown flag\")`.",
+  "`search` returns slices of `contents`, so it needs a lifetime: `fn search<'a>(config: &Config, contents: &'a str) -> Vec<&'a str>`.",
+  "For each line, work out `matched` (lower-casing both sides when `ignore_case` is on), then keep the line when `matched != config.invert`.",
+]
+solution = '''
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+    pub invert: bool,
+}
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        let mut config = Config {
+            query: args[1].clone(),
+            file_path: args[2].clone(),
+            ignore_case: false,
+            invert: false,
+        };
+        for flag in &args[3..] {
+            match flag.as_str() {
+                "-i" => config.ignore_case = true,
+                "-v" => config.invert = true,
+                _ => return Err("unknown flag"),
+            }
+        }
+        Ok(config)
+    }
+}
+
+pub fn search<'a>(config: &Config, contents: &'a str) -> Vec<&'a str> {
+    let query = config.query.to_lowercase();
+    contents
+        .lines()
+        .filter(|line| {
+            let matched = if config.ignore_case {
+                line.to_lowercase().contains(&query)
+            } else {
+                line.contains(&config.query)
+            };
+            matched != config.invert
+        })
+        .collect()
+}
+
+fn main() {
+    let args: Vec<String> = ["minigrep", "the", "poem.txt", "-i"].map(String::from).to_vec();
+    let config = Config::build(&args).unwrap();
+    let poem = "The night is dark\nand full of stars\nthe end";
+    println!("Searching {} for {}:", config.file_path, config.query);
+    for line in search(&config, poem) {
+        println!("{line}");
+    }
+}
+'''
