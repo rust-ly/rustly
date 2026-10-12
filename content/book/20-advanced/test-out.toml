@@ -1,0 +1,143 @@
+id = "book.advanced.test-out"
+kind = "test-out"
+title = "Units, labels and a macro"
+prompt = '''
+Already know operator overloading, newtypes, supertraits, function pointers and
+`macro_rules!`? Pass this to complete the whole chapter.
+
+1. **Newtypes and `Add`.** `Millimeters(u32)` and `Meters(u32)` are newtypes.
+   Implement `Add` so that `Millimeters + Millimeters` and
+   `Millimeters + Meters` both give `Millimeters`. One metre is 1000 millimetres.
+2. **`Display`.** `Millimeters(1500)` prints as `1500mm`.
+3. **A supertrait.** `Labelled` requires `Display` and has a default method
+   `label(&self) -> String` that wraps the displayed value in brackets:
+   `[1500mm]`. Implement it for `Millimeters`.
+4. **Function pointers.** `apply_twice(f: fn(u32) -> u32, x: u32) -> u32` calls
+   `f` on `x`, then on the result.
+5. **A macro.** `largest!(a, b, c, ...)` gives the largest of one or more
+   values.
+'''
+starter = '''
+use std::fmt;
+use std::ops::Add;
+
+struct Millimeters(u32);
+struct Meters(u32);
+
+fn main() {
+    let length = Millimeters(500) + Meters(1);
+    println!("{length} {}", length.label());
+    println!("{}", apply_twice(|x| x * 3, 2));
+    println!("{}", largest!(3, 9, 4));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adds_lengths_in_millimeters() {
+        assert_eq!((Millimeters(200) + Millimeters(300)).0, 500);
+        assert_eq!((Millimeters(500) + Meters(2)).0, 2500);
+    }
+
+    #[test]
+    fn displays_and_labels() {
+        assert_eq!(Millimeters(1500).to_string(), "1500mm");
+        assert_eq!(Millimeters(7).label(), "[7mm]");
+    }
+
+    fn label_anything<T: Labelled>(value: &T) -> String {
+        value.label()
+    }
+
+    #[test]
+    fn labelled_is_a_supertrait_of_display() {
+        assert_eq!(label_anything(&Millimeters(42)), "[42mm]");
+    }
+
+    fn double(x: u32) -> u32 {
+        x * 2
+    }
+
+    #[test]
+    fn applies_a_function_twice() {
+        assert_eq!(apply_twice(double, 5), 20);
+        assert_eq!(apply_twice(|x| x + 1, 5), 7);
+    }
+
+    #[test]
+    fn the_macro_finds_the_largest() {
+        assert_eq!(largest!(4), 4);
+        assert_eq!(largest!(3, 9, 4), 9);
+        assert_eq!(largest!(-1, -8), -1);
+        assert_eq!(largest!(2.5, 1.0, 7.25, 3.0), 7.25);
+    }
+}
+'''
+hints = [
+  "`impl Add for Millimeters { type Output = Millimeters; fn add(self, other: Millimeters) -> Millimeters { ... } }`. For metres, write `impl Add<Meters> for Millimeters` with `other.0 * 1000`.",
+  "`impl fmt::Display for Millimeters { fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, \"{}mm\", self.0) } }`.",
+  "`trait Labelled: fmt::Display { fn label(&self) -> String { format!(\"[{self}]\") } }`, then an empty `impl Labelled for Millimeters {}`.",
+  "A recursive macro: `($x:expr) => { $x };` and `($x:expr, $($rest:expr),+) => {{ let a = $x; let b = largest!($($rest),+); if a > b { a } else { b } }};`. Define it above `main`.",
+]
+solution = '''
+use std::fmt;
+use std::ops::Add;
+
+struct Millimeters(u32);
+struct Meters(u32);
+
+impl Add for Millimeters {
+    type Output = Millimeters;
+
+    fn add(self, other: Millimeters) -> Millimeters {
+        Millimeters(self.0 + other.0)
+    }
+}
+
+impl Add<Meters> for Millimeters {
+    type Output = Millimeters;
+
+    fn add(self, other: Meters) -> Millimeters {
+        Millimeters(self.0 + other.0 * 1000)
+    }
+}
+
+impl fmt::Display for Millimeters {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}mm", self.0)
+    }
+}
+
+trait Labelled: fmt::Display {
+    fn label(&self) -> String {
+        format!("[{self}]")
+    }
+}
+
+impl Labelled for Millimeters {}
+
+fn apply_twice(f: fn(u32) -> u32, x: u32) -> u32 {
+    f(f(x))
+}
+
+macro_rules! largest {
+    ($x:expr) => {
+        $x
+    };
+    ($x:expr, $($rest:expr),+) => {{
+        let a = $x;
+        let b = largest!($($rest),+);
+        if a > b { a } else { b }
+    }};
+}
+
+fn main() {
+    let length = Millimeters(500) + Millimeters(250) + Meters(1);
+    println!("{length} {}", length.label());
+    println!("{}", apply_twice(|x| x * 3, 2));
+    println!("{}", largest!(3, 9, 4));
+}
+'''

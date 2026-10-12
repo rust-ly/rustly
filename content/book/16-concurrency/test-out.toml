@@ -1,0 +1,129 @@
+id = "book.concurrency.test-out"
+kind = "test-out"
+title = "Three ways to share work"
+prompt = '''
+Already know threads, channels and `Arc<Mutex<T>>`? Pass this to complete the
+whole chapter.
+
+Write three functions, each using a different tool from the chapter:
+
+1. `parallel_sum(numbers: Vec<u64>, threads: usize) -> u64`: split `numbers`
+   into `threads` chunks, add up each chunk on its own spawned thread, then
+   `join` them and add up the results.
+2. `greetings(names: Vec<String>) -> Vec<String>`: spawn one thread per name.
+   Each thread sends `"hello from NAME"` down an `mpsc` channel. Return every
+   message, sorted.
+3. `shared_count(threads: usize, per_thread: usize) -> usize`: spawn `threads`
+   threads that each add 1 to a shared counter `per_thread` times, using
+   `Arc<Mutex<usize>>`. Return the final count.
+'''
+starter = '''
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
+
+fn parallel_sum(numbers: Vec<u64>, threads: usize) -> u64 {
+    numbers.iter().sum()
+}
+
+fn greetings(names: Vec<String>) -> Vec<String> {
+    todo!()
+}
+
+fn shared_count(threads: usize, per_thread: usize) -> usize {
+    todo!()
+}
+
+fn main() {
+    println!("{}", parallel_sum((1..=100).collect(), 4));
+    println!("{:?}", greetings(vec!["ada".to_string(), "bo".to_string()]));
+    println!("{}", shared_count(8, 1000));
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sums_in_parallel() {
+        assert_eq!(parallel_sum((1..=100).collect(), 4), 5050);
+        assert_eq!(parallel_sum((1..=10).collect(), 3), 55);
+        assert_eq!(parallel_sum(vec![7], 4), 7);
+        assert_eq!(parallel_sum(vec![], 2), 0);
+    }
+
+    #[test]
+    fn gathers_every_greeting() {
+        let names = vec!["cy".to_string(), "ada".to_string(), "bo".to_string()];
+        assert_eq!(greetings(names), vec!["hello from ada", "hello from bo", "hello from cy"]);
+        assert!(greetings(vec![]).is_empty());
+    }
+
+    #[test]
+    fn counts_without_losing_updates() {
+        assert_eq!(shared_count(8, 1000), 8000);
+        assert_eq!(shared_count(1, 5), 5);
+        assert_eq!(shared_count(0, 5), 0);
+    }
+}
+'''
+hints = [
+  "For `parallel_sum`, `numbers.chunks(size)` splits a slice, with `size = numbers.len().div_ceil(threads).max(1)`. Each thread needs its own data, so `chunk.to_vec()` and `move` it into the closure.",
+  "Keep the `JoinHandle`s in a `Vec`, then `handles.into_iter().map(|h| h.join().unwrap()).sum()`.",
+  "For `greetings`, give each thread a `tx.clone()`, then `drop(tx)` the original so `rx.iter()` ends once every thread is done. Collect, then `sort()`.",
+  "For `shared_count`, `let counter = Arc::new(Mutex::new(0));` and give each thread `Arc::clone(&counter)`. Inside, `*counter.lock().unwrap() += 1`.",
+]
+solution = '''
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
+
+fn parallel_sum(numbers: Vec<u64>, threads: usize) -> u64 {
+    let size = numbers.len().div_ceil(threads.max(1)).max(1);
+    let handles: Vec<_> = numbers
+        .chunks(size)
+        .map(|chunk| {
+            let chunk = chunk.to_vec();
+            thread::spawn(move || chunk.iter().sum::<u64>())
+        })
+        .collect();
+    handles.into_iter().map(|h| h.join().unwrap()).sum()
+}
+
+fn greetings(names: Vec<String>) -> Vec<String> {
+    let (tx, rx) = mpsc::channel();
+    for name in names {
+        let tx = tx.clone();
+        thread::spawn(move || {
+            tx.send(format!("hello from {name}")).unwrap();
+        });
+    }
+    drop(tx);
+    let mut messages: Vec<String> = rx.iter().collect();
+    messages.sort();
+    messages
+}
+
+fn shared_count(threads: usize, per_thread: usize) -> usize {
+    let counter = Arc::new(Mutex::new(0));
+    let handles: Vec<_> = (0..threads)
+        .map(|_| {
+            let counter = Arc::clone(&counter);
+            thread::spawn(move || {
+                for _ in 0..per_thread {
+                    *counter.lock().unwrap() += 1;
+                }
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    *counter.lock().unwrap()
+}
+
+fn main() {
+    println!("{}", parallel_sum((1..=100).collect(), 4));
+    println!("{:?}", greetings(vec!["ada".to_string(), "bo".to_string()]));
+    println!("{}", shared_count(8, 1000));
+}
+'''

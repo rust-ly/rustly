@@ -1,0 +1,191 @@
+id = "book.oop.test-out"
+kind = "test-out"
+title = "Shapes and parcels"
+prompt = '''
+Already know trait objects and encoding states as types? Pass this to complete
+the whole chapter.
+
+1. **Trait objects.** A `Shape` trait has `area(&self) -> u32` and
+   `name(&self) -> String`. Implement it for `Rect { w, h }` (named `"rect"`) and
+   `Square { side }` (named `"square"`). Then write
+   `total_area(shapes: &[Box<dyn Shape>]) -> u32` and
+   `biggest(shapes: &[Box<dyn Shape>]) -> Option<String>`, the name of the shape
+   with the largest area.
+2. **States as types.** A parcel goes through three types:
+   - `Parcel::new()` makes a `Packing` parcel, and `Packing::add(self, item)`
+     adds an item and returns the parcel.
+   - `Packing::seal(self)` returns a `Sealed` parcel. You can't add to it.
+   - `Sealed::send(self, tracking)` returns a `Sent` parcel.
+   - `Sent` has `items(&self) -> &[String]` and `tracking(&self) -> &str`.
+'''
+starter = '''
+trait Shape {
+    fn area(&self) -> u32;
+}
+
+struct Rect {
+    w: u32,
+    h: u32,
+}
+
+struct Square {
+    side: u32,
+}
+
+fn main() {
+    let shapes: Vec<Box<dyn Shape>> = vec![Box::new(Rect { w: 2, h: 3 }), Box::new(Square { side: 4 })];
+    println!("total {}, biggest {:?}", total_area(&shapes), biggest(&shapes));
+
+    let parcel = Parcel::new().add("tea").add("honey").seal().send("KE123");
+    println!("{:?} via {}", parcel.items(), parcel.tracking());
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shapes() -> Vec<Box<dyn Shape>> {
+        vec![Box::new(Rect { w: 2, h: 3 }), Box::new(Square { side: 4 }), Box::new(Rect { w: 1, h: 1 })]
+    }
+
+    #[test]
+    fn each_shape_knows_its_area_and_name() {
+        assert_eq!(Rect { w: 2, h: 5 }.area(), 10);
+        assert_eq!(Square { side: 3 }.area(), 9);
+        assert_eq!(Rect { w: 1, h: 1 }.name(), "rect");
+        assert_eq!(Square { side: 1 }.name(), "square");
+    }
+
+    #[test]
+    fn works_over_a_mixed_list() {
+        assert_eq!(total_area(&shapes()), 23);
+        assert_eq!(biggest(&shapes()), Some("square".to_string()));
+        assert_eq!(total_area(&[]), 0);
+        assert_eq!(biggest(&[]), None);
+    }
+
+    #[test]
+    fn a_parcel_goes_through_every_state() {
+        let packing: Packing = Parcel::new().add("tea").add("honey");
+        let sealed: Sealed = packing.seal();
+        let sent: Sent = sealed.send("KE123");
+        assert_eq!(sent.items(), ["tea".to_string(), "honey".to_string()]);
+        assert_eq!(sent.tracking(), "KE123");
+    }
+
+    #[test]
+    fn an_empty_parcel_can_still_be_sent() {
+        let sent = Parcel::new().seal().send("X1");
+        assert!(sent.items().is_empty());
+    }
+}
+'''
+hints = [
+  "Add `fn name(&self) -> String;` to the trait, then one `impl Shape for ...` block per struct.",
+  "`shapes.iter().map(|s| s.area()).sum()` adds up the areas, and `shapes.iter().max_by_key(|s| s.area()).map(|s| s.name())` finds the biggest.",
+  "`Parcel` only needs a `new` that returns `Packing { items: Vec::new() }`. Make `Parcel` an empty struct: `struct Parcel;`.",
+  "Each step takes `self` and returns the next type, moving the items along: `fn seal(self) -> Sealed { Sealed { items: self.items } }`.",
+]
+solution = '''
+trait Shape {
+    fn area(&self) -> u32;
+    fn name(&self) -> String;
+}
+
+struct Rect {
+    w: u32,
+    h: u32,
+}
+
+struct Square {
+    side: u32,
+}
+
+impl Shape for Rect {
+    fn area(&self) -> u32 {
+        self.w * self.h
+    }
+
+    fn name(&self) -> String {
+        "rect".to_string()
+    }
+}
+
+impl Shape for Square {
+    fn area(&self) -> u32 {
+        self.side * self.side
+    }
+
+    fn name(&self) -> String {
+        "square".to_string()
+    }
+}
+
+fn total_area(shapes: &[Box<dyn Shape>]) -> u32 {
+    shapes.iter().map(|s| s.area()).sum()
+}
+
+fn biggest(shapes: &[Box<dyn Shape>]) -> Option<String> {
+    shapes.iter().max_by_key(|s| s.area()).map(|s| s.name())
+}
+
+struct Parcel;
+
+struct Packing {
+    items: Vec<String>,
+}
+
+struct Sealed {
+    items: Vec<String>,
+}
+
+struct Sent {
+    items: Vec<String>,
+    tracking: String,
+}
+
+impl Parcel {
+    fn new() -> Packing {
+        Packing { items: Vec::new() }
+    }
+}
+
+impl Packing {
+    fn add(mut self, item: &str) -> Packing {
+        self.items.push(item.to_string());
+        self
+    }
+
+    fn seal(self) -> Sealed {
+        Sealed { items: self.items }
+    }
+}
+
+impl Sealed {
+    fn send(self, tracking: &str) -> Sent {
+        Sent {
+            items: self.items,
+            tracking: tracking.to_string(),
+        }
+    }
+}
+
+impl Sent {
+    fn items(&self) -> &[String] {
+        &self.items
+    }
+
+    fn tracking(&self) -> &str {
+        &self.tracking
+    }
+}
+
+fn main() {
+    let shapes: Vec<Box<dyn Shape>> = vec![Box::new(Rect { w: 2, h: 3 }), Box::new(Square { side: 4 })];
+    println!("total {}, biggest {:?}", total_area(&shapes), biggest(&shapes));
+
+    let parcel = Parcel::new().add("tea").add("honey").seal().send("KE123");
+    println!("{:?} via {}", parcel.items(), parcel.tracking());
+}
+'''
