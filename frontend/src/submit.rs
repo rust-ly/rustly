@@ -67,6 +67,23 @@ pub fn SubmitResults(state: RwSignal<SubmitState>) -> impl IntoView {
     }
 }
 
+/// The program stopped at a `todo!()`: what running the untouched starter
+/// code looks like, which is easy to mistake for a broken site.
+pub fn stopped_at_todo(output: &str) -> bool {
+    output.contains("not yet implemented")
+}
+
+/// Explains a `todo!()` stop in plain words.
+#[component]
+pub fn TodoNote() -> impl IntoView {
+    view! {
+        <p class="todo-note">
+            "This is still the starter code. "<code>"todo!()"</code>
+            " is a placeholder that stops the program: replace it with your answer."
+        </p>
+    }
+}
+
 #[component]
 fn Results(response: SubmitResponse, unlocks: Unlocks) -> impl IntoView {
     let learner = Learner::get();
@@ -82,6 +99,7 @@ fn Results(response: SubmitResponse, unlocks: Unlocks) -> impl IntoView {
         <div class="submit-results" role="status">
             {response.passed.then(|| view! { <Unlocked unlocks=unlocks /> })}
             <p class=if response.passed { "submit-summary passed" } else { "submit-summary" }>{summary}</p>
+            {response.tests.iter().any(|t| t.output.as_deref().is_some_and(stopped_at_todo)).then(|| view! { <TodoNote /> })}
             {(!response.compiled && !response.stderr.is_empty()).then(|| view! {
                 <pre class="submit-stderr">{response.stderr.clone()}</pre>
             })}

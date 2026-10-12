@@ -346,6 +346,7 @@ main:focus { outline: none; }
 }
 .editor-keys { margin-right: auto; padding-left: var(--space-2); }
 @media (max-width: 640px) { .editor-keys { display: none; } }
+.todo-note { margin: var(--space-3) 0 0; font-size: var(--text-small); color: var(--muted); }
 .exercise .snippet-output { margin-top: var(--space-3); border: 1px solid var(--border); max-height: 240px; overflow-y: auto; }
 
 /* Snippet library */
