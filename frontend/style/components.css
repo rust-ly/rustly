@@ -302,6 +302,7 @@ main:focus { outline: none; }
 .snippet-output p { margin: 0; }
 .output-ok { box-shadow: inset 2px 0 0 var(--sand); }
 .output-error { box-shadow: inset 2px 0 0 var(--error-text); color: var(--error-text); }
+.todo-note { margin: var(--space-3) 0 0; padding: var(--space-2) var(--space-4); border: 1px solid var(--border); box-shadow: inset 2px 0 0 var(--amber-text); font-size: var(--text-small); }
 
 /* Syntax colours (doc: keywords crab, strings sand, types amber, macros, comments muted) */
 .tok-kw { color: var(--crab-text); }

@@ -10,6 +10,7 @@ use shared::SubmitResponse;
 use crate::home::next_lesson;
 use crate::icons::CheckIcon;
 use crate::learner::Learner;
+use crate::snippet::{TODO_NOTE, hit_todo};
 use crate::{api, routes};
 
 #[derive(Clone)]
@@ -78,10 +79,15 @@ fn Results(response: SubmitResponse, unlocks: Unlocks) -> impl IntoView {
         let passed = response.tests.iter().filter(|t| t.passed).count();
         format!("{passed} of {} tests passed.", response.tests.len())
     };
+    let todo_left = response
+        .tests
+        .iter()
+        .any(|t| !t.passed && t.output.as_deref().is_some_and(hit_todo));
     view! {
         <div class="submit-results" role="status">
             {response.passed.then(|| view! { <Unlocked unlocks=unlocks /> })}
             <p class=if response.passed { "submit-summary passed" } else { "submit-summary" }>{summary}</p>
+            {todo_left.then(|| view! { <p class="todo-note">{TODO_NOTE}</p> })}
             {(!response.compiled && !response.stderr.is_empty()).then(|| view! {
                 <pre class="submit-stderr">{response.stderr.clone()}</pre>
             })}

@@ -250,3 +250,12 @@ pub fn program_stderr(stderr: &str) -> String {
         None => stderr.to_string(),
     }
 }
+
+/// Shown when the program stopped at a `todo!()` the learner hasn't replaced yet.
+pub const TODO_NOTE: &str =
+    "This is still the starter code. Replace todo!() with your answer, then try again.";
+
+/// Whether the program panicked at a `todo!()`.
+pub fn hit_todo(output: &str) -> bool {
+    output.contains("not yet implemented")
+}
