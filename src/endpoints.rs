@@ -3,7 +3,7 @@
 use runner::playground::Output;
 use runner::{PlaygroundClient, assemble_submission, parse_diagnostics, parse_tests};
 use shared::{
-    CheckResponse, CodeRequest, RunResponse, SOLUTION_AFTER_FAILS, SolutionRequest,
+    CheckResponse, CodeRequest, FormatResponse, RunResponse, SOLUTION_AFTER_FAILS, SolutionRequest,
     SolutionResponse, SubmitRequest, SubmitResponse,
 };
 
@@ -49,6 +49,19 @@ impl Api {
             diagnostics: parse_diagnostics(&out.stderr),
             stdout: out.stdout,
             stderr: out.stderr,
+        })
+    }
+
+    /// `/api/format`: the code tidied by rustfmt, or why it couldn't be.
+    pub async fn format(&self, req: CodeRequest) -> Result<FormatResponse, Failure> {
+        check_size(&req.code)?;
+        let out = self.client.format(&req.code).await?;
+        // rustfmt names the file by its full path on the compile service.
+        let stderr = out.stderr.replace("/playground/src/main.rs", "src/main.rs");
+        Ok(FormatResponse {
+            formatted: out.success,
+            code: if out.success { out.code } else { req.code },
+            diagnostics: parse_diagnostics(&stderr),
         })
     }
 

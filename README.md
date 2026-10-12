@@ -38,6 +38,7 @@ Browser                              Vercel                          Rust Playgr
 │ lessons, editor, progress├───────►│ /api/run   /api/check├───────►│ and tests the  │
 │ saved in localStorage    │        │ /api/submit          │        │ learner's code │
 └──────────────────────────┘        │ /api/solution        │        └────────────────┘
+                                    │ /api/format          │
                                     └──────────────────────┘
 ```
 
@@ -86,6 +87,7 @@ VERCEL_DEV_PORT=3002 cargo run --bin check
 VERCEL_DEV_PORT=3003 cargo run --bin run
 VERCEL_DEV_PORT=3004 cargo run --bin submit
 VERCEL_DEV_PORT=3005 cargo run --bin solution
+VERCEL_DEV_PORT=3006 cargo run --bin format
 
 # 2. Frontend: Trunk serves the app on :8080 and proxies each /api/* route to its port.
 #    fetch-fonts.sh downloads Satoshi once (its license doesn't allow committing it).

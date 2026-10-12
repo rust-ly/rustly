@@ -25,6 +25,10 @@ name = "check"
 path = "api/check.rs"
 
 [[bin]]
+name = "format"
+path = "api/format.rs"
+
+[[bin]]
 name = "run"
 path = "api/run.rs"
 

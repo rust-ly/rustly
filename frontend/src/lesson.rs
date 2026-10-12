@@ -193,6 +193,34 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
             });
         });
     };
+    let formatting = RwSignal::new(false);
+    let format = move |_| {
+        formatting.set(true);
+        let sent = code.get_untracked();
+        spawn_local(async move {
+            let result = api::format(sent.clone()).await;
+            formatting.set(false);
+            // Typing while rustfmt worked wins over its answer.
+            if code.get_untracked() != sent {
+                return;
+            }
+            match result {
+                Ok(r) if r.formatted => code.set(r.code),
+                Ok(r) => {
+                    let id = check.next();
+                    if check.is_latest(id) {
+                        check.show(r.diagnostics);
+                    }
+                    state.set(RunState::Failed(
+                        "Couldn't format: rustfmt needs code without syntax errors. Fix the problem shown above first."
+                            .to_string(),
+                    ));
+                }
+                Err(message) => state.set(RunState::Failed(message)),
+            }
+        });
+    };
+    let busy = move || running() || formatting.get();
     let reset = move |_| {
         code.set(starter.clone());
         state.set(RunState::Idle);
@@ -208,8 +236,11 @@ fn ExercisePanel(label: &'static str, exercise: &'static Exercise) -> impl IntoV
             <div class="exercise-actions">
                 <CheckChip check=check />
                 <span class="editor-keys small muted">"esc leaves the editor"</span>
-                <button class="btn btn-secondary btn-sm" on:click=reset disabled=running>"./reset"</button>
-                <button class="btn btn-sm" on:click=run disabled=running>
+                <button class="btn btn-secondary btn-sm" on:click=format disabled=busy title="Tidy the code with rustfmt">
+                    {move || if formatting.get() { "formatting…" } else { "./fmt" }}
+                </button>
+                <button class="btn btn-secondary btn-sm" on:click=reset disabled=busy>"./reset"</button>
+                <button class="btn btn-sm" on:click=run disabled=busy>
                     {move || if running() { "running…" } else { "./run" }}
                 </button>
                 <SubmitButton exercise=exercise code=code state=submit />

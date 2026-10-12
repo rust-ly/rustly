@@ -57,6 +57,16 @@ pub struct RunResponse {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+/// Response of `/api/format`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FormatResponse {
+    /// False when rustfmt couldn't parse the code; `code` is then unchanged.
+    pub formatted: bool,
+    pub code: String,
+    /// Why rustfmt couldn't parse the code.
+    pub diagnostics: Vec<Diagnostic>,
+}
+
 /// One hidden test and whether it passed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TestCase {

@@ -1,4 +1,5 @@
-//! A small client for the Rust Playground's `/execute` and `/clippy` endpoints.
+//! A small client for the Rust Playground's `/execute`, `/clippy` and `/format`
+//! endpoints.
 //!
 //! The Playground has no formal API contract. The field names here were checked
 //! against play.rust-lang.org; note that `/execute` answers with `exitDetail` and
@@ -7,6 +8,7 @@
 use std::fmt;
 use std::time::Duration;
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_URL: &str = "https://play.rust-lang.org";
@@ -38,6 +40,13 @@ struct ClippyRequest<'a> {
     code: &'a str,
 }
 
+#[derive(Debug, Serialize)]
+struct FormatRequest<'a> {
+    channel: &'static str,
+    edition: &'static str,
+    code: &'a str,
+}
+
 /// What the Playground sends back from a build or run.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Output {
@@ -48,6 +57,17 @@ pub struct Output {
     /// Program output, or the test report when tests are run.
     pub stdout: String,
     /// Cargo and rustc output, plus anything the program writes to stderr.
+    pub stderr: String,
+}
+
+/// What the Playground sends back from rustfmt.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Formatted {
+    /// False when rustfmt couldn't parse the code.
+    pub success: bool,
+    /// The formatted code, or the original code when `success` is false.
+    pub code: String,
+    /// rustfmt's parse errors.
     pub stderr: String,
 }
 
@@ -121,7 +141,16 @@ impl PlaygroundClient {
         self.post("clippy", &clippy_request(code)).await
     }
 
-    async fn post(&self, endpoint: &str, body: &impl Serialize) -> Result<Output, Error> {
+    /// Runs rustfmt on `code`.
+    pub async fn format(&self, code: &str) -> Result<Formatted, Error> {
+        self.post("format", &format_request(code)).await
+    }
+
+    async fn post<R: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        body: &impl Serialize,
+    ) -> Result<R, Error> {
         let url = format!("{}/{endpoint}", self.base_url);
         let response = self
             .http
@@ -155,6 +184,14 @@ fn clippy_request(code: &str) -> ClippyRequest<'_> {
     }
 }
 
+fn format_request(code: &str) -> FormatRequest<'_> {
+    FormatRequest {
+        channel: "stable",
+        edition: "2024",
+        code,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,6 +221,26 @@ mod tests {
             body,
             json!({"channel": "stable", "edition": "2024", "crateType": "bin", "code": "fn main() {}"})
         );
+    }
+
+    #[test]
+    fn format_request_matches_playground_fields() {
+        let body = serde_json::to_value(format_request("fn main(){}")).unwrap();
+        assert_eq!(
+            body,
+            json!({"channel": "stable", "edition": "2024", "code": "fn main(){}"})
+        );
+    }
+
+    #[test]
+    fn reads_a_format_response() {
+        // Checked against play.rust-lang.org/format.
+        let formatted: Formatted = serde_json::from_str(
+            r#"{"success":true,"exitDetail":"Exited with status 0","code":"fn main() {}\n","stdout":"","stderr":""}"#,
+        )
+        .unwrap();
+        assert!(formatted.success);
+        assert_eq!(formatted.code, "fn main() {}\n");
     }
 
     #[test]

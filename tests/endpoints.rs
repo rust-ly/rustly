@@ -2,6 +2,7 @@ mod common;
 
 use common::FakePlayground;
 use rustly_api::{Api, MAX_CODE_BYTES};
+use serde_json::json;
 use shared::{CodeRequest, SOLUTION_AFTER_FAILS, Severity, SolutionRequest, SubmitRequest};
 
 const ONE_ERROR: &str = include_str!("../crates/runner/tests/fixtures/one_error.stderr");
@@ -48,6 +49,42 @@ async fn run_executes_without_tests() {
 }
 
 #[tokio::test]
+async fn format_returns_the_tidied_code() {
+    let body = json!({"success": true, "exitDetail": "", "code": "fn main() {}\n", "stdout": "", "stderr": ""});
+    let playground = FakePlayground::with_status(200, body.to_string()).await;
+    let api = Api::new(playground.client());
+
+    let res = api.format(code("fn main(){}")).await.unwrap();
+
+    assert!(res.formatted);
+    assert_eq!(res.code, "fn main() {}\n");
+    assert!(res.diagnostics.is_empty());
+    let sent = playground.received();
+    assert_eq!(sent[0].0, "/format");
+    assert_eq!(sent[0].1["code"], "fn main(){}");
+}
+
+#[tokio::test]
+async fn format_keeps_unparsable_code_and_says_where() {
+    // Real play.rust-lang.org/format output for `fn main({`.
+    let stderr = "error: this file contains an unclosed delimiter\n --> /playground/src/main.rs:1:10\n  |\n1 | fn main({\n  |        --^\n  |        ||\n  |        |unclosed delimiter\n  |        unclosed delimiter\n\n";
+    let body = json!({"success": false, "exitDetail": "", "code": "fn main({", "stdout": "", "stderr": stderr});
+    let playground = FakePlayground::with_status(200, body.to_string()).await;
+    let api = Api::new(playground.client());
+
+    let res = api.format(code("fn main({")).await.unwrap();
+
+    assert!(!res.formatted);
+    assert_eq!(res.code, "fn main({");
+    assert_eq!(res.diagnostics.len(), 1);
+    assert_eq!(
+        res.diagnostics[0].message,
+        "this file contains an unclosed delimiter"
+    );
+    assert_eq!((res.diagnostics[0].line, res.diagnostics[0].col), (1, 10));
+}
+
+#[tokio::test]
 async fn oversized_code_is_413_and_never_sent() {
     let playground = FakePlayground::answering(true, "", "").await;
     let api = Api::new(playground.client());
@@ -55,6 +92,7 @@ async fn oversized_code_is_413_and_never_sent() {
     let big = "a".repeat(MAX_CODE_BYTES + 1);
     assert_eq!(api.check(code(&big)).await.unwrap_err().status, 413);
     assert_eq!(api.run(code(&big)).await.unwrap_err().status, 413);
+    assert_eq!(api.format(code(&big)).await.unwrap_err().status, 413);
     assert!(playground.received().is_empty());
 }
 
