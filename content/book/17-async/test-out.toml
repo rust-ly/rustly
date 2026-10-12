@@ -1,0 +1,134 @@
+id = "book.async.test-out"
+kind = "test-out"
+title = "Waiting well"
+prompt = '''
+Already know futures, `join!`, `select!` and async channels? Pass this to
+complete the whole chapter.
+
+`fetch(name, ms)` is given: it waits `ms` milliseconds, then returns `name`.
+Write three async functions:
+
+1. `fetch_both(a_ms, b_ms) -> (String, String)`: fetch `"a"` and `"b"` **at
+   the same time**, so the total wait is the longer of the two, not their sum.
+2. `first_back(a_ms, b_ms) -> String`: start fetching `"a"` and `"b"` and
+   return whichever finishes first. If they tie, `"a"` wins.
+3. `sum_messages(n) -> u64`: spawn a task that sends the numbers `1` to `n` down
+   a `tokio::sync::mpsc` channel, receive them until the channel closes, and
+   return their total.
+'''
+starter = '''
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::sleep;
+
+async fn fetch(name: &str, ms: u64) -> String {
+    sleep(Duration::from_millis(ms)).await;
+    name.to_string()
+}
+
+async fn fetch_both(a_ms: u64, b_ms: u64) -> (String, String) {
+    let a = fetch("a", a_ms).await;
+    let b = fetch("b", b_ms).await;
+    (a, b)
+}
+
+async fn first_back(a_ms: u64, b_ms: u64) -> String {
+    todo!()
+}
+
+async fn sum_messages(n: u64) -> u64 {
+    todo!()
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{:?}", fetch_both(30, 20).await);
+    println!("{}", first_back(30, 20).await);
+    println!("{}", sum_messages(10).await);
+}
+'''
+hidden_tests = '''
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Instant;
+
+    #[tokio::test(start_paused = true)]
+    async fn fetches_both_at_the_same_time() {
+        let start = Instant::now();
+        assert_eq!(fetch_both(300, 200).await, ("a".to_string(), "b".to_string()));
+        let waited = start.elapsed().as_millis();
+        assert!(waited < 400, "waited {waited}ms: the two fetches should overlap");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn returns_the_first_one_back() {
+        assert_eq!(first_back(300, 200).await, "b");
+        assert_eq!(first_back(100, 200).await, "a");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_wins_a_tie_and_nobody_waits_for_the_loser() {
+        let start = Instant::now();
+        assert_eq!(first_back(50, 50).await, "a");
+        assert_eq!(first_back(10, 10_000).await, "a");
+        assert!(start.elapsed().as_millis() < 1_000, "shouldn't wait for the slower fetch");
+    }
+
+    #[tokio::test]
+    async fn sums_every_message() {
+        assert_eq!(sum_messages(10).await, 55);
+        assert_eq!(sum_messages(1000).await, 500_500);
+        assert_eq!(sum_messages(0).await, 0);
+    }
+}
+'''
+hints = [
+  "`tokio::join!(fetch(\"a\", a_ms), fetch(\"b\", b_ms))` runs both futures at once and gives you a tuple of their results.",
+  "`tokio::select!` returns from whichever branch finishes first and drops the other. Put `biased;` first so the `a` branch is checked first when both are ready.",
+  "For `sum_messages`, `let (tx, mut rx) = mpsc::channel(16);` then `tokio::spawn(async move { for i in 1..=n { tx.send(i).await.unwrap(); } });`. The task owns `tx`, so the channel closes when it ends.",
+  "`while let Some(value) = rx.recv().await { total += value; }` stops when the channel closes.",
+]
+solution = '''
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::sleep;
+
+async fn fetch(name: &str, ms: u64) -> String {
+    sleep(Duration::from_millis(ms)).await;
+    name.to_string()
+}
+
+async fn fetch_both(a_ms: u64, b_ms: u64) -> (String, String) {
+    tokio::join!(fetch("a", a_ms), fetch("b", b_ms))
+}
+
+async fn first_back(a_ms: u64, b_ms: u64) -> String {
+    tokio::select! {
+        biased;
+        a = fetch("a", a_ms) => a,
+        b = fetch("b", b_ms) => b,
+    }
+}
+
+async fn sum_messages(n: u64) -> u64 {
+    let (tx, mut rx) = mpsc::channel(16);
+    tokio::spawn(async move {
+        for i in 1..=n {
+            tx.send(i).await.unwrap();
+        }
+    });
+    let mut total = 0;
+    while let Some(value) = rx.recv().await {
+        total += value;
+    }
+    total
+}
+
+#[tokio::main]
+async fn main() {
+    println!("{:?}", fetch_both(30, 20).await);
+    println!("{}", first_back(30, 20).await);
+    println!("{}", sum_messages(10).await);
+}
+'''
